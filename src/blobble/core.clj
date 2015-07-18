@@ -42,6 +42,17 @@
     (multihash/sha1 content)))
 
 
+(defn validate!
+  "Checks that the identifier of a blob matches the actual digest of the
+  content. Throws an exception if the id does not match."
+  [blob]
+  (let [id' (identify (:content blob))]
+    (when (not= (:id blob) id')
+      (throw (IllegalStateException.
+               (str "Invalid blob with id " (:id blob)
+                    " but content digest " id'))))))
+
+
 (defn read!
   "Reads data into memory from the given source and hashes it to identify the
   blob. This can handle any source supported by the byte-streams library."
@@ -111,11 +122,7 @@
   and throws an exception if it does not match."
   [store id]
   (when-let [blob (get* store id)]
-    (let [id' (identify (:content blob))]
-      (when (not= id id')
-        (throw (IllegalStateException.
-                 (str "Store " store " returned invalid content: requested "
-                      id " but got " id')))))
+    (validate! blob)
     blob))
 
 
