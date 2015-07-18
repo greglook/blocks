@@ -1,5 +1,5 @@
-cadstore
-========
+Blobble
+=======
 
 This library implements a Clojure interface for a content-addressed data store.
 Specifically, this tries to implement something similar to
