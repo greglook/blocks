@@ -149,8 +149,8 @@
   (let [{:keys [after prefix limit]} opts
         after (or after prefix)]
     (cond->> ids
-      after  (drop-while #(pos? (compare after (str %))))
-      prefix (take-while #(.startsWith (str %) prefix))
+      after  (drop-while #(pos? (compare after (:digest %))))
+      prefix (take-while #(.startsWith (:digest %) prefix))
       limit  (take limit))))
 
 
