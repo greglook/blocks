@@ -142,15 +142,17 @@
   "Selects hash identifiers from a sequence based on input criteria.
   Available options:
 
+  - `:encoder` function to encode multihashes with (default: `multihash/hex`)
   - `:after`   start enumerating ids lexically following this string
   - `:prefix`  only return ids starting with the given string
   - `:limit`   limit the number of results returned"
   [opts ids]
-  (let [{:keys [after prefix limit]} opts
-        after (or after prefix)]
+  (let [{:keys [prefix limit]} opts
+        encoder (:encoder opts multihash/hex)
+        after (:after opts prefix)]
     (cond->> ids
-      after  (drop-while #(pos? (compare after (:digest %))))
-      prefix (take-while #(.startsWith (:digest %) prefix))
+      after  (drop-while #(pos? (compare after (encoder %))))
+      prefix (take-while #(.startsWith (encoder %) prefix))
       limit  (take limit))))
 
 

@@ -30,16 +30,16 @@
 
 
 (deftest hash-id-selection
-  (let [a (multihash/create :sha1 "37b51d194a7513e45b56f6524f2d51f2")
-        b (multihash/create :sha1 "73fcffa4b7f6bb68e44cf984c85f6e88")
-        c (multihash/create :sha1 "73fe285cedef654fccc4a4d818db4cc2")
-        d (multihash/create :sha1 "acbd18db4cc2f85cedef654fccc4a4d8")
-        e (multihash/create :sha1 "c3c23db5285662ef7172373df0003206")
+  (let [a (multihash/create :sha1 "37b51d194a7513e45b56f6524f2d51f200000000")
+        b (multihash/create :sha1 "73fcffa4b7f6bb68e44cf984c85f6e888843d7f9")
+        c (multihash/create :sha1 "73fe285cedef654fccc4a4d818db4cc225932878")
+        d (multihash/create :sha1 "acbd18db4cc2f856211de9ecedef654fccc4a4d8")
+        e (multihash/create :sha1 "c3c23db5285662ef717963ff4ce2373df0003206")
         hash-ids [a b c d e]]
     (are [brs opts] (= brs (blob/select-ids opts hash-ids))
          hash-ids {}
-         [c d e]  {:after "73fd2"}
-         [b c]    {:prefix "73"}
+         [c d e]  {:after "111473fd2"}
+         [b c]    {:prefix "111473"}
          [a b]    {:limit 2})))
 
 
