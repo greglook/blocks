@@ -20,7 +20,8 @@
     [blobble.core :as blob]
     [clojure.java.io :as io]
     [clojure.string :as string]
-    [multihash.core :as multihash])
+    [multihash.core :as multihash]
+    [multihash.hex :as hex])
   (:import
     java.io.File
     java.util.Date))
@@ -33,13 +34,14 @@
   identifier."
   ^File
   [root id]
-  (let [{:keys [algorithm digest]} id]
+  (let [algorithm (:algorithm id)
+        digest (hex/encode (:digest id))]
     (io/file
       root
       (name algorithm)
       (subs digest 0 3)
       (subs digest 3 6)
-      (multihash/encode-hex id))))
+      (multihash/hex id))))
 
 
 (defn- file->id
