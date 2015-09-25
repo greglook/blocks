@@ -39,7 +39,7 @@
   "Constructs a multihash for the given content."
   [content]
   (when content
-    (multihash/sha1 content)))
+    (multihash/sha2-256 content)))
 
 
 (defn validate!
