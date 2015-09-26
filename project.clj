@@ -6,6 +6,9 @@
 
   :deploy-branches ["master"]
 
+  :plugins
+  [[lein-cloverage "1.0.2"]]
+
   :dependencies
   [[byte-streams "0.1.13"]
    [mvxcvi/multihash "0.2.0-SNAPSHOT"]
