@@ -138,7 +138,7 @@
       (when-not (.exists file)
         (io/make-parents file)
         ; For some reason, io/copy is much faster than byte-streams/transfer here.
-        (io/copy content file)
+        (io/copy (blob/open blob) file)
         (.setWritable file false false))
       (merge blob (blob-stats file))))
 

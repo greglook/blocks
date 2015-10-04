@@ -12,19 +12,24 @@
     [byte-streams :as bytes]
     [multihash.core :as multihash])
   (:import
+    java.nio.ByteBuffer
     multihash.core.Multihash))
 
 
 ;; ## Blob Record
 
-;; Blobs have `:content` and `:id` attributes, giving a byte array of binary
-;; data and a `Multihash` of that content.
+;; Blobs have the following two primary attributes:
+;;
+;;
+;; - `:id`        `Multihash` with the digest identifying the content
+;; - `:content`   read-only Java `ByteBuffer` with opaque content
 ;;
 ;; Blobs may be given other attributes describing their content. This is used
 ;; by blob stores to note storage-level 'stat' metadata, and in the data layer
 ;; to hold deserialized values and type information.
 (defrecord Blob
-  [id ^bytes content])
+  [^Multihash id
+   ^ByteBuffer content])
 
 
 (defn empty-blob
@@ -35,22 +40,41 @@
   (Blob. id nil))
 
 
+(def ^:dynamic *hash-fn*
+  "Function to use to produce multihash values."
+  multihash/sha2-256)
+
+
+(defmacro with-algorithm
+  "Executes body with the hash algorithm bound to the given function."
+  [fn-sym & body]
+  `(binding [*hash-fn* ~fn-sym]
+     ~@body))
+
+
 (defn identify
   "Constructs a multihash for the given content."
   [content]
   (when content
-    (multihash/sha2-256 content)))
+    (*hash-fn* content)))
+
+
+(defn size
+  "Determine the number of bytes stored in a blob."
+  [blob]
+  (when-let [content (:content blob)]
+    (.capacity content)))
 
 
 (defn validate!
   "Checks that the identifier of a blob matches the actual digest of the
   content. Throws an exception if the id does not match."
   [blob]
-  (let [id' (identify (:content blob))]
-    (when (not= (:id blob) id')
+  (let [{:keys [id content]} blob]
+    (when-not (multihash/test id content)
       (throw (IllegalStateException.
-               (str "Invalid blob with id " (:id blob)
-                    " but content digest " id'))))))
+               (str "Invalid blob with content " content
+                    " but id " id))))))
 
 
 (defn read!
@@ -59,7 +83,8 @@
   [source]
   (let [content (bytes/to-byte-array source)]
     (when-not (empty? content)
-      (Blob. (identify content) content))))
+      (Blob. (identify content)
+             (.asReadOnlyBuffer (ByteBuffer/wrap content))))))
 
 
 (defn write!
@@ -67,6 +92,13 @@
   [blob sink]
   (when-let [content (:content blob)]
     (bytes/transfer content sink)))
+
+
+(defn open
+  "Opens an input stream to read the content of the blob."
+  [blob]
+  (.rewind (:content blob))
+  (bytes/to-input-stream (:content blob)))
 
 
 

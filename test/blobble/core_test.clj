@@ -4,10 +4,12 @@
     (blobble.store
       [file :refer [file-store]]
       [memory :refer [memory-store]])
-    [byte-streams :refer [bytes=]]
+    [byte-streams :as bytes :refer [bytes=]]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
-    [multihash.core :as multihash]))
+    [multihash.core :as multihash])
+  (:import
+    java.nio.ByteBuffer))
 
 
 ;; ## Storage Function Tests
@@ -19,14 +21,15 @@
 
 
 (deftest checked-get
-  (let [content (.getBytes "foobarbaz")
-        id (blob/identify content)
-        store (reify blob/BlobStore (get* [this id] (blob/read! content)))
+  (let [content "foobarbaz"
+        blob (blob/read! content)
+        id (multihash/sha1 "bazbarfoo")
+        store (reify blob/BlobStore (get* [this id] (assoc blob :id id)))
         blob (blob/get* store id)]
     (is (= id (:id blob)))
     (is (bytes= content (:content blob)))
     (is (thrown? RuntimeException
-                 (blob/get store (blob/identify "bazbarfoo"))))))
+                 (blob/get store (:id blob))))))
 
 
 (deftest hash-id-selection
@@ -59,10 +62,13 @@
   "Determines whether the store contains the content for the given identifier."
   [store id content]
   (let [status (blob/stat store id)
-        stored-content (:content (blob/get store id))]
+        blob (blob/get store id)
+        stored-content (:content blob)]
     (is (and status stored-content) "returns info and content")
-    (is (= (:stat/size status) (count stored-content)) "stats contain size info")
-    (is (= content (slurp stored-content)) "stored content matches input")))
+    (is (instance? ByteBuffer stored-content))
+    (is (= (:stat/size status) (blob/size blob)) "stats contain size info")
+    (.rewind stored-content)
+    (is (= content (slurp (bytes/to-input-stream stored-content))) "stored content matches input")))
 
 
 (defn- test-restore-blob
