@@ -59,12 +59,6 @@
     (*hash-fn* content)))
 
 
-(defn size
-  "Determine the number of bytes stored in a blob."
-  [blob]
-  (when-let [content (:content blob)]
-    (.capacity content)))
-
 
 (defn validate!
   "Checks that the identifier of a blob matches the actual digest of the
@@ -186,6 +180,15 @@
       after  (drop-while #(pos? (compare after (encoder %))))
       prefix (take-while #(.startsWith (encoder %) prefix))
       limit  (take limit))))
+
+
+(defn size
+  "Determine the number of bytes stored in a blob."
+  [blob]
+  (or
+    (when-let [content (:content blob)]
+      (.capacity content))
+    (:stat/size blob)))
 
 
 (defn scan-size
