@@ -147,6 +147,9 @@
   This function checks the digest of the loaded content against the requested multihash,
   and throws an exception if it does not match."
   [store id]
+  (when-not (instance? multihash.core.Multihash id)
+    (throw (IllegalArgumentException.
+             (str "Id value " (pr-str id) " is not a multihash."))))
   (when-let [blob (get* store id)]
     (validate! blob)
     blob))
