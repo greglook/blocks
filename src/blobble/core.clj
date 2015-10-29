@@ -20,7 +20,6 @@
 
 ;; Blobs have the following two primary attributes:
 ;;
-;;
 ;; - `:id`        `Multihash` with the digest identifying the content
 ;; - `:content`   read-only Java `ByteBuffer` with opaque content
 ;;
@@ -91,7 +90,7 @@
 (defn open
   "Opens an input stream to read the content of the blob."
   [blob]
-  (.rewind (:content blob))
+  (.rewind ^ByteBuffer (:content blob))
   (bytes/to-input-stream (:content blob)))
 
 
@@ -181,7 +180,7 @@
         after (:after opts prefix)]
     (cond->> ids
       after  (drop-while #(pos? (compare after (encoder %))))
-      prefix (take-while #(.startsWith (encoder %) prefix))
+      prefix (take-while #(.startsWith ^String (encoder %) prefix))
       limit  (take limit))))
 
 
@@ -190,7 +189,7 @@
   [blob]
   (or
     (when-let [content (:content blob)]
-      (.capacity content))
+      (.capacity ^ByteBuffer content))
     (:stat/size blob)))
 
 
