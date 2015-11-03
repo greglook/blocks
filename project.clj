@@ -1,10 +1,12 @@
-(defproject mvxcvi/blocks "0.1.0-SNAPSHOT"
+(defproject mvxcvi/blocks "0.3.0-SNAPSHOT"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blobble"
   :license {:name "Public Domain"
             :url "http://unlicense.org/"}
 
   :deploy-branches ["master"]
+
+  :java-source-paths ["src"]
 
   :plugins
   [[lein-cloverage "1.0.2"]]
