@@ -32,7 +32,7 @@
                "Cannot find hash function without algorithm name"))
 
     (keyword? algorithm)
-      (if-let [hf (get multihash/functions algorithm)]
+      (if-let [hf (clojure.core/get multihash/functions algorithm)]
         hf
         (throw (IllegalArgumentException.
                  (str "Cannot map algorithm name " algorithm

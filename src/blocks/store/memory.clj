@@ -1,33 +1,34 @@
-(ns blobble.store.memory
-  "Blob storage backed by an atom in memory."
+(ns blocks.store.memory
+  "Block storage backed by an atom in memory."
   (:require
-    [blobble.core :as blob]))
+    [blocks.core :as block]
+    [multihash.core :as multihash]))
 
 
-(defn- blob-stats
-  "Augments a blob with stat metadata."
-  [blob]
-  (assoc blob
-    :stat/size (blob/size blob)
-    :stat/stored-at (or (:stat/stored-at blob)
+(defn- block-stats
+  "Augments a block with stat metadata."
+  [block]
+  (assoc block
+    :stat/size (block/size block)
+    :stat/stored-at (or (:stat/stored-at block)
                         (java.util.Date.))))
 
 
-;; Blob records in a memory store are held in a map in an atom.
-(defrecord MemoryBlobStore
+;; Block records in a memory store are held in a map in an atom.
+(defrecord MemoryBlockStore
   [memory]
 
-  blob/BlobStore
+  block/BlockStore
 
   (enumerate
     [this opts]
-    (blob/select-ids opts (keys @memory)))
+    (multihash/select opts (keys @memory)))
 
 
   (stat
     [this id]
-    (when-let [blob (get @memory id)]
-      (dissoc blob :content)))
+    (when-let [block (get @memory id)]
+      (dissoc block :content)))
 
 
   (get*
@@ -36,12 +37,12 @@
 
 
   (put!
-    [this blob]
-    (if-let [id (:id blob)]
+    [this block]
+    (if-let [id (:id block)]
       (or (get @memory id)
-          (let [blob (blob-stats blob)]
-            (swap! memory assoc id blob)
-            blob))))
+          (let [block (block-stats block)]
+            (swap! memory assoc id block)
+            block))))
 
 
   (delete!
@@ -55,6 +56,6 @@
 
 
 (defn memory-store
-  "Creates a new in-memory blob store."
+  "Creates a new in-memory block store."
   []
-  (MemoryBlobStore. (atom (sorted-map) :validator map?)))
+  (MemoryBlockStore. (atom (sorted-map) :validator map?)))
