@@ -42,7 +42,7 @@ public class PersistentBytes implements IHashEq, Indexed, Iterable, Seqable, Seq
         if ( data == null ) {
             throw new IllegalArgumentException("Cannot construct persistent byte sequence on null data.");
         }
-        _data = Arrays.copyOf(data, data.length);
+        _data = data;
     }
 
 
@@ -72,29 +72,6 @@ public class PersistentBytes implements IHashEq, Indexed, Iterable, Seqable, Seq
             return null;
         }
         return new PersistentBytes(Arrays.copyOf(data, data.length));
-    }
-
-
-
-    ///// IO Methods /////
-
-    /**
-     * Opens an input stream to read the content.
-     *
-     * @return initialized input stream
-     */
-    public InputStream open() {
-        return new ByteArrayInputStream(_data);
-    }
-
-
-    /**
-     * Creates a buffer view of the content.
-     *
-     * @return read-only ByteBuffer
-     */
-    public ByteBuffer toBuffer() {
-        return ByteBuffer.wrap(_data).asReadOnlyBuffer();
     }
 
 
@@ -143,24 +120,6 @@ public class PersistentBytes implements IHashEq, Indexed, Iterable, Seqable, Seq
 
 
 
-    ///// Iterable /////
-
-    @Override
-    public Iterator iterator() {
-        return ArrayIter.createFromObject(_data);
-    }
-
-
-
-    ///// Seqable /////
-
-    @Override
-    public ISeq seq() {
-        return IteratorSeq.create(iterator());
-    }
-
-
-
     ///// Indexed /////
 
     @Override
@@ -181,6 +140,47 @@ public class PersistentBytes implements IHashEq, Indexed, Iterable, Seqable, Seq
             return nth(i);
         }
         return notFound;
+    }
+
+
+
+    ///// Iterable /////
+
+    @Override
+    public Iterator iterator() {
+        return ArrayIter.createFromObject(_data);
+    }
+
+
+
+    ///// Seqable /////
+
+    @Override
+    public ISeq seq() {
+        return IteratorSeq.create(iterator());
+    }
+
+
+
+    ///// IO Methods /////
+
+    /**
+     * Opens an input stream to read the content.
+     *
+     * @return initialized input stream
+     */
+    public InputStream open() {
+        return new ByteArrayInputStream(_data);
+    }
+
+
+    /**
+     * Creates a buffer view of the content.
+     *
+     * @return read-only ByteBuffer
+     */
+    public ByteBuffer toBuffer() {
+        return ByteBuffer.wrap(_data).asReadOnlyBuffer();
     }
 
 }
