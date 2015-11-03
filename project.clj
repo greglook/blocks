@@ -10,7 +10,7 @@
   [[lein-cloverage "1.0.2"]]
 
   :dependencies
-  [[byte-streams "0.1.13"]
-   [mvxcvi/multihash "0.2.0"]
+  [[byte-streams "0.2.0"]
+   [mvxcvi/multihash "1.0.0"]
    [org.clojure/clojure "1.7.0"]
    [org.clojure/tools.logging "0.3.1"]])
