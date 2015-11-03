@@ -1,12 +1,18 @@
-(ns blobble.core
-  "Blob record and storage protocol functions.
+(ns blocks.core
+  "Block record and storage protocol functions.
 
-  When blobs are returned from a blob store, they may include 'stat' metadata
-  about the blobs:
+  Blocks have the following two primary attributes:
+
+  - `:content`   read-only Java `ByteBuffer` with opaque content
+  - `:id`        `Multihash` with the digest identifying the content
+
+  Blocks may be given other attributes describing their content. When blocks
+  are returned from a block store, they may include 'stat' metadata about the
+  blocks:
 
   - `:stat/size`        content size in bytes
-  - `:stat/stored-at`   time blob was added to the store
-  - `:stat/origin`      resource location for the blob"
+  - `:stat/stored-at`   time block was added to the store
+  - `:stat/origin`      resource location for the block"
   (:refer-clojure :exclude [get list])
   (:require
     [byte-streams :as bytes]
@@ -16,120 +22,137 @@
     multihash.core.Multihash))
 
 
-;; ## Blob Record
+(defn- resolve-hash!
+  "Resolves an algorithm designator to a hash function. Throws an exception on
+  invalid names or error."
+  [algorithm]
+  (cond
+    (nil? algorithm)
+      (throw (IllegalArgumentException.
+               "Cannot find hash function without algorithm name"))
 
-;; Blobs have the following two primary attributes:
-;;
-;; - `:id`        `Multihash` with the digest identifying the content
-;; - `:content`   read-only Java `ByteBuffer` with opaque content
-;;
-;; Blobs may be given other attributes describing their content. This is used
-;; by blob stores to note storage-level 'stat' metadata, and in the data layer
-;; to hold deserialized values and type information.
-(defrecord Blob
+    (keyword? algorithm)
+      (if-let [hf (get multihash/functions algorithm)]
+        hf
+        (throw (IllegalArgumentException.
+                 (str "Cannot map algorithm name " algorithm
+                      " to a supported hash function"))))
+
+    (ifn? algorithm)
+      algorithm
+
+    :else
+      (throw (IllegalArgumentException.
+               (str "Hash algorithm must be keyword name or direct function, got: "
+                    (pr-str algorithm))))))
+
+
+
+;; ## Block Record
+
+; TODO: ideally, id and content should NOT be overwritable.
+(defrecord Block
   [^Multihash id
    ^ByteBuffer content])
 
 
-(defn empty-blob
-  "Constructs a new blob record with the given multihash identifier and no
+(defn empty-block
+  "Constructs a new block record with the given multihash identifier and no
   content."
   [id]
-  {:pre [(instance? Multihash id)]}
-  (Blob. id nil))
+  (when-not (instance? Multihash id)
+    (throw (IllegalArgumentException.
+             (str "Block identifier must be a Multihash, got: " (pr-str id)))))
+  (Block. id nil))
 
 
-(def ^:dynamic *hash-fn*
-  "Function to use to produce multihash values."
-  multihash/sha2-256)
+(defn size
+  "Determine the number of bytes stored in a block."
+  [block]
+  (if-let [content (:content block)]
+    (.capacity ^ByteBuffer content)
+    (:stat/size block)))
 
 
-(defmacro with-algorithm
-  "Executes body with the hash algorithm bound to the given function."
-  [fn-sym & body]
-  `(binding [*hash-fn* ~fn-sym]
-     ~@body))
-
-
-(defn identify
-  "Constructs a multihash for the given content."
-  [content]
-  (when content
-    (*hash-fn* content)))
-
-
-(defn validate!
-  "Checks that the identifier of a blob matches the actual digest of the
-  content. Throws an exception if the id does not match."
-  [blob]
-  (let [{:keys [id content]} blob]
-    (when-not (multihash/test id content)
-      (throw (IllegalStateException.
-               (str "Invalid blob with content " content
-                    " but id " id))))))
+(defn open
+  "Opens an input stream to read the content of the block. This is typically
+  preferable to directly accessing the content."
+  [block]
+  (when-let [content (:content block)]
+    ; TODO: should this create a separate ByteBuffer to avoid multi-thread headaches?
+    ; Need to look at how the input stream gets created.
+    (.rewind ^ByteBuffer content)
+    (bytes/to-input-stream content)))
 
 
 (defn read!
   "Reads data into memory from the given source and hashes it to identify the
-  blob. This can handle any source supported by the byte-streams library."
-  [source]
-  (let [content (bytes/to-byte-array source)]
-    (when-not (empty? content)
-      (Blob. (identify content)
-             (.asReadOnlyBuffer (ByteBuffer/wrap content))))))
+  block. This can handle any source supported by the byte-streams library.
+  Defaults to sha2-256 if no algorithm is specified."
+  ([source]
+   (read! source :sha2-256))
+  ([source algorithm]
+   (let [hash-fn (resolve-hash! algorithm)
+         content (bytes/to-byte-array source)]
+     (when-not (empty? content)
+       (Block. (hash-fn content)
+               (.asReadOnlyBuffer (ByteBuffer/wrap content)))))))
 
 
 (defn write!
-  "Writes blob data to a byte stream."
-  [blob sink]
-  (when-let [content (:content blob)]
+  "Writes block data to an output stream."
+  [block sink]
+  (when-let [content (open block)]
     (bytes/transfer content sink)))
 
 
-(defn open
-  "Opens an input stream to read the content of the blob."
-  [blob]
-  (when-let [content (:content blob)]
-    (.rewind ^ByteBuffer content)
-    (bytes/to-input-stream content)))
+(defn validate!
+  "Checks that the identifier of a block matches the actual digest of the
+  content. Throws an exception if the id does not match."
+  [block]
+  (let [{:keys [id content]} block]
+    (when-not (multihash/test id content)
+      (throw (IllegalStateException.
+               (str "Invalid block with content " content
+                    " but id " id))))))
 
 
 
 ;; ## Storage Interface
 
-(defprotocol BlobStore
+(defprotocol BlockStore
   "Protocol for content storage keyed by hash identifiers."
 
   (enumerate
     [store opts]
-    "Enumerates the ids of the stored blobs with some filtering options. The
+    "Enumerates the ids of the stored blocks with some filtering options. The
     'list' function provides a nicer wrapper around this protocol method.")
 
   (stat
     [store id]
-    "Returns a blob record with metadata but no content.")
+    "Returns a block record with metadata but no content.")
 
   (get*
     [store id]
-    "Loads content for a hash-id and returns a blob record. Returns nil if no
-    blob is stored. The blob should include stat metadata.")
+    "Loads content for a hash-id and returns a block record. Returns nil if no
+    block is stored. The block should include stat metadata.")
 
   (put!
-    [store blob]
-    "Saves a blob into the store. Returns the blob record, updated with stat
+    [store block]
+    "Saves a block into the store. Returns the block record, updated with stat
     metadata.")
 
   (delete!
     [store id]
-    "Removes a blob from the store.")
+    "Removes a block from the store.")
 
   (erase!!
     [store]
-    "Removes all blobs from the store."))
+    "Removes all blocks from the store."))
 
 
 (defn list
-  "Enumerates the stored blobs, returning a sequence of multihashes.
+  "Enumerates the stored blocks, returning a sequence of multihashes.
   See `select-ids` for the available query options."
   ([store]
    (enumerate store nil))
@@ -140,60 +163,32 @@
 
 
 (defn get
-  "Loads content for a multihash and returns a blob record. Returns nil if no
-  blob is stored. The blob should include stat metadata.
+  "Loads content for a multihash and returns a block record. Returns nil if no
+  block is stored. The block should include stat metadata.
 
   This function checks the digest of the loaded content against the requested multihash,
   and throws an exception if it does not match."
   [store id]
-  (when-not (instance? multihash.core.Multihash id)
+  (when-not (instance? Multihash id)
     (throw (IllegalArgumentException.
-             (str "Id value " (pr-str id) " is not a multihash."))))
-  (when-let [blob (get* store id)]
-    (validate! blob)
-    blob))
+             (str "Id value must be a multihash, got: " (pr-str id)))))
+  (when-let [block (get* store id)]
+    (validate! block)
+    block))
 
 
 (defn store!
-  "Stores content from a byte source in a blob store and returns the blob
+  "Stores content from a byte source in a block store and returns the block
   record. This method accepts any source which can be handled as a byte
   stream by the byte-streams library."
   [store source]
-  (when-let [blob (read! source)]
-    (put! store blob)))
-
-
-
-;; ## Utility Functions
-
-(defn select-ids
-  "Selects hash identifiers from a sequence based on input criteria.
-  Available options:
-
-  - `:encoder` function to encode multihashes with (default: `multihash/hex`)
-  - `:after`   start enumerating ids lexically following this string
-  - `:prefix`  only return ids starting with the given string
-  - `:limit`   limit the number of results returned"
-  [opts ids]
-  (let [{:keys [prefix limit]} opts
-        encoder (:encoder opts multihash/hex)
-        after (:after opts prefix)]
-    (cond->> ids
-      after  (drop-while #(pos? (compare after (encoder %))))
-      prefix (take-while #(.startsWith ^String (encoder %) prefix))
-      limit  (take limit))))
-
-
-(defn size
-  "Determine the number of bytes stored in a blob."
-  [blob]
-  (or
-    (when-let [content (:content blob)]
-      (.capacity ^ByteBuffer content))
-    (:stat/size blob)))
+  (when-let [block (read! source)]
+    (put! store block)))
 
 
 (defn scan-size
-  "Scans the blobs in a store to determine the total stored content size."
+  "Scans the blocks in a store to determine the total stored content size."
   [store]
-  (reduce + 0 (map (comp :stat/size (partial stat store)) (list store))))
+  (->> (list store)
+       (map (comp size (partial stat store)))
+       (reduce + 0N)))
