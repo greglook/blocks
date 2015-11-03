@@ -58,7 +58,6 @@
     (*hash-fn* content)))
 
 
-
 (defn validate!
   "Checks that the identifier of a blob matches the actual digest of the
   content. Throws an exception if the id does not match."
@@ -90,8 +89,9 @@
 (defn open
   "Opens an input stream to read the content of the blob."
   [blob]
-  (.rewind ^ByteBuffer (:content blob))
-  (bytes/to-input-stream (:content blob)))
+  (when-let [content (:content blob)]
+    (.rewind ^ByteBuffer content)
+    (bytes/to-input-stream content)))
 
 
 
