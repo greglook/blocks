@@ -1,9 +1,9 @@
-Blobble
-=======
+Block Storage
+=============
 
 This library implements a Clojure interface for a content-addressed data store.
 Specifically, this tries to implement something similar to
-[ipfs](https://github.com/ipfs/ipfs)'s blob storage layer.
+[ipfs](https://github.com/ipfs/ipfs)'s block storage layer.
 
 ## License
 
