@@ -9,7 +9,7 @@
   :java-source-paths ["src"]
 
   :plugins
-  [[lein-cloverage "1.0.2"]]
+  [[lein-cloverage "1.0.6"]]
 
   :dependencies
   [[byte-streams "0.2.0"]
