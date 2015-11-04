@@ -1,6 +1,11 @@
 Block Storage
 =============
 
+[![Dependency Status](https://www.versioneye.com/clojure/mvxcvi:blocks/badge.svg)](https://www.versioneye.com/clojure/mvxcvi:blocks)
+[![Build Status](https://travis-ci.org/greglook/blocks.svg?branch=develop)](https://travis-ci.org/greglook/blocks)
+[![Coverage Status](https://coveralls.io/repos/greglook/blocks/badge.svg?branch=develop&service=github)](https://coveralls.io/github/greglook/blocks?branch=develop)
+[![Join the chat at https://gitter.im/greglook/blocks](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/greglook/blocks)
+
 This library implements a Clojure interface for a content-addressed data store.
 Specifically, this tries to implement something similar to
 [ipfs](https://github.com/ipfs/ipfs)'s block storage layer.
