@@ -9,7 +9,7 @@
     [clojure.test :refer :all]
     [multihash.core :as multihash])
   (:import
-    java.nio.ByteBuffer))
+    blocks.data.PersistentBytes))
 
 
 ;; ## Storage Function Tests
@@ -66,9 +66,8 @@
         block (block/get store id)
         stored-content (:content block)]
     (is (and status stored-content) "returns info and content")
-    (is (instance? ByteBuffer stored-content))
+    (is (instance? PersistentBytes stored-content))
     (is (= (:stat/size status) (block/size block)) "stats contain size info")
-    (.rewind stored-content)
     (is (= content (slurp (bytes/to-input-stream stored-content))) "stored content matches input")))
 
 

@@ -3,8 +3,8 @@
 
   Blocks have the following two primary attributes:
 
-  - `:content`   read-only Java `ByteBuffer` with opaque content
   - `:id`        `Multihash` with the digest identifying the content
+  - `:content`   `PersistentBytes` with opaque content
 
   Blocks may be given other attributes describing their content. When blocks
   are returned from a block store, they may include 'stat' metadata about the
@@ -23,6 +23,8 @@
     java.nio.ByteBuffer
     multihash.core.Multihash))
 
+
+;; ## PersistentBytes Utilities
 
 (bytes/def-conversion [PersistentBytes ByteBuffer]
   [data options]
@@ -65,10 +67,9 @@
 
 ;; ## Block Record
 
-; TODO: ideally, id and content should NOT be overwritable.
 (defrecord Block
   [^Multihash id
-   ^ByteBuffer content])
+   ^PersistentBytes content])
 
 
 (defn empty-block
@@ -85,25 +86,20 @@
   "Determine the number of bytes stored in a block."
   [block]
   (if-let [content (:content block)]
-    (.capacity ^ByteBuffer content)
+    (count content)
     (:stat/size block)))
 
 
 (defn open
-  "Opens an input stream to read the content of the block. This is typically
-  preferable to directly accessing the content."
+  "Opens an input stream to read the content of the block."
   [block]
   (when-let [content (:content block)]
-    ; TODO: should this create a separate ByteBuffer to avoid multi-thread headaches?
-    ; Need to look at how the input stream gets created.
-    (.rewind ^ByteBuffer content)
-    (bytes/to-input-stream content)))
+    (.open ^PersistentBytes content)))
 
 
 (defn read!
   "Reads data into memory from the given source and hashes it to identify the
-  block. This can handle any source supported by the byte-streams library.
-  Defaults to sha2-256 if no algorithm is specified."
+  block. Defaults to sha2-256 if no algorithm is specified."
   ([source]
    (read! source :sha2-256))
   ([source algorithm]
@@ -111,7 +107,7 @@
          content (bytes/to-byte-array source)]
      (when-not (empty? content)
        (Block. (hash-fn content)
-               (.asReadOnlyBuffer (ByteBuffer/wrap content)))))))
+               (PersistentBytes/wrap content))))))
 
 
 (defn write!
@@ -126,7 +122,7 @@
   content. Throws an exception if the id does not match."
   [block]
   (let [{:keys [id content]} block]
-    (when-not (multihash/test id content)
+    (when-not (multihash/test id (.open content))
       (throw (IllegalStateException.
                (str "Invalid block with content " content
                     " but id " id))))))
