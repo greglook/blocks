@@ -112,7 +112,7 @@
     [this opts]
     (->> (find-files root)
          (map (partial file->id root))
-         (multihash/select opts)))
+         (block/select-hashes opts)))
 
 
   (stat

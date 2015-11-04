@@ -22,7 +22,7 @@
 
   (enumerate
     [this opts]
-    (multihash/select opts (keys @memory)))
+    (block/select-hashes opts (keys @memory)))
 
 
   (stat
