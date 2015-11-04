@@ -18,8 +18,23 @@
     [byte-streams :as bytes]
     [multihash.core :as multihash])
   (:import
+    blocks.data.PersistentBytes
+    java.io.InputStream
     java.nio.ByteBuffer
     multihash.core.Multihash))
+
+
+(bytes/def-conversion [PersistentBytes ByteBuffer]
+  [data options]
+  (.toBuffer data))
+
+(bytes/def-conversion [PersistentBytes InputStream]
+  [data options]
+  (.open data))
+
+(bytes/def-conversion [bytes PersistentBytes]
+  [data options]
+  (PersistentBytes/copyFrom data))
 
 
 (defn- resolve-hash!
