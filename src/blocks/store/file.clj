@@ -1,13 +1,13 @@
-(ns blobble.store.file
+(ns blocks.store.file
   "Content storage backed by a local filesystem.
 
   In many filesystems, directories are limited to 4,096 entries. In order to
   avoid this limit (and make navigating the filesystem a bit more efficient),
-  blob content is stored in a nested hierarchy three levels deep.
+  block content is stored in a nested hierarchy three levels deep.
 
-  The first level is the algorithm used in the blob's multihash. The second
+  The first level is the algorithm used in the block's multihash. The second
   and third levels are formed by the first three characters and next three
-  characters from the id's digest. Finally, the blob is stored in a file named
+  characters from the id's digest. Finally, the block is stored in a file named
   by the multihashes' hex string.
 
   Thus, a file path for the content \"foobar\" might be:
@@ -15,9 +15,9 @@
   `root/sha1/97d/f35/011497df3588b5a3...`
 
   Using this scheme, leaf directories should start approaching the limit once the
-  user has 2^(3*12) entries, or about 68.7 billion blobs."
+  user has 2^(3*12) entries, or about 68.7 billion blocks."
   (:require
-    [blobble.core :as blob]
+    [blocks.core :as block]
     [clojure.java.io :as io]
     [clojure.string :as string]
     [multihash.core :as multihash]
@@ -30,7 +30,7 @@
 ;; ## File System Utilities
 
 (defn- id->file
-  "Determines the filesystem path for a blob of content with the given hash
+  "Determines the filesystem path for a block of content with the given hash
   identifier."
   ^File
   [root id]
@@ -80,8 +80,8 @@
   (.delete path))
 
 
-(defmacro ^:private when-blob-file
-  "An unhygenic macro which binds the blob file to `file` and executes the body
+(defmacro ^:private when-block-file
+  "An unhygenic macro which binds the block file to `file` and executes the body
   only if it exists."
   [store id & body]
   `(let [~(with-meta 'file {:tag 'java.io.File})
@@ -90,8 +90,8 @@
        ~@body)))
 
 
-(defn- blob-stats
-  "Calculates storage stats for a blob file."
+(defn- block-stats
+  "Calculates storage stats for a block file."
   [^File file]
   {:stat/size (.length file)
    :stat/stored-at (Date. (.lastModified file))
@@ -101,51 +101,51 @@
 
 ;; ## File Store
 
-;; Blob content is stored as files in a multi-level hierarchy under the given
+;; Block content is stored as files in a multi-level hierarchy under the given
 ;; root directory.
-(defrecord FileBlobStore
+(defrecord FileBlockStore
   [^File root]
 
-  blob/BlobStore
+  block/BlockStore
 
   (enumerate
     [this opts]
     (->> (find-files root)
          (map (partial file->id root))
-         (blob/select-ids opts)))
+         (block/select-hashes opts)))
 
 
   (stat
     [this id]
-    (when-blob-file this id
-      (merge (blob/empty-blob id)
-             (blob-stats file))))
+    (when-block-file this id
+      (merge (block/empty-block id)
+             (block-stats file))))
 
 
   (get*
     [this id]
-    (when-blob-file this id
+    (when-block-file this id
       (-> file
           (io/input-stream)
-          (blob/read!)
-          (merge (blob-stats file)))))
+          (block/read!)
+          (merge (block-stats file)))))
 
 
   (put!
-    [this blob]
-    (let [{:keys [id content]} blob
+    [this block]
+    (let [{:keys [id content]} block
           file (id->file root id)]
       (when-not (.exists file)
         (io/make-parents file)
         ; For some reason, io/copy is much faster than byte-streams/transfer here.
-        (io/copy (blob/open blob) file)
+        (io/copy (block/open block) file)
         (.setWritable file false false))
-      (merge blob (blob-stats file))))
+      (merge block (block-stats file))))
 
 
   (delete!
     [this id]
-    (when-blob-file this id
+    (when-block-file this id
       (.delete file)))
 
 
@@ -155,6 +155,6 @@
 
 
 (defn file-store
-  "Creates a new local file-based blob store."
+  "Creates a new local file-based block store."
   [root]
-  (FileBlobStore. (io/file root)))
+  (FileBlockStore. (io/file root)))

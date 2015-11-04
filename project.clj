@@ -1,4 +1,4 @@
-(defproject mvxcvi/blobble "0.1.0-SNAPSHOT"
+(defproject mvxcvi/blocks "0.3.0"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blobble"
   :license {:name "Public Domain"
@@ -6,11 +6,13 @@
 
   :deploy-branches ["master"]
 
+  :java-source-paths ["src"]
+
   :plugins
   [[lein-cloverage "1.0.2"]]
 
   :dependencies
-  [[byte-streams "0.1.13"]
-   [mvxcvi/multihash "0.2.0"]
+  [[byte-streams "0.2.0"]
+   [mvxcvi/multihash "1.0.0"]
    [org.clojure/clojure "1.7.0"]
    [org.clojure/tools.logging "0.3.1"]])
