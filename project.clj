@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "0.3.0-SNAPSHOT"
+(defproject mvxcvi/blocks "0.4.0-SNAPSHOT"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blobble"
   :license {:name "Public Domain"
