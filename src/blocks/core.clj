@@ -92,10 +92,14 @@
    (read! source :sha2-256))
   ([source algorithm]
    (let [hash-fn (resolve-hash! algorithm)
-         content (bytes/to-byte-array source)]
+         content (bytes/to-byte-array source)
+         id (hash-fn content)]
      (when-not (empty? content)
-       (Block. (hash-fn content)
-               (PersistentBytes/wrap content))))))
+       (when-not (instance? Multihash id)
+         (throw (RuntimeException.
+                  (str "Block identifier must be a Multihash, "
+                       "hashing algorithm returned: " (pr-str id)))))
+       (Block. id (PersistentBytes/wrap content))))))
 
 
 (defn write!
