@@ -15,6 +15,7 @@
   - `:stat/origin`      resource location for the block"
   (:refer-clojure :exclude [get list])
   (:require
+    [blocks.data.conversions]
     [byte-streams :as bytes]
     [multihash.core :as multihash])
   (:import
@@ -24,20 +25,7 @@
     multihash.core.Multihash))
 
 
-;; ## PersistentBytes Utilities
-
-(bytes/def-conversion [PersistentBytes ByteBuffer]
-  [data options]
-  (.toBuffer data))
-
-(bytes/def-conversion [PersistentBytes InputStream]
-  [data options]
-  (.open data))
-
-(bytes/def-conversion [bytes PersistentBytes]
-  [data options]
-  (PersistentBytes/copyFrom data))
-
+;; ## Utility Functions
 
 (defn- resolve-hash!
   "Resolves an algorithm designator to a hash function. Throws an exception on

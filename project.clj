@@ -4,6 +4,8 @@
   :license {:name "Public Domain"
             :url "http://unlicense.org/"}
 
+  :aliases {"coverage" ["cloverage" "--ns-exclude-regex" "blocks.data.conversions"]}
+
   :deploy-branches ["master"]
 
   :java-source-paths ["src"]
