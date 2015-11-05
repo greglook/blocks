@@ -17,4 +17,11 @@
   [[byte-streams "0.2.0"]
    [mvxcvi/multihash "1.0.0"]
    [org.clojure/clojure "1.7.0"]
-   [org.clojure/tools.logging "0.3.1"]])
+   [org.clojure/tools.logging "0.3.1"]]
+
+  :codox {:metadata {:doc/format :markdown}
+          :source-uri "https://github.com/greglook/blocks/blob/master/{filepath}#L{line}"
+          :doc-paths ["doc/extra"]
+          :output-path "doc/api"}
+
+  :whidbey {:tag-types {'multihash.core.Multihash {'data/hash 'multihash.core/base58}}})
