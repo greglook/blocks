@@ -3,7 +3,62 @@
     [blocks.core :as block]
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.test :refer :all]
-    [multihash.core :as multihash]))
+    [multihash.core :as multihash])
+  (:import
+    java.io.ByteArrayOutputStream
+    java.io.InputStream))
+
+
+(deftest empty-block-construction
+  (is (thrown? IllegalArgumentException
+               (block/empty-block nil)))
+  (let [id (multihash/sha1 "foo bar baz")]
+    (is (= id (:id (block/empty-block id))))))
+
+
+(deftest block-size
+  (testing "block with content"
+    (let [block (block/read! "foo bar")]
+      (is (= 7 (block/size block)))))
+  (testing "empty block with stat metadata"
+    (let [block (assoc (block/empty-block (multihash/sha1 "foo"))
+                       :stat/size 64)]
+      (is (= 64 (block/size block))))))
+
+
+(deftest block-input-stream
+  (testing "block without content"
+    (let [block (block/empty-block (multihash/sha1 "foo"))]
+      (is (nil? (block/open block)))))
+  (testing "block with content"
+    (let [block (block/read! "the old dog jumped")
+          stream (block/open block)]
+      (is (instance? InputStream stream))
+      (is (= "the old dog jumped" (slurp stream))))))
+
+
+(deftest block-reading
+  (is (nil? (block/read! (byte-array 0)))
+      "empty content reads as nil")
+  (is (= :sha1 (:algorithm (:id (block/read! "foo" multihash/sha1))))
+      "direct function algorithm should create multihash")
+  (is (thrown? RuntimeException
+               (block/read! "foo" (constantly :bar)))
+      "function which returns a non-multihash should throw exception")
+  (is (thrown? IllegalArgumentException
+               (block/read! "foo" :sha8-4096))
+      "unsupported algorithm should throw exception")
+  (is (thrown? IllegalArgumentException
+               (block/read! "foo" 123))
+      "invalid algorithm name should throw exception"))
+
+
+(deftest block-writing
+  (let [block (block/read! "frobblenitz")
+        baos (ByteArrayOutputStream.)]
+    (block/write! block baos)
+    (is (bytes= "frobblenitz" (.toByteArray baos)))))
+
 
 
 ;; ## Storage Function Tests
