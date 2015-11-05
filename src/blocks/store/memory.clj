@@ -28,7 +28,7 @@
   (stat
     [this id]
     (when-let [block (get @memory id)]
-      (dissoc block :content)))
+      (assoc block :content nil)))
 
 
   (get*
