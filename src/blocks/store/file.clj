@@ -67,7 +67,7 @@
     (.isFile file)
       [file]
     (.isDirectory file)
-      (->> file (.listFiles) (sort) (map find-files) (flatten))
+      (->> (.listFiles file) (sort) (map find-files) (flatten))
     :else
       []))
 
@@ -76,12 +76,12 @@
   "Recursively removes a directory of files."
   [^File path]
   (when (.isDirectory path)
-    (->> path (.listFiles) (map rm-r) (dorun)))
+    (dorun (map rm-r (.listFiles path))))
   (.delete path))
 
 
 (defmacro ^:private when-block-file
-  "An unhygenic macro which binds the block file to `file` and executes the body
+  "An anaphoric macro which binds the block file to `file` and executes `body`
   only if it exists."
   [store id & body]
   `(let [~(with-meta 'file {:tag 'java.io.File})
@@ -108,7 +108,7 @@
 
   block/BlockStore
 
-  (enumerate
+  (-list
     [this opts]
     (->> (find-files root)
          (map (partial file->id root))
@@ -122,7 +122,7 @@
              (block-stats file))))
 
 
-  (get*
+  (-get
     [this id]
     (when-block-file this id
       (-> file

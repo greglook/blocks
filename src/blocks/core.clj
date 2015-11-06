@@ -131,19 +131,25 @@
 (defprotocol BlockStore
   "Protocol for content storage keyed by hash identifiers."
 
-  (enumerate
+  (-list
     [store opts]
-    "Enumerates the ids of the stored blocks with some filtering options. The
-    'list' function provides a nicer wrapper around this protocol method.")
+    "Enumerates the ids of the stored blocks with some filtering options. See
+    `list` for the supported options.
+
+    Typically clients should use `list` instead.")
 
   (stat
     [store id]
-    "Returns a block record with metadata but no content.")
+    "Returns a block record with metadata but no content. Returns nil if the
+    store does not contain the identified block.")
 
-  (get*
+  (-get
     [store id]
-    "Loads content for a hash-id and returns a block record. Returns nil if no
-    block is stored. The block should include stat metadata.")
+    "Returns the identified block if it is stored, otherwise nil. The block
+    should include stat metadata.
+
+    Typically clients should use `get` instead, which validates returned block
+    records.")
 
   (put!
     [store block]
@@ -160,14 +166,22 @@
 
 
 (defn list
-  "Enumerates the stored blocks, returning a sequence of multihashes.
-  See `select-ids` for the available query options."
-  ([store]
-   (enumerate store nil))
-  ([store opts]
-   (enumerate store opts))
-  ([store opt-key opt-val & opts]
-   (enumerate store (apply hash-map opt-key opt-val opts))))
+  "Enumerates the stored blocks, returning a sequence of multihash values.
+  Stores should support the following options:
+
+  - `:algorithm`  only return hashes using this algorithm
+  - `:sorted`     whether to return hashes in sorted order
+  - `:after`      start enumerating hashes lexically following this string
+  - `:limit`      return up to this many results
+  "
+  ([store & opts]
+   (cond
+     (empty? opts)
+       (-list store nil)
+     (and (= 1 (count opts)) (map? (first opts)))
+       (-list store (first opts))
+     :else
+       (-list store (apply array-map opts)))))
 
 
 (defn get
@@ -180,7 +194,7 @@
   (when-not (instance? Multihash id)
     (throw (IllegalArgumentException.
              (str "Id value must be a multihash, got: " (pr-str id)))))
-  (when-let [block (get* store id)]
+  (when-let [block (-get store id)]
     (validate! block)
     block))
 

@@ -20,7 +20,7 @@
 
   block/BlockStore
 
-  (enumerate
+  (-list
     [this opts]
     (block/select-hashes opts (keys @memory)))
 
@@ -31,7 +31,7 @@
       (assoc block :content nil)))
 
 
-  (get*
+  (-get
     [this id]
     (get @memory id))
 
