@@ -9,6 +9,8 @@
     java.io.InputStream))
 
 
+;; ## Block Functions
+
 (deftest empty-block-construction
   (is (thrown? IllegalArgumentException
                (block/empty-block nil)))
@@ -38,19 +40,18 @@
 
 
 (deftest block-reading
-  (is (nil? (block/read! (byte-array 0)))
-      "empty content reads as nil")
-  (is (= :sha1 (:algorithm (:id (block/read! "foo" multihash/sha1))))
-      "direct function algorithm should create multihash")
-  (is (thrown? RuntimeException
-               (block/read! "foo" (constantly :bar)))
-      "function which returns a non-multihash should throw exception")
-  (is (thrown? IllegalArgumentException
-               (block/read! "foo" :sha8-4096))
-      "unsupported algorithm should throw exception")
-  (is (thrown? IllegalArgumentException
-               (block/read! "foo" 123))
-      "invalid algorithm name should throw exception"))
+  (testing "block construction"
+    (is (nil? (block/read! (byte-array 0)))
+        "empty content reads as nil")
+    (is (= :sha1 (:algorithm (:id (block/read! "foo" multihash/sha1))))
+        "direct function algorithm should create multihash"))
+  (testing "invalid algorithm name types"
+    (is (thrown? RuntimeException (block/read! "foo" nil)))
+    (is (thrown? IllegalArgumentException (block/read! "foo" 123))))
+  (testing "unsupported algorithm name"
+    (is (thrown? IllegalArgumentException (block/read! "foo" :sha8-4096))))
+  (testing "hash function which returns a non-multihash value"
+    (is (thrown? RuntimeException (block/read! "foo" (constantly :bar))))))
 
 
 (deftest block-writing
@@ -58,6 +59,27 @@
         baos (ByteArrayOutputStream.)]
     (block/write! block baos)
     (is (bytes= "frobblenitz" (.toByteArray baos)))))
+
+
+(deftest block-validation
+  (let [base (block/read! "foo bar baz")]
+    (testing "block with no id"
+      (is (thrown? RuntimeException
+                   (block/validate! (assoc base :id nil)))))
+    (testing "block with non-multihash id"
+      (is (thrown? RuntimeException
+                   (block/validate! (assoc base :id "foo")))))
+    (testing "block with no content"
+      (is (thrown? RuntimeException
+                   (block/validate! (assoc base :content nil)))))
+    (testing "block with non-persistentbytes content"
+      (is (thrown? RuntimeException
+                   (block/validate! (assoc base :content 'wat)))))
+    (testing "block with mismatched id"
+      (is (thrown? RuntimeException
+                   (block/validate! (assoc base :id (multihash/sha1 "qux"))))))
+    (testing "valid block"
+      (is (nil? (block/validate! base))))))
 
 
 

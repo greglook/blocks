@@ -12,7 +12,8 @@
 
   - `:stat/size`        content size in bytes
   - `:stat/stored-at`   time block was added to the store
-  - `:stat/origin`      resource location for the block"
+  - `:stat/origin`      resource location for the block
+  "
   (:refer-clojure :exclude [get list])
   (:require
     [blocks.data.conversions]
@@ -110,14 +111,18 @@
 
 
 (defn validate!
-  "Checks that the identifier of a block matches the actual digest of the
-  content. Throws an exception if the id does not match."
+  "Checks a block to verify that it confirms to the expected schema and has a
+  valid identifier for its content. Returns nil if the block is valid, or
+  throws an exception on any error."
   [block]
-  (let [{:keys [id content]} block]
-    (when-not (multihash/test id (.open content))
-      (throw (IllegalStateException.
-               (str "Invalid block with content " content
-                    " but id " id))))))
+  (let [id (:id block)]
+    (if-let [stream (open block)]
+      (when-not (multihash/test id stream)
+        (throw (IllegalStateException.
+                 (str "Invalid block " id " with mismatched content "
+                      (:content block)))))
+      (throw (IllegalArgumentException.
+               (str "Cannot validate block " (:id block) " with no content"))))))
 
 
 
