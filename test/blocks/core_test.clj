@@ -86,23 +86,34 @@
 ;; ## Storage Function Tests
 
 (deftest list-wrapper
-  (let [store (reify block/BlockStore (enumerate [this opts] (vector :list opts)))]
-    (is (= [:list nil] (block/list store)))
-    (is (= [:list {:foo "bar" :baz 3}] (block/list store :foo "bar" :baz 3)))))
+  (let [store (reify block/BlockStore (-list [_ opts] opts))]
+    (is (nil? (block/list store)))
+    (is (= {:foo "bar"} (block/list store {:foo "bar"})))
+    (is (= {:foo "bar", :baz 3} (block/list store :foo "bar" :baz 3)))))
 
 
-(deftest checked-get
-  (let [content "foobarbaz"
-        block (block/read! content)
-        id (multihash/sha1 "bazbarfoo")
-        store (reify block/BlockStore (get* [this id] (assoc block :id id)))
-        block (block/get* store id)]
-    (is (= id (:id block)))
-    (is (bytes= content (:content block)))
-    (is (thrown? RuntimeException
-                 (block/get store (:id block))))))
+(deftest get-wrapper
+  (testing "non-multihash id"
+    (is (thrown? IllegalArgumentException (block/get {} "foo"))))
+  (testing "no block result"
+    (let [store (reify block/BlockStore (-get [_ id] nil))]
+      (is (nil? (block/get store (multihash/sha1 "foo bar"))))))
+  (testing "invalid block result"
+    (let [content "foobarbaz"
+          block (block/read! content)
+          store (reify block/BlockStore (-get [_ id] (assoc block :id id)))
+          other-id (multihash/sha1 "bazbarfoo")]
+      (is (thrown? RuntimeException (block/get store other-id))))))
 
 
+(deftest store-wrapper
+  (let [store (reify block/BlockStore (put! [_ block] block))
+        block (block/store! store "alphabet soup")]
+    (is (instance? blocks.core.Block block))
+    (is (nil? (block/validate! block)))))
+
+
+#_
 (deftest multihash-selection
   (let [a (multihash/create :sha1 "37b51d194a7513e45b56f6524f2d51f200000000")
         b (multihash/create :sha1 "73fcffa4b7f6bb68e44cf984c85f6e888843d7f9")
