@@ -10,14 +10,14 @@ This library implements [content-addressable storage](https://en.wikipedia.org/w
 types and protocols for Clojure. Content-addressable storage has several useful properties:
 
 - Data references are abstracted away from the knowledge of where and how the
-  data is stored, and so can never be 'stale'.
-- Data is immutable, so there's no concern over having the 'latest version' of
-  something - you either have it, or you don't.
+  blocks are stored, and so can never be 'stale'.
+- Blocks are immutable, so there's no concern over having the 'latest version'
+  of something - you either have it, or you don't.
 - References are _secure_, because a client can re-compute the digest to ensure
   they have received the original data unaltered.
 - Synchronizing data between stores only requires enumerating the stored blocks
   in each and exchanging missing ones.
-- Content can be structurally shared by different higher-level constructs. For
+- Data can be structurally shared by different higher-level constructs. For
   example, a file's contents can be referenced by different versions of
   metadata without duplicating the file data.
 
