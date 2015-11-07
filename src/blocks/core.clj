@@ -134,9 +134,8 @@
   (-list
     [store opts]
     "Enumerates the ids of the stored blocks with some filtering options. See
-    `list` for the supported options.
-
-    Typically clients should use `list` instead.")
+    `list` for the supported options. Typically clients should use `list`
+    instead.")
 
   (stat
     [store id]
@@ -233,6 +232,6 @@
 (defn scan-size
   "Scans the blocks in a store to determine the total stored content size."
   [store]
-  (->> (list store)
-       (map (comp size (partial stat store)))
+  (->> (-list store nil)
+       (map (comp :size (partial stat store)))
        (reduce + 0N)))
