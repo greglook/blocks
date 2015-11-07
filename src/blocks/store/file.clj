@@ -146,12 +146,13 @@
   (delete!
     [this id]
     (when-block-file this id
-      (.delete file)))
+      (.delete file))))
 
 
-  (erase!!
-    [this]
-    (rm-r root)))
+(defn erase!
+  "Clears all contents of the file store."
+  [store]
+  (rm-r (:root store)))
 
 
 (defn file-store

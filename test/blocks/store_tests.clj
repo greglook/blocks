@@ -23,4 +23,4 @@
                           (System/currentTimeMillis)))
         store (file-store tmpdir)]
     (test-block-store store "file-store")
-    (block/erase!! store)))
+    (blocks.store.file/erase! store)))

@@ -157,11 +157,7 @@
 
   (delete!
     [store id]
-    "Removes a block from the store.")
-
-  (erase!!
-    [store]
-    "Removes all blocks from the store."))
+    "Removes a block from the store."))
 
 
 (defn list

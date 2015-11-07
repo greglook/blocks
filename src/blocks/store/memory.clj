@@ -47,12 +47,7 @@
 
   (delete!
     [this id]
-    (swap! memory dissoc id))
-
-
-  (erase!!
-    [this]
-    (swap! memory empty)))
+    (swap! memory dissoc id)))
 
 
 (defn memory-store
