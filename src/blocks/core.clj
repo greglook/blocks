@@ -56,9 +56,13 @@
 
 ;; ## Block Record
 
+; TODO: make `size` a first-order property, and allow 'lazy' blobs which contain
+; a function to open a new input stream to read their content.
+; TODO: id, content, and size should not be settable after construction.
 (defrecord Block
   [^Multihash id
-   ^PersistentBytes content])
+   ^PersistentBytes content
+   size])
 
 
 (defn empty-block
@@ -68,15 +72,7 @@
   (when-not (instance? Multihash id)
     (throw (IllegalArgumentException.
              (str "Block identifier must be a Multihash, got: " (pr-str id)))))
-  (Block. id nil))
-
-
-(defn size
-  "Determine the number of bytes stored in a block."
-  [block]
-  (if-let [content (:content block)]
-    (count content)
-    (:stat/size block)))
+  (Block. id nil nil))
 
 
 (defn open
@@ -100,7 +96,7 @@
          (throw (RuntimeException.
                   (str "Block identifier must be a Multihash, "
                        "hashing algorithm returned: " (pr-str id)))))
-       (Block. id (PersistentBytes/wrap content))))))
+       (Block. id (PersistentBytes/wrap content) (count content))))))
 
 
 (defn write!

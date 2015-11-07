@@ -21,11 +21,7 @@
 (deftest block-size
   (testing "block with content"
     (let [block (block/read! "foo bar")]
-      (is (= 7 (block/size block)))))
-  (testing "empty block with stat metadata"
-    (let [block (assoc (block/empty-block (multihash/sha1 "foo"))
-                       :stat/size 64)]
-      (is (= 64 (block/size block))))))
+      (is (= 7 (:size block))))))
 
 
 (deftest block-input-stream

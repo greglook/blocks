@@ -17,6 +17,7 @@
     (test-block-store store "memory-store")))
 
 
+#_
 (deftest test-file-store
   (let [tmpdir (io/file "target" "test" "tmp"
                         (str "file-block-store."
