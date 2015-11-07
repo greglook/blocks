@@ -129,7 +129,7 @@
 ;; ## Storage Interface
 
 (defprotocol BlockStore
-  "Protocol for content storage keyed by hash identifiers."
+  "Protocol for content-addressable storage keyed by multihash identifiers."
 
   (-list
     [store opts]
@@ -212,9 +212,9 @@
   Available options:
 
   - `:algorithm`  only return hashes using this algorithm
-  - `:encoder`    function to encode multihashes with (default: `hex`)
   - `:after`      start enumerating ids lexically following this string
-  - `:prefix`     only return ids starting with the given string"
+  - `:limit`      return at most 'limit' hashes
+  "
   [opts ids]
   ; TODO: this is an awkward way to search the store, think of a better approach
   (let [{:keys [algorithm prefix encoder], :or {encoder multihash/hex}} opts
