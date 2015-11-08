@@ -7,12 +7,82 @@
   - `:size`     number of bytes in the block content
   "
   (:require
+    [byte-streams :as bytes]
     [multihash.core :as multihash])
   (:import
     blocks.data.PersistentBytes
-    clojure.lang.Tuple
+    java.io.FilterInputStream
     multihash.core.Multihash))
 
+
+;; ## Utility Functions
+
+(defn- resolve-hash!
+  "Resolves an algorithm designator to a hash function. Throws an exception on
+  invalid names or error."
+  [algorithm]
+  (cond
+    (nil? algorithm)
+      (throw (IllegalArgumentException.
+               "Cannot find hash function without algorithm name"))
+
+    (keyword? algorithm)
+      (if-let [hf (clojure.core/get multihash/functions algorithm)]
+        hf
+        (throw (IllegalArgumentException.
+                 (str "Cannot map algorithm name " algorithm
+                      " to a supported hash function"))))
+
+    (ifn? algorithm)
+      algorithm
+
+    :else
+      (throw (IllegalArgumentException.
+               (str "Hash algorithm must be keyword name or direct function, got: "
+                    (pr-str algorithm))))))
+
+
+(defn- checked-hash
+  "Constructs a function for the given hash algorithm or function which checks
+  that the result is a `Multihash`."
+  [algorithm]
+  (let [hash-fn (resolve-hash! algorithm)]
+    (fn checked-hasher
+      [source]
+      (let [id (hash-fn source)]
+        (when-not (instance? Multihash id)
+          (throw (RuntimeException.
+                   (str "Block identifier must be a Multihash, "
+                        "hashing algorithm returned: " (pr-str id)))))
+        id))))
+
+
+(defn- counting-input-stream
+  "Wraps the given input stream with a filter which counts the bytes passing
+  through it. The byte count will be added to value in the atom argument."
+  [in counter]
+  (proxy [FilterInputStream] [in]
+    (read
+      ([]
+       (let [out (.read in)]
+         (swap! counter inc)
+         out))
+      ([b]
+       (let [size (.read in b)]
+         (swap! counter + size)
+         size))
+      ([b off len]
+       (let [size (.read in b off len)]
+         (swap! counter + size)
+         size)))
+    (skip [n]
+      (let [size (.skip in n)]
+        (swap! counter + size)
+        size))))
+
+
+
+;; ## Block Type
 
 (deftype Block
   [^Multihash -id

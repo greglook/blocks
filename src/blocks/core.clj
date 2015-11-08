@@ -16,64 +16,21 @@
   "
   (:refer-clojure :exclude [get list])
   (:require
+    [blocks.data :as data]
     [blocks.data.conversions]
     [byte-streams :as bytes]
     [multihash.core :as multihash])
   (:import
+    blocks.data.Block
     blocks.data.PersistentBytes
     java.io.InputStream
     java.nio.ByteBuffer
     multihash.core.Multihash))
 
 
-;; ## Utility Functions
-
-(defn- resolve-hash!
-  "Resolves an algorithm designator to a hash function. Throws an exception on
-  invalid names or error."
-  [algorithm]
-  (cond
-    (nil? algorithm)
-      (throw (IllegalArgumentException.
-               "Cannot find hash function without algorithm name"))
-
-    (keyword? algorithm)
-      (if-let [hf (clojure.core/get multihash/functions algorithm)]
-        hf
-        (throw (IllegalArgumentException.
-                 (str "Cannot map algorithm name " algorithm
-                      " to a supported hash function"))))
-
-    (ifn? algorithm)
-      algorithm
-
-    :else
-      (throw (IllegalArgumentException.
-               (str "Hash algorithm must be keyword name or direct function, got: "
-                    (pr-str algorithm))))))
-
 
 
 ;; ## Block Record
-
-; TODO: make `size` a first-order property, and allow 'lazy' blobs which contain
-; a function to open a new input stream to read their content.
-; TODO: id, content, and size should not be settable after construction.
-(defrecord Block
-  [^Multihash id
-   ^PersistentBytes content
-   size])
-
-
-(defn empty-block
-  "Constructs a new block record with the given multihash identifier and no
-  content."
-  [id]
-  (when-not (instance? Multihash id)
-    (throw (IllegalArgumentException.
-             (str "Block identifier must be a Multihash, got: " (pr-str id)))))
-  (Block. id nil nil))
-
 
 (defn open
   "Opens an input stream to read the content of the block."
