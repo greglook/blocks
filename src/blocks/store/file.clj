@@ -118,7 +118,7 @@
   (stat
     [this id]
     (when-block-file this id
-      (merge (block/empty-block id)
+      (merge {:id id}
              (block-stats file))))
 
 

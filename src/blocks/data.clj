@@ -243,9 +243,55 @@
 
   (isRealized
     [this]
-    (some? -content))))
+    (some? -content)))
 
 
 (defmethod print-method Block
   [v ^java.io.Writer w]
   (.write w (str v)))
+
+
+
+;; ## Constructors
+
+(defn create-literal-block
+  "Creates a block by reading a source into memory. The block is given the id
+  directly, without being checked."
+  [id source]
+  (let [content (bytes/to-byte-array source)]
+    (Block. id
+            (count content)
+            (PersistentBytes/wrap content)
+            nil nil nil)))
+
+
+(defn read-literal-block
+  "Creates a block by reading the source into memory and hashing it. This
+  creates a realized block."
+  [source algorithm]
+  (let [hash-fn (checked-hash algorithm)
+        content (bytes/to-byte-array source)]
+    (Block. (hash-fn content)
+            (count content)
+            (PersistentBytes/wrap content)
+            nil nil nil)))
+
+
+(defn create-deferred-block
+  "Creates a block from a reader function. Each time the function is called, it
+  should return a new `InputStream` to read the block contents. The block is
+  given the id and size directly, without being checked."
+  [id size reader]
+  (Block. id size nil reader nil nil))
+
+
+(defn read-deferred-block
+  "Creates a block from a reader function. Each time the function is called, it
+  should return a new `InputStream` to read the block contents. The stream will
+  be read once immedately to calculate the hash and size."
+  [reader algorithm]
+  (let [hash-fn (checked-hash algorithm)
+        counter (atom 0)]
+    (with-open [in (counting-input-stream (reader) counter)]
+      (let [id (hash-fn in)]
+        (Block. id @counter nil reader nil nil)))))
