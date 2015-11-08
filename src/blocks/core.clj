@@ -120,6 +120,9 @@
     "Removes a block from the store."))
 
 
+; TODO: BlockStreamable
+
+
 (defn list
   "Enumerates the stored blocks, returning a sequence of multihash values.
   Stores should support the following options:
