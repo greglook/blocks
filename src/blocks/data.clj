@@ -242,14 +242,13 @@
   ; TODO: what should this do?
   (deref
     [this]
-    (cond->
-      (merge
-        -attributes
-        {:id -id, :size -size})
-      -content
-        (assoc :content -content)
-      -reader
-        (assoc :reader -reader)))
+    (merge
+      -attributes
+      {:id -id
+       :size -size
+       :state (cond -content :literal
+                    -reader  :lazy
+                    :else    :empty)}))
 
 
   clojure.lang.IPending
