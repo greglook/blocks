@@ -34,9 +34,14 @@
 
 (defn open
   "Opens an input stream to read the content of the block."
+  ^InputStream
   [block]
-  (when-let [content (:content block)]
-    (.open ^PersistentBytes content)))
+  (if-let [content (:content block)]
+    (.open ^PersistentBytes content)
+    (if-let [reader (:reader block)]
+      (reader)
+      (throw (IllegalArgumentException.
+               "Cannot open block with no content or reader.")))))
 
 
 (defn read!
