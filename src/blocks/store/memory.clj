@@ -1,17 +1,9 @@
 (ns blocks.store.memory
   "Block storage backed by an atom in memory."
   (:require
-    [blocks.core :as block]
-    [multihash.core :as multihash]))
-
-
-(defn- block-stats
-  "Augments a block with stat metadata."
-  [block]
-  (assoc block
-    :stat/size (block/size block)
-    :stat/stored-at (or (:stat/stored-at block)
-                        (java.util.Date.))))
+    [blocks.core :as block])
+  (:import
+    java.util.Date))
 
 
 ;; Block records in a memory store are held in a map in an atom.
@@ -28,7 +20,9 @@
   (stat
     [this id]
     (when-let [block (get @memory id)]
-      (assoc block :content nil)))
+      {:id (:id block)
+       :size (:size block)
+       :stored-at (:stored-at (:block/stats (meta block)))}))
 
 
   (-get
@@ -38,11 +32,11 @@
 
   (put!
     [this block]
-    (if-let [id (:id block)]
+    (when-let [id (:id block)]
       (or (get @memory id)
-          (let [block (block-stats block)]
-            (swap! memory assoc id block)
-            block))))
+          (let [block' (vary-meta block assoc :block/stats {:stored-at (Date.)})]
+            (swap! memory assoc id block')
+            block'))))
 
 
   (delete!

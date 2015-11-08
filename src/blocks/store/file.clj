@@ -93,9 +93,8 @@
 (defn- block-stats
   "Calculates storage stats for a block file."
   [^File file]
-  {:stat/size (.length file)
-   :stat/stored-at (Date. (.lastModified file))
-   :stat/origin (.toURI file)})
+  {:stored-at (Date. (.lastModified file))
+   :origin (.toURI file)})
 
 
 
@@ -118,7 +117,7 @@
   (stat
     [this id]
     (when-block-file this id
-      (merge {:id id}
+      (merge {:id id, :size (.length file)}
              (block-stats file))))
 
 
@@ -128,7 +127,7 @@
       (-> file
           (io/input-stream)
           (block/read!)
-          (merge (block-stats file)))))
+          (vary-meta assoc :block/stats (block-stats file)))))
 
 
   (put!
@@ -140,7 +139,7 @@
         ; For some reason, io/copy is much faster than byte-streams/transfer here.
         (io/copy (block/open block) file)
         (.setWritable file false false))
-      (merge block (block-stats file))))
+      (vary-meta block assoc :block/stats (block-stats file))))
 
 
   (delete!
