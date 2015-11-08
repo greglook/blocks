@@ -10,9 +10,8 @@
   are returned from a block store, they may include 'stat' metadata about the
   blocks:
 
-  - `:stat/size`        content size in bytes
-  - `:stat/stored-at`   time block was added to the store
-  - `:stat/origin`      resource location for the block
+  - `:stored-at`   time block was added to the store
+  - `:origin`      resource location for the block
   "
   (:refer-clojure :exclude [get list])
   (:require
@@ -28,6 +27,18 @@
 
 
 ;; ## Block Functions
+
+(defn with-stats
+  "Adds stat information to a block's metadata."
+  [block stats]
+  (vary-meta block assoc :block/stats stats))
+
+
+(defn meta-stats
+  "Returns stat information from a block's metadata, if present."
+  [block]
+  (:block/stats (meta block)))
+
 
 (defn open
   "Opens an input stream to read the content of the block. Returns nil for empty

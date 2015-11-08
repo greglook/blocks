@@ -117,8 +117,8 @@
   (stat
     [this id]
     (when-block-file this id
-      (merge {:id id, :size (.length file)}
-             (block-stats file))))
+      (merge (block-stats file)
+             {:id id, :size (.length file)})))
 
 
   (-get
@@ -127,7 +127,7 @@
       (-> file
           (io/input-stream)
           (block/read!)
-          (vary-meta assoc :block/stats (block-stats file)))))
+          (block/with-stats (block-stats file)))))
 
 
   (put!
@@ -139,7 +139,7 @@
         ; For some reason, io/copy is much faster than byte-streams/transfer here.
         (io/copy (block/open block) file)
         (.setWritable file false false))
-      (vary-meta block assoc :block/stats (block-stats file))))
+      (block/with-stats block (block-stats file))))
 
 
   (delete!

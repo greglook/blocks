@@ -20,9 +20,9 @@
   (stat
     [this id]
     (when-let [block (get @memory id)]
-      {:id (:id block)
-       :size (:size block)
-       :stored-at (:stored-at (:block/stats (meta block)))}))
+      (merge (block/meta-stats block)
+             {:id (:id block)
+              :size (:size block)})))
 
 
   (-get
@@ -34,7 +34,7 @@
     [this block]
     (when-let [id (:id block)]
       (or (get @memory id)
-          (let [block' (vary-meta block assoc :block/stats {:stored-at (Date.)})]
+          (let [block' (block/with-stats block {:stored-at (Date.)})]
             (swap! memory assoc id block')
             block'))))
 
