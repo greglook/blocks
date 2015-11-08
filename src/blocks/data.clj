@@ -34,7 +34,7 @@
                         "realized"
                         (if -reader
                           "deferred"
-                          "empty")))
+                          "empty"))))
 
   (hashCode
     [this]
@@ -104,7 +104,7 @@
   (cons
     [this element]
     (cond
-      (map-entry? element)
+      (instance? java.util.Map$Entry element)
         (let [^java.util.Map$Entry entry element]
           (.assoc this (.getKey entry) (.getValue entry)))
       (vector? element)
@@ -116,7 +116,7 @@
             (let [^java.util.Map$Entry entry (first entries)]
               (recur (.assoc result (.getKey entry) (.getValue entry))
                      (rest entries)))
-            reult))))
+            result))))
 
   (equiv
     [this other]
@@ -128,7 +128,7 @@
                           (= -size (. other -size))
                           (= -attributes (. other -attributes))
                           (not (and -content other-content
-                                    (not= -content other-content))))))))
+                                    (not= -content other-content)))))))))
 
   (containsKey
     [this k]
@@ -138,17 +138,15 @@
     [this k]
     (let [v (.valAt this k this)]
       (when-not (identical? this v)
-        (Tuple/create k v))))
+        [k v])))
 
   (seq
     [this]
-    (seq (concat [(Tuple/create :id -id)
-                  (Tuple/create :size -size)]
-                 -attributes)))
+    (seq (concat [[:id -id] [:size -size]] -attributes)))
 
   (iterator
     [this]
-    (seq-iterator (seq this)))
+    (.iterator (seq this)))
 
   (assoc
     [this k v]
@@ -164,7 +162,7 @@
       (:id :size :content :reader)
         (throw (IllegalArgumentException.
                  (str "Block " k " cannot be changed")))
-      (Block. -id -size -content -reader (not-empty (dissoc -attributes k v)) -meta)))
+      (Block. -id -size -content -reader (not-empty (dissoc -attributes k)) -meta)))
 
 
   ; IDeref?
