@@ -1,7 +1,7 @@
 (ns blocks.core
   "Block record and storage protocol functions.
 
-  Blocks have the following two primary attributes:
+  Blocks have the following primary attributes:
 
   - `:id`        `Multihash` with the digest identifying the content
   - `:content`   `PersistentBytes` with opaque content
@@ -10,76 +10,45 @@
   are returned from a block store, they may include 'stat' metadata about the
   blocks:
 
-  - `:stat/size`        content size in bytes
-  - `:stat/stored-at`   time block was added to the store
-  - `:stat/origin`      resource location for the block
+  - `:stored-at`   time block was added to the store
+  - `:origin`      resource location for the block
   "
   (:refer-clojure :exclude [get list])
   (:require
+    [blocks.data :as data]
     [blocks.data.conversions]
     [byte-streams :as bytes]
     [multihash.core :as multihash])
   (:import
+    blocks.data.Block
     blocks.data.PersistentBytes
     java.io.InputStream
-    java.nio.ByteBuffer
     multihash.core.Multihash))
 
 
-;; ## Utility Functions
+;; ## Block Functions
 
-(defn- resolve-hash!
-  "Resolves an algorithm designator to a hash function. Throws an exception on
-  invalid names or error."
-  [algorithm]
-  (cond
-    (nil? algorithm)
-      (throw (IllegalArgumentException.
-               "Cannot find hash function without algorithm name"))
-
-    (keyword? algorithm)
-      (if-let [hf (clojure.core/get multihash/functions algorithm)]
-        hf
-        (throw (IllegalArgumentException.
-                 (str "Cannot map algorithm name " algorithm
-                      " to a supported hash function"))))
-
-    (ifn? algorithm)
-      algorithm
-
-    :else
-      (throw (IllegalArgumentException.
-               (str "Hash algorithm must be keyword name or direct function, got: "
-                    (pr-str algorithm))))))
+(defn with-stats
+  "Adds stat information to a block's metadata."
+  [block stats]
+  (vary-meta block assoc :block/stats stats))
 
 
-
-;; ## Block Record
-
-; TODO: make `size` a first-order property, and allow 'lazy' blobs which contain
-; a function to open a new input stream to read their content.
-; TODO: id, content, and size should not be settable after construction.
-(defrecord Block
-  [^Multihash id
-   ^PersistentBytes content
-   size])
-
-
-(defn empty-block
-  "Constructs a new block record with the given multihash identifier and no
-  content."
-  [id]
-  (when-not (instance? Multihash id)
-    (throw (IllegalArgumentException.
-             (str "Block identifier must be a Multihash, got: " (pr-str id)))))
-  (Block. id nil nil))
+(defn meta-stats
+  "Returns stat information from a block's metadata, if present."
+  [block]
+  (:block/stats (meta block)))
 
 
 (defn open
-  "Opens an input stream to read the content of the block."
-  [block]
-  (when-let [content (:content block)]
-    (.open ^PersistentBytes content)))
+  "Opens an input stream to read the content of the block. Returns nil for empty
+  blocks."
+  ^InputStream
+  [^Block block]
+  (if-let [content ^PersistentBytes (.content block)]
+    (.open content)
+    (when-let [reader (.reader block)]
+      (reader))))
 
 
 (defn read!
@@ -88,15 +57,10 @@
   ([source]
    (read! source :sha2-256))
   ([source algorithm]
-   (let [hash-fn (resolve-hash! algorithm)
-         content (bytes/to-byte-array source)
-         id (hash-fn content)]
-     (when-not (empty? content)
-       (when-not (instance? Multihash id)
-         (throw (RuntimeException.
-                  (str "Block identifier must be a Multihash, "
-                       "hashing algorithm returned: " (pr-str id)))))
-       (Block. id (PersistentBytes/wrap content) (count content))))))
+   (data/read-literal-block source algorithm)))
+
+
+; TODO: deferred-block wrapper
 
 
 (defn write!
@@ -115,10 +79,9 @@
     (if-let [stream (open block)]
       (when-not (multihash/test id stream)
         (throw (IllegalStateException.
-                 (str "Invalid block " id " with mismatched content "
-                      (:content block)))))
+                 (str "Invalid block " id " has mismatched content."))))
       (throw (IllegalArgumentException.
-               (str "Cannot validate block " (:id block) " with no content"))))))
+               (str "Cannot validate empty block " id))))))
 
 
 
@@ -135,8 +98,9 @@
 
   (stat
     [store id]
-    "Returns a block record with metadata but no content. Returns nil if the
-    store does not contain the identified block.")
+    "Returns a map with an `:id` and `:size` but no content. The returned map
+    may contain additional data like the date stored. Returns nil if the store
+    does not contain the identified block.")
 
   (-get
     [store id]
@@ -154,6 +118,9 @@
   (delete!
     [store id]
     "Removes a block from the store."))
+
+
+; TODO: BlockStreamable
 
 
 (defn list

@@ -11,13 +11,6 @@
 
 ;; ## Block Functions
 
-(deftest empty-block-construction
-  (is (thrown? IllegalArgumentException
-               (block/empty-block nil)))
-  (let [id (multihash/sha1 "foo bar baz")]
-    (is (= id (:id (block/empty-block id))))))
-
-
 (deftest block-size
   (testing "block with content"
     (let [block (block/read! "foo bar")]
@@ -26,7 +19,7 @@
 
 (deftest block-input-stream
   (testing "block without content"
-    (let [block (block/empty-block (multihash/sha1 "foo"))]
+    (let [block (empty (block/read! "abc"))]
       (is (nil? (block/open block)))))
   (testing "block with content"
     (let [block (block/read! "the old dog jumped")
@@ -37,6 +30,7 @@
 
 (deftest block-reading
   (testing "block construction"
+    #_ ; FIXME: decide on API behavior for empty blocks
     (is (nil? (block/read! (byte-array 0)))
         "empty content reads as nil")
     (is (= :sha1 (:algorithm (:id (block/read! "foo" multihash/sha1))))
@@ -105,7 +99,7 @@
 (deftest store-wrapper
   (let [store (reify block/BlockStore (put! [_ block] block))
         block (block/store! store "alphabet soup")]
-    (is (instance? blocks.core.Block block))
+    (is (instance? blocks.data.Block block))
     (is (nil? (block/validate! block)))))
 
 
