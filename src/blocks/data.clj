@@ -158,7 +158,9 @@
     (case k
       :id -id
       :size -size
-      not-found))
+      :content -content
+      :reader -reader
+      (get -attributes k not-found)))
 
 
   clojure.lang.IPersistentMap
@@ -235,8 +237,19 @@
       (Block. -id -size -content -reader (not-empty (dissoc -attributes k)) -meta)))
 
 
-  ; IDeref?
-  ; (deref [this] ...)
+  clojure.lang.IDeref
+
+  ; TODO: what should this do?
+  (deref
+    [this]
+    (cond->
+      (merge
+        -attributes
+        {:id -id, :size -size})
+      -content
+        (assoc :content -content)
+      -reader
+        (assoc :reader -reader)))
 
 
   clojure.lang.IPending
