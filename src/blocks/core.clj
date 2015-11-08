@@ -144,7 +144,7 @@
 
 (defn get
   "Loads content for a multihash and returns a block record. Returns nil if no
-  block is stored. The block should include stat metadata.
+  block is stored. The block may include stat metadata.
 
   This function checks the digest of the loaded content against the requested multihash,
   and throws an exception if it does not match."

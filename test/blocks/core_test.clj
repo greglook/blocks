@@ -11,6 +11,17 @@
 
 ;; ## Block Functions
 
+(deftest block-stats
+  (let [block {:id "foo"}
+        block' (block/with-stats block {:stored-at 123})]
+    (testing "with-stats"
+      (is (= block block') "shoudn't affect equality")
+      (is (not (empty? (meta block'))) "should add metadata"))
+    (testing "meta-stats"
+      (is (= {:stored-at 123} (block/meta-stats block'))
+          "should return the stored stats"))))
+
+
 (deftest block-size
   (testing "block with content"
     (let [block (block/read! "foo bar")]
