@@ -12,12 +12,13 @@
   (:import
     blocks.data.PersistentBytes
     java.io.FilterInputStream
+    java.io.InputStream
     multihash.core.Multihash))
 
 
 ;; ## Utility Functions
 
-(defn- resolve-hash!
+(defn resolve-hash
   "Resolves an algorithm designator to a hash function. Throws an exception on
   invalid names or error."
   [algorithm]
@@ -42,11 +43,11 @@
                     (pr-str algorithm))))))
 
 
-(defn- checked-hash
+(defn checked-hash
   "Constructs a function for the given hash algorithm or function which checks
   that the result is a `Multihash`."
   [algorithm]
-  (let [hash-fn (resolve-hash! algorithm)]
+  (let [hash-fn (resolve-hash algorithm)]
     (fn checked-hasher
       [source]
       (let [id (hash-fn source)]
@@ -57,10 +58,11 @@
         id))))
 
 
-(defn- counting-input-stream
+(defn counting-input-stream
   "Wraps the given input stream with a filter which counts the bytes passing
   through it. The byte count will be added to value in the atom argument."
-  [in counter]
+  ^InputStream
+  [^InputStream in counter]
   (proxy [FilterInputStream] [in]
     (read
       ([]
@@ -85,12 +87,12 @@
 ;; ## Block Type
 
 (deftype Block
-  [^Multihash -id
-   ^long -size
-   ^PersistentBytes -content
-   -reader
-   -attributes
-   -meta]
+  [^Multihash id
+   ^long size
+   ^PersistentBytes content
+   reader
+   _attrs
+   _meta]
 
   ;:load-ns true
 
@@ -100,15 +102,11 @@
   (toString
     [this]
     (format "Block[%s %s %s]"
-            -id -size (if -content
-                        "realized"
-                        (if -reader
-                          "deferred"
-                          "empty"))))
+            id size (if content "+" (if reader "-" " "))))
 
   (hashCode
     [this]
-    (hash-combine (hash Block) (hash -id)))
+    (hash-combine (hash Block) (hash id)))
 
   ; TODO: this should consider attributes
   (equals
@@ -116,7 +114,7 @@
     (cond
       (identical? this that) true
       (instance? Block that)
-        (= -id  (:id that))
+        (= id  (:id that))
       :else false))
 
 
@@ -124,26 +122,26 @@
 
   (compareTo
     [this that]
-    (compare [-id -size -attributes]
+    (compare [id size _attrs]
              [(:id that) (:size that)
               (when (instance? Block that)
-                      (.-attributes ^Block that))]))
+                      (._attrs ^Block that))]))
 
 
   clojure.lang.IHashEq
 
   (hasheq
     [this]
-    (hash-combine (hash Block) (hash [-id -size -attributes])))
+    (hash-combine (hash Block) (hash [id size _attrs])))
 
 
   clojure.lang.IObj
 
-  (meta [this] -meta)
+  (meta [this] _meta)
 
   (withMeta
     [this meta-map]
-    (Block. -id -size -content -reader -attributes meta-map))
+    (Block. id size content reader _attrs meta-map))
 
 
   ; TODO: IKeywordLookup?
@@ -156,22 +154,20 @@
   (valAt
     [this k not-found]
     (case k
-      :id -id
-      :size -size
-      :content -content
-      :reader -reader
-      (get -attributes k not-found)))
+      :id id
+      :size size
+      (get _attrs k not-found)))
 
 
   clojure.lang.IPersistentMap
 
   (count
     [this]
-    (+ 2 (count -attributes)))
+    (+ 2 (count _attrs)))
 
   (empty
     [this]
-    (Block. -id -size nil nil nil -meta))
+    (Block. id size nil nil nil _meta))
 
   (cons
     [this element]
@@ -195,12 +191,12 @@
     (boolean (or (identical? this other)
                  (when (identical? (class this) (class other))
                    (let [other ^Block other
-                         other-content (. other -content)]
-                     (and (= -id (. other -id))
-                          (= -size (. other -size))
-                          (= -attributes (. other -attributes))
-                          (not (and -content other-content
-                                    (not= -content other-content)))))))))
+                         other-content (.content other)]
+                     (and (= id (.id other))
+                          (= size (.size other))
+                          (= _attrs (._attrs other))
+                          (not (and content other-content
+                                    (not= content other-content)))))))))
 
   (containsKey
     [this k]
@@ -214,11 +210,11 @@
 
   (seq
     [this]
-    (seq (concat [[:id -id] [:size -size]] -attributes)))
+    (seq (concat [[:id id] [:size size]] _attrs)))
 
   (iterator
     [this]
-    (.iterator (seq this)))
+    (.iterator (vec this)))
 
   (assoc
     [this k v]
@@ -226,7 +222,7 @@
       (:id :size :content :reader)
         (throw (IllegalArgumentException.
                  (str "Block " k " cannot be changed")))
-      (Block. -id -size -content -reader (assoc -attributes k v) -meta)))
+      (Block. id size content reader (assoc _attrs k v) _meta)))
 
   (without
     [this k]
@@ -234,7 +230,7 @@
       (:id :size :content :reader)
         (throw (IllegalArgumentException.
                  (str "Block " k " cannot be changed")))
-      (Block. -id -size -content -reader (not-empty (dissoc -attributes k)) -meta)))
+      (Block. id size content reader (not-empty (dissoc _attrs k)) _meta)))
 
 
   clojure.lang.IDeref
@@ -243,19 +239,19 @@
   (deref
     [this]
     (merge
-      -attributes
-      {:id -id
-       :size -size
-       :state (cond -content :literal
-                    -reader  :lazy
-                    :else    :empty)}))
+      _attrs
+      {:id id
+       :size size
+       :state (cond content :literal
+                    reader  :lazy
+                    :else   :empty)}))
 
 
   clojure.lang.IPending
 
   (isRealized
     [this]
-    (some? -content)))
+    (some? content)))
 
 
 (defmethod print-method Block

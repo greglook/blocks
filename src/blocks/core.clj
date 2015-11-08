@@ -1,7 +1,7 @@
 (ns blocks.core
   "Block record and storage protocol functions.
 
-  Blocks have the following two primary attributes:
+  Blocks have the following primary attributes:
 
   - `:id`        `Multihash` with the digest identifying the content
   - `:content`   `PersistentBytes` with opaque content
@@ -24,24 +24,20 @@
     blocks.data.Block
     blocks.data.PersistentBytes
     java.io.InputStream
-    java.nio.ByteBuffer
     multihash.core.Multihash))
 
 
-
-
-;; ## Block Record
+;; ## Block Functions
 
 (defn open
-  "Opens an input stream to read the content of the block."
+  "Opens an input stream to read the content of the block. Returns nil for empty
+  blocks."
   ^InputStream
-  [block]
-  (if-let [content (:content block)]
-    (.open ^PersistentBytes content)
-    (if-let [reader (:reader block)]
-      (reader)
-      (throw (IllegalArgumentException.
-               "Cannot open block with no content or reader.")))))
+  [^Block block]
+  (if-let [content ^PersistentBytes (.content block)]
+    (.open content)
+    (when-let [reader (.reader block)]
+      (reader))))
 
 
 (defn read!
@@ -72,10 +68,9 @@
     (if-let [stream (open block)]
       (when-not (multihash/test id stream)
         (throw (IllegalStateException.
-                 (str "Invalid block " id " with mismatched content "
-                      (:content block)))))
+                 (str "Invalid block " id " has mismatched content."))))
       (throw (IllegalArgumentException.
-               (str "Cannot validate block " (:id block) " with no content"))))))
+               (str "Cannot validate empty block " id))))))
 
 
 
@@ -92,8 +87,9 @@
 
   (stat
     [store id]
-    "Returns a block record with metadata but no content. Returns nil if the
-    store does not contain the identified block.")
+    "Returns a map with an `:id` and `:size` but no content. The returned map
+    may contain additional data like the date stored. Returns nil if the store
+    does not contain the identified block.")
 
   (-get
     [store id]
