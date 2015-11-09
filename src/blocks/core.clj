@@ -1,8 +1,11 @@
 (ns blocks.core
-  "Block storage protocol and utility functions.
+  "Block storage protocol and utilities. Functions which may cause IO to occur
+  are marked with bangs; for example `(read! \"foo\")` doesn't have
+  side-effects, but `(read! some-input-stream)` will consume bytes from the
+  stream.
 
   When blocks are returned from a block store, they may include 'stat' metadata
-  about the blocks:
+  about the blocks, including:
 
   - `:stored-at`   time block was added to the store
   - `:origin`      resource location for the block
@@ -24,18 +27,19 @@
     multihash.core.Multihash))
 
 
-;; ## Block Functions
+;; ## Block IO
 
-(defn with-stats
-  "Adds stat information to a block's metadata."
-  [block stats]
-  (vary-meta block assoc :block/stats stats))
-
-
-(defn meta-stats
-  "Returns stat information from a block's metadata, if present."
-  [block]
-  (:block/stats (meta block)))
+(defn from-file
+  "Creates a lazy block from a local file. The file is read once to calculate
+  the identifier."
+  ([file]
+   (from-file file :sha2-256))
+  ([file algorithm]
+   (let [file (io/file file)
+         hash-fn (data/checked-hash algorithm)
+         reader #(io/input-stream file)
+         id (hash-fn (reader))]
+     (data/lazy-block id (.length file) reader))))
 
 
 (defn open
@@ -50,19 +54,6 @@
       reader  (reader)
       :else   (throw (IOException.
                         (str "Cannot open empty block " (:id block)))))))
-
-
-(defn from-file
-  "Creates a lazy block from a local file. The file is read once to calculate
-  the identifier."
-  ([file]
-   (from-file file :sha2-256))
-  ([file algorithm]
-   (let [file (io/file file)
-         hash-fn (data/checked-hash algorithm)
-         reader #(io/input-stream file)
-         id (hash-fn (reader))]
-     (data/lazy-block id (.length file) reader))))
 
 
 (defn read!
@@ -130,6 +121,12 @@
 (defprotocol BlockStore
   "Protocol for content-addressable storage keyed by multihash identifiers."
 
+  (stat
+    [store id]
+    "Returns a map with an `:id` and `:size` but no content. The returned map
+    may contain additional data like the date stored. Returns nil if the store
+    does not contain the identified block.")
+
   (-list
     [store opts]
     "Enumerates the ids of the stored blocks with some filtering options. See
@@ -148,18 +145,12 @@
 
   (delete!
     [store id]
-    "Removes a block from the store. Returns true if the block was stored.")
-
-  (stat
-    [store id]
-    "Returns a map with an `:id` and `:size` but no content. The returned map
-    may contain additional data like the date stored. Returns nil if the store
-    does not contain the identified block."))
+    "Removes a block from the store. Returns true if the block was stored."))
 
 
 ; TODO: BlockEnumerator
 ; Protocol which returns a lazy sequence of every block in the store, along with
-; an opaque token which can be used to resume the stream in the same position.
+; an opaque marker which can be used to resume the stream in the same position.
 ; Blocks are explicitly **not** returned in any defined order; it is assumed the
 ; store will enumerate them in the most efficient order available.
 
@@ -218,7 +209,8 @@
 
 (defn store!
   "Stores content from a byte source in a block store and returns the block
-  record."
+  record. This function reads the content into memory, so may not be suitable
+  for large sources."
   [store source]
   (when-let [block (read! source)]
     (put! store block)))
@@ -227,23 +219,30 @@
 
 ;; ## Utility Functions
 
-(defn select-hashes
-  "Selects multihash identifiers from a sequence based on some criteria.
+(defn with-stats
+  "Adds stat information to a block's metadata."
+  [block stats]
+  (vary-meta block assoc :block/stats stats))
 
-  Available options:
 
-  - `:algorithm`  only return hashes using this algorithm
-  - `:after`      start enumerating ids lexically following this string
-  - `:limit`      return at most 'limit' hashes
-  "
-  [opts ids]
-  ; TODO: this is an awkward way to search the store, think of a better approach
-  (let [{:keys [algorithm prefix encoder], :or {encoder multihash/hex}} opts
-        after (:after opts prefix)]
-    (cond->> ids
-      algorithm  (filter #(= algorithm (:algorithm %)))
-      after      (drop-while #(pos? (compare after (encoder %))))
-      prefix     (take-while #(.startsWith ^String (encoder %) prefix)))))
+(defn meta-stats
+  "Returns stat information from a block's metadata, if present."
+  [block]
+  (:block/stats (meta block)))
+
+
+(defn select-stats
+  "Selects block stats from a sequence based on the criteria spported in
+  `list`."
+  [opts stats]
+  (let [{:keys [algorithm after limit]} opts]
+    (cond->>
+      algorithm
+        (filter (comp #{algorithm} :algorithm :id))
+      after
+        (drop-while #(pos? (compare after (multihash/hex (:id %)))))
+      limit
+        (take limit))))
 
 
 (defn scan-size
