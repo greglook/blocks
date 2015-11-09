@@ -53,23 +53,40 @@
     (is (bytes= "frobblenitz" (.toByteArray baos)))))
 
 
+(deftest block-loading
+  (let [lazy-readme (block/from-file "README.md")
+        literal-readme (block/load! lazy-readme)]
+    (is (realized? literal-readme)
+        "load returns literal block for lazy block")
+    (is (identical? literal-readme (block/load! literal-readme))
+        "load returns literal block unchanged")
+    (is (bytes= @literal-readme (block/open lazy-readme))
+        "literal block content should match lazy block")))
+
+
 (deftest block-validation
-  (let [base (block/read! "foo bar baz")]
-    (testing "block with no id"
-      (is (thrown? RuntimeException
-                   (block/validate! (assoc base :id nil)))))
-    (testing "block with non-multihash id"
-      (is (thrown? RuntimeException
-                   (block/validate! (assoc base :id "foo")))))
-    (testing "block with no content"
-      (is (thrown? RuntimeException
-                   (block/validate! (assoc base :content nil)))))
-    (testing "block with non-persistentbytes content"
-      (is (thrown? RuntimeException
-                   (block/validate! (assoc base :content 'wat)))))
-    (testing "block with mismatched id"
-      (is (thrown? RuntimeException
-                   (block/validate! (assoc base :id (multihash/sha1 "qux"))))))
+  (let [base (block/read! "foo bar baz")
+        fix (fn [b k v]
+              (Block. (if (= k :id)      v (:id b))
+                      (if (= k :size)    v (:size b))
+                      (if (= k :content) v (.content b))
+                      (if (= k :reader)  v (.reader b))
+                      nil nil))]
+    (testing "non-multihash id"
+      (is (thrown? IllegalStateException
+                   (block/validate! (fix base :id "foo")))))
+    (testing "negative size"
+      (is (thrown? IllegalStateException
+                   (block/validate! (fix base :size -1)))))
+    (testing "invalid size"
+      (is (thrown? IllegalStateException
+                   (block/validate! (fix base :size 123)))))
+    (testing "incorrect identifier"
+      (is (thrown? IllegalStateException
+                   (block/validate! (fix base :id (multihash/sha1 "qux"))))))
+    (testing "empty block"
+      (is (thrown? IOException
+                   (block/validate! (empty base)))))
     (testing "valid block"
       (is (nil? (block/validate! base))))))
 

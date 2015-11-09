@@ -101,13 +101,25 @@
   valid identifier for its content. Returns nil if the block is valid, or
   throws an exception on any error."
   [block]
-  (let [id (:id block)]
-    (if-let [stream (open block)]
+  (let [id (:id block)
+        size (:size block)]
+    (when-not (instance? Multihash id)
+      (throw (IllegalStateException.
+               (str "Block id is not a multihash: " (pr-str id)))))
+    (when (neg? size)
+      (throw (IllegalStateException.
+               (str "Block " id " has negative size: " size))))
+    ; TODO: check size correctness later with a counting-input-stream?
+    (when (realized? block)
+      (let [actual-size (count @block)]
+        (when (not= size actual-size)
+          (throw (IllegalStateException.
+                   (str "Block " id " reports size " size
+                        " but has actual size " actual-size))))))
+    (with-open [stream (open block)]
       (when-not (multihash/test id stream)
         (throw (IllegalStateException.
-                 (str "Invalid block " id " has mismatched content."))))
-      (throw (IllegalArgumentException.
-               (str "Cannot validate empty block " id))))))
+                 (str "Block " id " has mismatched content")))))))
 
 
 
