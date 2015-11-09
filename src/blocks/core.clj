@@ -51,6 +51,22 @@
       (reader))))
 
 
+(defn fetch
+  "Returns a literal block corresponding to the block given. If the block is
+  lazy, the stream is read into memory and returned as a  If the block is
+  already realized, it is returned unchanged."
+  [^Block block]
+  (if (realized? block)
+    block
+    (let [block' (data/create-literal-block (:id block) (open block))]
+      (Block. (:id block')
+              (:size block')
+              (:content block')
+              nil
+              (._attrs block)
+              (meta block)))))
+
+
 (defn read!
   "Reads data into memory from the given source and hashes it to identify the
   block. Defaults to sha2-256 if no algorithm is specified."
