@@ -71,7 +71,7 @@
   "Creates a lazy block to read from the given file."
   [id ^File file]
   (block/with-stats
-    (data/create-lazy-block id (.length file) #(io/input-stream file))
+    (data/lazy-block id (.length file) #(io/input-stream file))
     (block-stats file)))
 
 
