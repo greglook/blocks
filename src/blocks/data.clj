@@ -132,7 +132,7 @@
     [this k]
     (let [v (.valAt this k this)]
       (when-not (identical? this v)
-        [k v])))
+        (clojure.lang.MapEntry. k v))))
 
   (seq
     [this]
@@ -161,7 +161,6 @@
 
   clojure.lang.IDeref
 
-  ; TODO: what should this do?
   (deref
     [this]
     content)
