@@ -129,8 +129,8 @@
 
   (-list
     [store opts]
-    "Enumerates the ids of the stored blocks with some filtering options. See
-    `list` for the supported options.")
+    "Lists the blocks contained in the store. Returns a lazy sequence of stat
+    metadata about each block. See `list` for the supported options.")
 
   (-get
     [store id]
@@ -156,12 +156,13 @@
 
 
 (defn list
-  "Enumerates the stored blocks, returning a sequence of multihash values.
-  Stores should support the following options:
+  "Enumerates the stored blocks, returning a lazy sequence of block stats.
+  Iterating over the list may result in additional operations to read from the
+  backing data store.
 
-  - `:algorithm`  only return hashes using this algorithm
-  - `:after`      start enumerating hashes whose digest lexically follows this hex string
-  - `:limit`      return up to this many results
+  - `:algorithm`  only return blocks using this hash algorithm
+  - `:after`      list blocks whose id (in hex) lexically follows this string
+  - `:limit`      restrict the maximum number of results returned
   "
   ([store & opts]
    (let [allowed-keys #{:algorithm :after :limit}

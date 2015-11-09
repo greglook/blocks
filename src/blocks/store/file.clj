@@ -30,11 +30,42 @@
 
 ;; ## File System Utilities
 
-(defn- block-stats
+(defn- find-files
+  "Walks a directory tree depth first, returning a sequence of files found in
+  lexical order."
+  [^File file]
+  (cond
+    (.isFile file)
+      [file]
+    (.isDirectory file)
+      (->> (.listFiles file) (sort) (map find-files) (flatten))
+    :else
+      []))
+
+
+(defn- rm-r
+  "Recursively removes a directory of files."
+  [^File path]
+  (when (.isDirectory path)
+    (dorun (map rm-r (.listFiles path))))
+  (.delete path))
+
+
+
+;; ## File Block Functions
+
+(defn- file-stats
   "Calculates storage stats for a block file."
   [^File file]
   {:stored-at (Date. (.lastModified file))
    :origin (.toURI file)})
+
+
+(defn- block-stats
+  "Calculates a merged stat map for a block."
+  [id ^File file]
+  (merge (file-stats file)
+         {:id id, :size (.length file)}))
 
 
 (defn- id->file
@@ -72,28 +103,7 @@
   [id ^File file]
   (block/with-stats
     (data/lazy-block id (.length file) #(io/input-stream file))
-    (block-stats file)))
-
-
-(defn- find-files
-  "Walks a directory tree depth first, returning a sequence of files found in
-  lexical order."
-  [^File file]
-  (cond
-    (.isFile file)
-      [file]
-    (.isDirectory file)
-      (->> (.listFiles file) (sort) (map find-files) (flatten))
-    :else
-      []))
-
-
-(defn- rm-r
-  "Recursively removes a directory of files."
-  [^File path]
-  (when (.isDirectory path)
-    (dorun (map rm-r (.listFiles path))))
-  (.delete path))
+    (file-stats file)))
 
 
 (defmacro ^:private when-block-file
@@ -116,11 +126,17 @@
 
   block/BlockStore
 
+  (stat
+    [this id]
+    (when-block-file this id
+      (block-stats id file)))
+
+
   (-list
     [this opts]
     (->> (find-files root)
-         (map (partial file->id root))
-         (block/select-hashes opts)))
+         (map #(block-stats (file->id root %) %))
+         (block/select-stats opts)))
 
 
   (-get
@@ -135,8 +151,8 @@
           file (id->file root id)]
       (when-not (.exists file)
         (io/make-parents file)
-        ; For some reason, io/copy is much faster than byte-streams/transfer here.
-        (io/copy (block/open block) file)
+        (with-open [content (block/open block)]
+          (io/copy content file))
         (.setWritable file false false))
       (file->block id file)))
 
@@ -144,14 +160,7 @@
   (delete!
     [this id]
     (when-block-file this id
-      (.delete file)))
-
-
-  (stat
-    [this id]
-    (when-block-file this id
-      (merge (block-stats file)
-             {:id id, :size (.length file)}))))
+      (.delete file))))
 
 
 (defn erase!

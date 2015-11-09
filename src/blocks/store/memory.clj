@@ -6,6 +6,14 @@
     java.util.Date))
 
 
+(defn- block-stats
+  "Build a map of stat data for a stored block."
+  [block]
+  (merge (block/meta-stats block)
+         {:id (:id block)
+          :size (:size block)}))
+
+
 ;; Block records in a memory store are held in a map in an atom.
 (defrecord MemoryBlockStore
   [memory]
@@ -14,7 +22,9 @@
 
   (-list
     [this opts]
-    (block/select-hashes opts (keys @memory)))
+    (->> @memory
+         (map (comp block-stats val))
+         (block/select-stats opts)))
 
 
   (-get
@@ -40,9 +50,7 @@
   (stat
     [this id]
     (when-let [block (get @memory id)]
-      (merge (block/meta-stats block)
-             {:id (:id block)
-              :size (:size block)}))))
+      (bolck-stats block))))
 
 
 (defn memory-store
