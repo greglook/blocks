@@ -18,6 +18,7 @@
   user has 2^(3*12) entries, or about 68.7 billion blocks."
   (:require
     [blocks.core :as block]
+    [blocks.data :as data]
     [clojure.java.io :as io]
     [clojure.string :as string]
     [multihash.core :as multihash]
@@ -28,6 +29,13 @@
 
 
 ;; ## File System Utilities
+
+(defn- block-stats
+  "Calculates storage stats for a block file."
+  [^File file]
+  {:stored-at (Date. (.lastModified file))
+   :origin (.toURI file)})
+
 
 (defn- id->file
   "Determines the filesystem path for a block of content with the given hash
@@ -57,6 +65,14 @@
         (string/split #"/")
         (last)
         (multihash/decode))))
+
+
+(defn- file->block
+  "Creates a lazy block to read from the given file."
+  [id ^File file]
+  (block/with-stats
+    (data/create-lazy-block id (.length file) #(io/input-stream file))
+    (block-stats file)))
 
 
 (defn- find-files
@@ -90,13 +106,6 @@
        ~@body)))
 
 
-(defn- block-stats
-  "Calculates storage stats for a block file."
-  [^File file]
-  {:stored-at (Date. (.lastModified file))
-   :origin (.toURI file)})
-
-
 
 ;; ## File Store
 
@@ -124,22 +133,19 @@
   (-get
     [this id]
     (when-block-file this id
-      (-> file
-          (io/input-stream)
-          (block/read!)
-          (block/with-stats (block-stats file)))))
+      (file->block id file)))
 
 
   (put!
     [this block]
-    (let [{:keys [id content]} block
+    (let [id (:id block)
           file (id->file root id)]
       (when-not (.exists file)
         (io/make-parents file)
         ; For some reason, io/copy is much faster than byte-streams/transfer here.
         (io/copy (block/open block) file)
         (.setWritable file false false))
-      (block/with-stats block (block-stats file))))
+      (file->block id file)))
 
 
   (delete!
