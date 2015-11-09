@@ -34,26 +34,37 @@ Leiningen, add the following dependency to your project definition:
 ## Block Values
 
 A _block_ is a sequence of bytes identiied by the cryptographic digest of its
-content. Digests are represented as
-[multihash](//github.com/greglook/clj-multihash) values, which support many
-different hashing algorithms. A given multihash securely identifies a specific
-immutable piece of data, as any change in the content results in a different
-identifier.
+content. All blocks have an `:id` and `:size`. The block identifier is a
+[multihash](//github.com/greglook/clj-multihash) value, and the size is the
+number of bytes in the block content.
+
+Internally, blocks either have a buffer holding the data in memory, or a reader
+function which can be invoked to create new input streams for the block content.
+Blocks can be treated as pending values; a block with in-memory content is
+considered a _literal block_ for which `realized?` returns true, while a block
+with a reader function is a _lazy block_ and `realized?` will return false.
+Dereferencing a realized block returns its content, while lazy blocks will give
+`nil`.
+
+A block's `:id`, `:size`, and content cannot be changed after construction, so
+clients can be relatively certain that the block's id is valid. Blocks support
+metadata and may have additional attributes associated with them, similar to
+Clojure records.
 
 ```clojure
-{:id #data/hash "sha256:9e663220c60fb814a09f4dc1ecb28222eaf2d647174e60554272395bf776495a"
- :content #bin "iJwEAAECAAYFAlNMwWMACgkQkjscHEOSMYqORwQAnfJw0AX/6zabotV6yf2LbuwwJ6Mr+..."}
+=> (block/read! "foo")
+#blocks.data.Block {:id #data/hash "QmRJzsvyCQyizr73Gmms8ZRtvNxmgqumxc2KUp71dfEmoj", :size 3}
 ```
 
 ## Storage Interface
 
-A _block store_ is a system which saves and retrieves block data. block stores
+A _block store_ is a system which saves and retrieves block data. Block stores
 support a very simple interface; they must store, retrieve, and enumerate the
 contained blocks. The simplest type of block storage is a hash map in memory.
 Another simple example is a store backed by a local file system, where blocks are
-stored as files.
+stored as files in a directory.
 
-The block storage interface is straightforward:
+The block storage protocol is comprised of five methods:
 - `list` - enumerate the stored blocks
 - `stat` - get metadata about a stored block
 - `get` - return the bytes stored for a block

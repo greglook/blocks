@@ -35,7 +35,7 @@
 
   :whidbey
   {:tag-types {'multihash.core.Multihash {'data/hash 'multihash.core/base58}
-               'blocks.data.Block {'blocks.data.Block #(into {:block/realized? (realized? %)} %)}}}
+               'blocks.data.Block {'blocks.data.Block (partial into {})}}}
 
   :profiles
   {:repl {:source-paths ["dev"]
