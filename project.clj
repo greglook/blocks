@@ -34,7 +34,8 @@
    :output-path "doc/pages/api"}
 
   :whidbey
-  {:tag-types {'multihash.core.Multihash {'data/hash 'multihash.core/base58}}}
+  {:tag-types {'multihash.core.Multihash {'data/hash 'multihash.core/base58}
+               'blocks.data.Block {'blocks.data.Block #(into {:block/realized? (realized? %)} %)}}}
 
   :profiles
   {:repl {:source-paths ["dev"]
