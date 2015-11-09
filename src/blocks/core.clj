@@ -59,9 +59,10 @@
    (from-file file :sha2-256))
   ([file algorithm]
    (let [file (io/file file)
-         hash-fn (checked-hash algorithm)
-         id (hash-fn (io/input-stream file))]
-     (data/lazy-block id (.length content) #(io/input-stream file)))))
+         hash-fn (data/checked-hash algorithm)
+         reader #(io/input-stream file)
+         id (hash-fn (reader))]
+     (data/lazy-block id (.length file) reader))))
 
 
 (defn read!
