@@ -17,14 +17,6 @@
     (block/select-hashes opts (keys @memory)))
 
 
-  (stat
-    [this id]
-    (when-let [block (get @memory id)]
-      (merge (block/meta-stats block)
-             {:id (:id block)
-              :size (:size block)})))
-
-
   (-get
     [this id]
     (get @memory id))
@@ -42,7 +34,15 @@
 
   (delete!
     [this id]
-    (swap! memory dissoc id)))
+    (swap! memory dissoc id))
+
+
+  (stat
+    [this id]
+    (when-let [block (get @memory id)]
+      (merge (block/meta-stats block)
+             {:id (:id block)
+              :size (:size block)}))))
 
 
 (defn memory-store

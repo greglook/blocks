@@ -1,18 +1,17 @@
 (ns blocks.data
   "Block type and constructor functions.
 
-  Blocks have the following two primary attributes:
-
-  - `:id`       `Multihash` with the digest identifying the content
-  - `:size`     number of bytes in the block content
+  Blocks have two primary attributes, `:id` and `:size`. The block identifier
+  is a `Multihash` with the digest identifying the content. The size is the
+  number of bytes in the block content.
 
   Internally, blocks either have in-memory content holding the data, or a
   reader function which returns new input streams for the block data. This is
   reflected in the way Blocks are treated as pending values: a block with
-  in-memory content is considered a _literal block_ on which `realized?`
-  returns true. A block with a reader function is a _lazy block_ and is not
-  realized. Dereferencing a realized block returns its content, otherwise
-  `nil` for lazy blocks.
+  in-memory content is considered a _literal block_ for which `realized?`
+  returns true. By contrast, a block with a reader function is a _lazy block_
+  and `realized?` will return false. Dereferencing a realized block returns its
+  content, while lazy blocks will give `nil`.
 
   A block's id, size, content, and reader cannot be changed after construction,
   so clients can be relatively certain that the block's id is valid. Blocks
@@ -42,7 +41,7 @@
   (toString
     [this]
     (format "Block[%s %s %s]"
-            id size (if content "+" (if reader "-" " "))))
+            id size (if content "*" (if reader "~" "!"))))
 
   (equals
     [this that]

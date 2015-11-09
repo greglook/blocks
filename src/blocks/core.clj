@@ -1,14 +1,8 @@
 (ns blocks.core
-  "Block record and storage protocol functions.
+  "Block storage protocol and utility functions.
 
-  Blocks have the following primary attributes:
-
-  - `:id`        `Multihash` with the digest identifying the content
-  - `:content`   `PersistentBytes` with opaque content
-
-  Blocks may be given other attributes describing their content. When blocks
-  are returned from a block store, they may include 'stat' metadata about the
-  blocks:
+  When blocks are returned from a block store, they may include 'stat' metadata
+  about the blocks:
 
   - `:stored-at`   time block was added to the store
   - `:origin`      resource location for the block
@@ -120,22 +114,13 @@
   (-list
     [store opts]
     "Enumerates the ids of the stored blocks with some filtering options. See
-    `list` for the supported options. Typically clients should use `list`
-    instead.")
-
-  (stat
-    [store id]
-    "Returns a map with an `:id` and `:size` but no content. The returned map
-    may contain additional data like the date stored. Returns nil if the store
-    does not contain the identified block.")
+    `list` for the supported options.")
 
   (-get
     [store id]
     "Returns the identified block if it is stored, otherwise nil. The block
-    should include stat metadata.
-
-    Typically clients should use `get` instead, which validates returned block
-    records.")
+    should include stat metadata. Typically clients should use `get` instead,
+    which validates arguments and the returned block record.")
 
   (put!
     [store block]
@@ -144,10 +129,20 @@
 
   (delete!
     [store id]
-    "Removes a block from the store."))
+    "Removes a block from the store. Returns true if the block was stored.")
+
+  (stat
+    [store id]
+    "Returns a map with an `:id` and `:size` but no content. The returned map
+    may contain additional data like the date stored. Returns nil if the store
+    does not contain the identified block."))
 
 
-; TODO: BlockStreamable
+; TODO: BlockEnumerator
+; Protocol which returns a lazy sequence of every block in the store, along with
+; an opaque token which can be used to resume the stream in the same position.
+; Blocks are explicitly **not** returned in any defined order; it is assumed the
+; store will enumerate them in the most efficient order available.
 
 
 (defn list
@@ -171,23 +166,22 @@
 
 (defn get
   "Loads content for a multihash and returns a block record. Returns nil if no
-  block is stored. The block may include stat metadata.
-
-  This function checks the digest of the loaded content against the requested multihash,
-  and throws an exception if it does not match."
+  block is stored. The returned block is checked to make sure the id matches the
+  requested hash."
   [store id]
   (when-not (instance? Multihash id)
     (throw (IllegalArgumentException.
              (str "Id value must be a multihash, got: " (pr-str id)))))
   (when-let [block (-get store id)]
-    (validate! block)
+    (when-not (= id (:id block))
+      (throw (RuntimeException.
+               (str "Asked for block " id " but got " (:id block)))))
     block))
 
 
 (defn store!
   "Stores content from a byte source in a block store and returns the block
-  record. This method accepts any source which can be handled as a byte
-  stream by the byte-streams library."
+  record."
   [store source]
   (when-let [block (read! source)]
     (put! store block)))

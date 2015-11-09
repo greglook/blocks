@@ -123,13 +123,6 @@
          (block/select-hashes opts)))
 
 
-  (stat
-    [this id]
-    (when-block-file this id
-      (merge (block-stats file)
-             {:id id, :size (.length file)})))
-
-
   (-get
     [this id]
     (when-block-file this id
@@ -151,7 +144,14 @@
   (delete!
     [this id]
     (when-block-file this id
-      (.delete file))))
+      (.delete file)))
+
+
+  (stat
+    [this id]
+    (when-block-file this id
+      (merge (block-stats file)
+             {:id id, :size (.length file)}))))
 
 
 (defn erase!
