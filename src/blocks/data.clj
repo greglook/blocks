@@ -17,12 +17,7 @@
   A block's id, size, content, and reader cannot be changed after construction,
   so clients can be relatively certain that the block's id is valid. Blocks
   _may_ have additional attributes associated with them and support metadata,
-  similar to records.
-
-  Unlike records, these extra attributes **DO NOT** affect the block's equality
-  semantics! Blocks with the same id and size will be considered equal and
-  return the same hash code. Extra attributes will affect block comparisons and
-  sort order."
+  similar to records."
   (:require
     [byte-streams :as bytes]
     [multihash.core :as multihash])
@@ -51,23 +46,17 @@
 
   (equals
     [this that]
-    (cond
-      (identical? this that) true
-      (instance? Block that)
-        (and (= id   (:id   that))
-             (= size (:size that)))
-      :else false))
+    (boolean
+      (or (identical? this that)
+          (when (identical? (class this) (class that))
+            (let [that ^Block that]
+              (and (= id     (.id     that))
+                   (= size   (.size   that))
+                   (= _attrs (._attrs that))))))))
 
   (hashCode
     [this]
-    (hash [Block id size]))
-
-
-  clojure.lang.IHashEq
-
-  (hasheq
-    [this]
-    (.hashCode this))
+    (hash [(class this) id size _attrs]))
 
 
   java.lang.Comparable
@@ -76,7 +65,7 @@
     [this that]
     (compare [id size _attrs]
              [(:id that) (:size that)
-              (when (instance? Block that)
+              (when (identical? (class this) (class that))
                 (._attrs ^Block that))]))
 
 
@@ -132,16 +121,8 @@
             result))))
 
   (equiv
-    [this other]
-    (boolean (or (identical? this other)
-                 (when (identical? (class this) (class other))
-                   (let [other ^Block other
-                         other-content (.content other)]
-                     (and (= id (.id other))
-                          (= size (.size other))
-                          (= _attrs (._attrs other))
-                          (not (and content other-content
-                                    (not= content other-content)))))))))
+    [this that]
+    (.equals this that))
 
   (containsKey
     [this k]
@@ -252,7 +233,7 @@
   "Creates a block from a reader function. Each time the function is called, it
   should return a new `InputStream` to read the block contents. The block is
   given the id and size directly, without being checked."
-  ^Block
+  ^blocks.data.Block
   [id size reader]
   (Block. id size nil reader nil nil))
 
@@ -260,7 +241,7 @@
 (defn literal-block
   "Creates a block by reading a source into memory. The block is given the id
   directly, without being checked."
-  ^Block
+  ^blocks.data.Block
   [id source]
   (let [content (bytes/to-byte-array source)]
     (Block. id
@@ -272,7 +253,7 @@
 (defn read-block
   "Creates a block by reading the source into memory and hashing it. This
   creates a realized block."
-  ^Block
+  ^blocks.data.Block
   [source algorithm]
   (let [hash-fn (checked-hash algorithm)
         content (bytes/to-byte-array source)]
