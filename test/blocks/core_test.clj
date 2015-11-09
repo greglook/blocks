@@ -133,11 +133,13 @@
     (let [store (reify block/BlockStore (-get [_ id] nil))]
       (is (nil? (block/get store (multihash/sha1 "foo bar"))))))
   (testing "invalid block result"
-    (let [content "foobarbaz"
-          block (block/read! content)
-          store (reify block/BlockStore (-get [_ id] (assoc block :id id)))
-          other-id (multihash/sha1 "bazbarfoo")]
-      (is (thrown? RuntimeException (block/get store other-id))))))
+    (let [store (reify block/BlockStore (-get [_ id] (block/read! "foo")))
+          other-id (multihash/sha1 "baz")]
+      (is (thrown? RuntimeException (block/get store other-id)))))
+  (testing "valid block result"
+    (let [block (block/read! "foo")
+          store (reify block/BlockStore (-get [_ id] block))]
+      (is (thrown? RuntimeException (block/get store (:id block)))))))
 
 
 (deftest store-wrapper
