@@ -242,9 +242,10 @@
       _attrs
       {:id id
        :size size
-       :state (cond content :literal
-                    reader  :lazy
-                    :else   :empty)}))
+       :block/state
+       (cond content :literal
+             reader  :lazy
+             :else   :empty)}))
 
 
   clojure.lang.IPending
@@ -269,6 +270,7 @@
 (defn create-literal-block
   "Creates a block by reading a source into memory. The block is given the id
   directly, without being checked."
+  ^Block
   [id source]
   (let [content (bytes/to-byte-array source)]
     (Block. id
@@ -280,6 +282,7 @@
 (defn read-literal-block
   "Creates a block by reading the source into memory and hashing it. This
   creates a realized block."
+  ^Block
   [source algorithm]
   (let [hash-fn (checked-hash algorithm)
         content (bytes/to-byte-array source)]
@@ -289,18 +292,20 @@
             nil nil nil)))
 
 
-(defn create-deferred-block
+(defn create-lazy-block
   "Creates a block from a reader function. Each time the function is called, it
   should return a new `InputStream` to read the block contents. The block is
   given the id and size directly, without being checked."
+  ^Block
   [id size reader]
   (Block. id size nil reader nil nil))
 
 
-(defn read-deferred-block
+(defn read-lazy-block
   "Creates a block from a reader function. Each time the function is called, it
   should return a new `InputStream` to read the block contents. The stream will
   be read once immedately to calculate the hash and size."
+  ^Block
   [reader algorithm]
   (let [hash-fn (checked-hash algorithm)
         counter (atom 0)]
