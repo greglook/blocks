@@ -11,6 +11,7 @@
     (testing "equality"
       (is (= b1 (empty b1))
           "empty block should still be equal")
+      (is (= b1 (data/literal-block (:id b1) (.content b1))))
       (is (not= b1 (assoc b1 :foo :bar))
           "extra attributes should affect equality")
       (is (not= b1 b2)
