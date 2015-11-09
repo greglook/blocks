@@ -17,6 +17,7 @@
   (:import
     blocks.data.Block
     blocks.data.PersistentBytes
+    java.io.IOException
     java.io.InputStream
     multihash.core.Multihash))
 
@@ -40,10 +41,13 @@
   blocks."
   ^InputStream
   [^Block block]
-  (if-let [content ^PersistentBytes (.content block)]
-    (.open content)
-    (when-let [reader (.reader block)]
-      (reader))))
+  (let [content ^PersistentBytes (.content block)
+        reader (.reader block)]
+    (cond
+      content (.open content)
+      reader  (reader)
+      :else   (throw (IOException.
+                        (str "Cannot open empty block " (:id block)))))))
 
 
 (defn from-file
@@ -70,9 +74,9 @@
 
 (defn write!
   "Writes block data to an output stream."
-  [block sink]
-  (when-let [content (open block)]
-    (bytes/transfer content sink)))
+  [block out]
+  (with-open [stream (open block)]
+    (bytes/transfer stream out)))
 
 
 (defn load!
@@ -82,7 +86,8 @@
   [^Block block]
   (if (realized? block)
     block
-    (let [block' (data/literal-block (:id block) (open block))]
+    (let [block' (with-open [stream (open block)]
+                   (data/literal-block (:id block) stream))]
       (Block. (:id block')
               (:size block')
               (.content block')

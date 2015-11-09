@@ -1,17 +1,20 @@
 (ns blocks.core-test
   (:require
     [blocks.core :as block]
+    [blocks.data :as data]
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.test :refer :all]
     [multihash.core :as multihash])
   (:import
+    blocks.data.Block
     java.io.ByteArrayOutputStream
+    java.io.IOException
     java.io.InputStream))
 
 
 ;; ## Block Functions
 
-(deftest block-stats
+(deftest stat-metadata
   (let [block {:id "foo"}
         block' (block/with-stats block {:stored-at 123})]
     (testing "with-stats"
@@ -22,31 +25,25 @@
           "should return the stored stats"))))
 
 
-(deftest block-size
-  (testing "block with content"
-    (let [block (block/read! "foo bar")]
-      (is (= 7 (:size block))))))
-
-
 (deftest block-input-stream
-  (testing "block without content"
+  (testing "empty block"
     (let [block (empty (block/read! "abc"))]
-      (is (nil? (block/open block)))))
-  (testing "block with content"
+      (is (thrown? IOException (block/open block)))))
+  (testing "literal block"
     (let [block (block/read! "the old dog jumped")
           stream (block/open block)]
       (is (instance? InputStream stream))
-      (is (= "the old dog jumped" (slurp stream))))))
+      (is (= "the old dog jumped" (slurp stream)))))
+  (testing "lazy block"
+    (let [block (block/from-file "README.md")]
+      (is (not (realized? block)) "file blocks should be lazy")
+      (is (string? (slurp (block/open block)))))))
 
 
-#_
 (deftest block-reading
   (testing "block construction"
-    #_ ; FIXME: decide on API behavior for empty blocks
-    (is (nil? (block/read! (byte-array 0)))
-        "empty content reads as nil")
-    (is (= :sha1 (:algorithm (:id (block/read! "foo" multihash/sha1))))
-        "direct function algorithm should create multihash")))
+    (is (empty? @(block/read! (byte-array 0)))
+        "empty content reads into empty content")))
 
 
 (deftest block-writing
