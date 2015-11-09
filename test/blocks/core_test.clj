@@ -39,20 +39,14 @@
       (is (= "the old dog jumped" (slurp stream))))))
 
 
+#_
 (deftest block-reading
   (testing "block construction"
     #_ ; FIXME: decide on API behavior for empty blocks
     (is (nil? (block/read! (byte-array 0)))
         "empty content reads as nil")
     (is (= :sha1 (:algorithm (:id (block/read! "foo" multihash/sha1))))
-        "direct function algorithm should create multihash"))
-  (testing "invalid algorithm name types"
-    (is (thrown? RuntimeException (block/read! "foo" nil)))
-    (is (thrown? IllegalArgumentException (block/read! "foo" 123))))
-  (testing "unsupported algorithm name"
-    (is (thrown? IllegalArgumentException (block/read! "foo" :sha8-4096))))
-  (testing "hash function which returns a non-multihash value"
-    (is (thrown? RuntimeException (block/read! "foo" (constantly :bar))))))
+        "direct function algorithm should create multihash")))
 
 
 (deftest block-writing

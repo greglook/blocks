@@ -12,6 +12,7 @@
     blocks.data.PersistentBytes))
 
 
+#_
 (deftest test-memory-store
   (let [store (memory-store)]
     (test-block-store store "memory-store")))

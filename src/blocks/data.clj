@@ -32,7 +32,7 @@
    _attrs
    _meta]
 
-  :load-ns true
+  ;:load-ns true
 
 
   java.lang.Object
