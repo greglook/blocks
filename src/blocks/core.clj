@@ -13,6 +13,8 @@
     [blocks.data.conversions]
     [byte-streams :as bytes]
     [clojure.java.io :as io]
+    [clojure.set :as set]
+    [clojure.string :as str]
     [multihash.core :as multihash])
   (:import
     blocks.data.Block
@@ -167,18 +169,36 @@
   Stores should support the following options:
 
   - `:algorithm`  only return hashes using this algorithm
-  - `:sorted`     whether to return hashes in sorted order
-  - `:after`      start enumerating hashes lexically following this string
+  - `:after`      start enumerating hashes whose digest lexically follows this hex string
   - `:limit`      return up to this many results
   "
   ([store & opts]
-   (cond
-     (empty? opts)
-       (-list store nil)
-     (and (= 1 (count opts)) (map? (first opts)))
-       (-list store (first opts))
-     :else
-       (-list store (apply array-map opts)))))
+   (let [allowed-keys #{:algorithm :after :limit}
+         opts-map (cond
+                    (empty? opts) nil
+                    (and (= 1 (count opts)) (map? (first opts))) (first opts)
+                    :else (apply hash-map opts))
+         bad-opts (set/difference (set (keys opts-map)) allowed-keys)]
+     (when (not-empty bad-opts)
+       (throw (IllegalArgumentException.
+                (str "Invalid options passed to list: "
+                     (str/join " " bad-opts)))))
+     (when-let [algorithm (:algorithm opts-map)]
+       (when-not (keyword? algorithm)
+         (throw (IllegalArgumentException.
+                  (str ":algorithm option must be a keyword: "
+                       (pr-str algorithm))))))
+     (when-let [after (:after opts-map)]
+       (when-not (and (string? after) (re-matches #"^[0-9a-fA-F]*$" after))
+         (throw (IllegalArgumentException.
+                  (str ":after option must be a hex string: "
+                       (pr-str after))))))
+     (when-let [limit (:limit opts-map)]
+       (when-not (and (integer? limit) (pos? limit))
+         (throw (IllegalArgumentException.
+                  (str ":limit option must be a positive integer: "
+                       (pr-str limit))))))
+     (-list store opts-map))))
 
 
 (defn get

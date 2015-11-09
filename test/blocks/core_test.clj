@@ -96,9 +96,34 @@
 
 (deftest list-wrapper
   (let [store (reify block/BlockStore (-list [_ opts] opts))]
-    (is (nil? (block/list store)))
-    (is (= {:foo "bar"} (block/list store {:foo "bar"})))
-    (is (= {:foo "bar", :baz 3} (block/list store :foo "bar" :baz 3)))))
+    (testing "opts-map conversion"
+      (is (nil? (block/list store))
+          "no arguments should return nil options map")
+      (is (= {:limit 20} (block/list store {:limit 20}))
+          "single map argument should pass map")
+      (is (= {:limit 20} (block/list store :limit 20))
+          "multiple args should convert into hash map"))
+    (testing "option validation"
+      (is (thrown-with-msg?
+            IllegalArgumentException #":foo"
+            (block/list store :foo "bar")))
+      (is (thrown-with-msg?
+            IllegalArgumentException #"be a keyword"
+            (block/list store :algorithm "foo")))
+      (is (thrown-with-msg?
+            IllegalArgumentException #"be a hex string"
+            (block/list store :after 123)))
+      (is (thrown-with-msg?
+            IllegalArgumentException #"be a hex string"
+            (block/list store :after "123abx")))
+      (is (thrown-with-msg?
+            IllegalArgumentException #"be a positive integer"
+            (block/list store :limit :xyz)))
+      (is (thrown-with-msg?
+            IllegalArgumentException #"be a positive integer"
+            (block/list store :limit 0)))
+      (is (= {:algorithm :sha1, :after "012abc", :limit 10}
+             (block/list store :algorithm :sha1, :after "012abc", :limit 10))))))
 
 
 (deftest get-wrapper
