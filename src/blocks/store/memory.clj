@@ -50,7 +50,7 @@
   (stat
     [this id]
     (when-let [block (get @memory id)]
-      (bolck-stats block))))
+      (block-stats block))))
 
 
 (defn memory-store

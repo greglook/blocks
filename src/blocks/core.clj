@@ -22,8 +22,8 @@
   (:import
     blocks.data.Block
     blocks.data.PersistentBytes
+    java.io.File
     java.io.IOException
-    java.io.InputStream
     multihash.core.Multihash))
 
 
@@ -45,7 +45,7 @@
 (defn open
   "Opens an input stream to read the content of the block. Returns nil for empty
   blocks."
-  ^InputStream
+  ^java.io.InputStream
   [^Block block]
   (let [content ^PersistentBytes (.content block)
         reader (.reader block)]
@@ -237,7 +237,7 @@
   `list`."
   [opts stats]
   (let [{:keys [algorithm after limit]} opts]
-    (cond->>
+    (cond->> stats
       algorithm
         (filter (comp #{algorithm} :algorithm :id))
       after

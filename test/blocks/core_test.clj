@@ -139,7 +139,7 @@
   (testing "valid block result"
     (let [block (block/read! "foo")
           store (reify block/BlockStore (-get [_ id] block))]
-      (is (thrown? RuntimeException (block/get store (:id block)))))))
+      (is (= block (block/get store (:id block)))))))
 
 
 (deftest store-wrapper
