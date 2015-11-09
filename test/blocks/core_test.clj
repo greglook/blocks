@@ -13,18 +13,7 @@
     java.io.InputStream))
 
 
-;; ## Block Functions
-
-(deftest stat-metadata
-  (let [block {:id "foo"}
-        block' (block/with-stats block {:stored-at 123})]
-    (testing "with-stats"
-      (is (= block block') "shoudn't affect equality")
-      (is (not (empty? (meta block'))) "should add metadata"))
-    (testing "meta-stats"
-      (is (= {:stored-at 123} (block/meta-stats block'))
-          "should return the stored stats"))))
-
+;; ## IO Tests
 
 (deftest block-input-stream
   (testing "empty block"
@@ -93,7 +82,7 @@
 
 
 
-;; ## Storage Function Tests
+;; ## Storage Tests
 
 (deftest list-wrapper
   (let [store (reify block/BlockStore (-list [_ opts] opts))]
@@ -155,17 +144,31 @@
             "should be read into memory")))))
 
 
-#_
-(deftest multihash-selection
+
+;; ## Utility Tests
+
+(deftest stat-metadata
+  (let [block {:id "foo"}
+        block' (block/with-stats block {:stored-at 123})]
+    (testing "with-stats"
+      (is (= block block') "shoudn't affect equality")
+      (is (not (empty? (meta block'))) "should add metadata"))
+    (testing "meta-stats"
+      (is (= {:stored-at 123} (block/meta-stats block'))
+          "should return the stored stats"))))
+
+
+(deftest stat-selection
   (let [a (multihash/create :sha1 "37b51d194a7513e45b56f6524f2d51f200000000")
         b (multihash/create :sha1 "73fcffa4b7f6bb68e44cf984c85f6e888843d7f9")
         c (multihash/create :sha1 "73fe285cedef654fccc4a4d818db4cc225932878")
         d (multihash/create :sha1 "acbd18db4cc2f856211de9ecedef654fccc4a4d8")
         e (multihash/create :sha1 "c3c23db5285662ef717963ff4ce2373df0003206")
         f (multihash/create :sha2-256 "285c3c23d662b5ef7172373df0963ff4ce003206")
-        hashes [a b c d e f]]
-    (are [brs opts] (= brs (block/select-hashes opts hashes))
-         hashes   {}
+        ids [a b c d e f]
+        stats (map #(hash-map :id % :size 1) ids)]
+    (are [result opts] (= result (map :id (block/select-stats opts stats)))
+         ids        {}
+         [f]        {:algorithm :sha2-256}
          [c d e f]  {:after "111473fd2"}
-         [b c]      {:prefix "111473"}
-         [f]        {:algorithm :sha2-256})))
+         [a b c]    {:limit 3})))
