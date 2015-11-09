@@ -3,6 +3,7 @@
     [blocks.core :as block]
     [blocks.data :as data]
     [byte-streams :as bytes :refer [bytes=]]
+    [clojure.java.io :as io]
     [clojure.test :refer :all]
     [multihash.core :as multihash])
   (:import
@@ -143,10 +144,15 @@
 
 
 (deftest store-wrapper
-  (let [store (reify block/BlockStore (put! [_ block] block))
-        block (block/store! store "alphabet soup")]
-    (is (instance? blocks.data.Block block))
-    (is (nil? (block/validate! block)))))
+  (let [store (reify block/BlockStore (put! [_ block] block))]
+    (testing "file source"
+      (let [block (block/store! store (io/file "README.md"))]
+        (is (not (realized? block))
+            "should create lazy block from file")))
+    (testing "other source"
+      (let [block (block/store! store "foo bar baz")]
+        (is (realized? block)
+            "should be read into memory")))))
 
 
 #_
