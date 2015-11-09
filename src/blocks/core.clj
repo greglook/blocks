@@ -79,11 +79,11 @@
   [^Block block]
   (if (realized? block)
     block
-    (let [block' (with-open [stream (open block)]
-                   (data/literal-block (:id block) stream))]
-      (Block. (:id block')
-              (:size block')
-              (.content block')
+    (let [content (with-open [stream (open block)]
+                    (bytes/to-byte-array stream))]
+      (Block. (:id block)
+              (count content)
+              (PersistentBytes/wrap content)
               nil
               (._attrs block)
               (meta block)))))
@@ -210,11 +210,13 @@
 
 (defn store!
   "Stores content from a byte source in a block store and returns the block
-  record. This function reads the content into memory, so may not be suitable
-  for large sources."
+  record. If the source is a file, it will be streamed into the store.
+  Otherwise, the content is read into memory, so this may not be suitable for
+  large sources."
   [store source]
-  (when-let [block (read! source)]
-    (put! store block)))
+  (put! store (if (instance? File source)
+                (from-file source)
+                (read! source))))
 
 
 
