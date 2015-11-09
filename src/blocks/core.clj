@@ -18,6 +18,7 @@
     [blocks.data :as data]
     [blocks.data.conversions]
     [byte-streams :as bytes]
+    [clojure.java.io :as io]
     [multihash.core :as multihash])
   (:import
     blocks.data.Block
@@ -51,23 +52,16 @@
       (reader))))
 
 
-(defn fetch
-  "Returns a literal block corresponding to the block given. If the block is
-  lazy, the stream is read into memory and returned as a  If the block is
-  already realized, it is returned unchanged."
-  [^Block block]
-  (if (realized? block)
-    block
-    (let [block' (data/literal-block (:id block) (open block))]
-      (Block. (:id block')
-              (:size block')
-              (.content block')
-              nil
-              (._attrs block)
-              (meta block)))))
-
-
-; TODO: function to build a lazy block from a file
+(defn from-file
+  "Creates a lazy block from a local file. The file is read once to calculate
+  the identifier."
+  ([file]
+   (from-file file :sha2-256))
+  ([file algorithm]
+   (let [file (io/file file)
+         hash-fn (checked-hash algorithm)
+         id (hash-fn (io/input-stream file))]
+     (data/lazy-block id (.length content) #(io/input-stream file)))))
 
 
 (defn read!
@@ -84,6 +78,22 @@
   [block sink]
   (when-let [content (open block)]
     (bytes/transfer content sink)))
+
+
+(defn load!
+  "Returns a literal block corresponding to the block given. If the block is
+  lazy, the stream is read into memory and returned as a  If the block is
+  already realized, it is returned unchanged."
+  [^Block block]
+  (if (realized? block)
+    block
+    (let [block' (data/literal-block (:id block) (open block))]
+      (Block. (:id block')
+              (:size block')
+              (.content block')
+              nil
+              (._attrs block)
+              (meta block)))))
 
 
 (defn validate!
