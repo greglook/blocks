@@ -57,4 +57,19 @@
           "reader should not be settable")
       (is (thrown? IllegalArgumentException (dissoc b1 :id))
           "should not be dissociatable"))
-    ))
+    (testing "print-method"
+      (is (string? (pr-str b1))))))
+
+
+(deftest lazy-blocks
+  (let [original "foo bar baz abc123"
+        literal (data/read-block original :sha1)
+        lazy (data/lazy-block (:id literal) (:size literal)
+                              #(bytes/to-input-stream (.getBytes original)))]
+    (testing "pending logic"
+      (is (realized? literal))
+      (is (not (realized? lazy))))
+    (testing "deref logic"
+      (is (bytes= original @literal)
+          "deref literal block should return content")
+      (is (nil? @lazy) "deref lazy block returns nil"))))

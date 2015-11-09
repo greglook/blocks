@@ -67,6 +67,9 @@
               (meta block)))))
 
 
+; TODO: function to build a lazy block from a file
+
+
 (defn read!
   "Reads data into memory from the given source and hashes it to identify the
   block. Defaults to sha2-256 if no algorithm is specified."
@@ -74,9 +77,6 @@
    (read! source :sha2-256))
   ([source algorithm]
    (data/read-block source algorithm)))
-
-
-; TODO: deferred-block wrapper
 
 
 (defn write!
