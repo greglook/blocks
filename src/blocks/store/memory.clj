@@ -34,7 +34,8 @@
     [this block]
     (when-let [id (:id block)]
       (or (get @memory id)
-          (let [block' (block/with-stats block {:stored-at (Date.)})]
+          (let [block' (block/with-stats (block/fetch block)
+                                         {:stored-at (Date.)})]
             (swap! memory assoc id block')
             block'))))
 
