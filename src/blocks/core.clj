@@ -246,11 +246,3 @@
         (drop-while #(pos? (compare after (multihash/hex (:id %)))))
       limit
         (take limit))))
-
-
-(defn scan-size
-  "Scans the blocks in a store to determine the total stored content size."
-  [store]
-  (->> (-list store nil)
-       (map (comp :size (partial stat store)))
-       (reduce + 0N)))
