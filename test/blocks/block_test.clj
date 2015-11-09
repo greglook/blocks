@@ -6,6 +6,6 @@
 
 
 (deftest block-type
-  (let [block (data/read-literal-block "howdy frobblenitz" :sha1)]
+  (let [block (data/read-block "howdy frobblenitz" :sha1)]
     
     ))

@@ -58,7 +58,7 @@
   [^Block block]
   (if (realized? block)
     block
-    (let [block' (data/create-literal-block (:id block) (open block))]
+    (let [block' (data/literal-block (:id block) (open block))]
       (Block. (:id block')
               (:size block')
               (.content block')
@@ -73,7 +73,7 @@
   ([source]
    (read! source :sha2-256))
   ([source algorithm]
-   (data/read-literal-block source algorithm)))
+   (data/read-block source algorithm)))
 
 
 ; TODO: deferred-block wrapper

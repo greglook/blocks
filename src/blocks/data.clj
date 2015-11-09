@@ -14,8 +14,15 @@
   realized. Dereferencing a realized block returns its content, otherwise
   `nil` for lazy blocks.
 
-  Blocks may have additional attributes associated with them and support
-  metadata, similar to records."
+  A block's id, size, content, and reader cannot be changed after construction,
+  so clients can be relatively certain that the block's id is valid. Blocks
+  _may_ have additional attributes associated with them and support metadata,
+  similar to records.
+
+  Unlike records, these extra attributes **DO NOT** affect the block's equality
+  semantics! Blocks with the same id and size will be considered equal and
+  return the same hash code. Extra attributes will affect block comparisons and
+  sort order."
   (:require
     [byte-streams :as bytes]
     [multihash.core :as multihash])
@@ -42,18 +49,25 @@
     (format "Block[%s %s %s]"
             id size (if content "+" (if reader "-" " "))))
 
-  (hashCode
-    [this]
-    (hash-combine (hash Block) (hash id)))
-
-  ; TODO: this should consider attributes
   (equals
     [this that]
     (cond
       (identical? this that) true
       (instance? Block that)
-        (= id  (:id that))
+        (and (= id   (:id   that))
+             (= size (:size that)))
       :else false))
+
+  (hashCode
+    [this]
+    (hash [Block id size]))
+
+
+  clojure.lang.IHashEq
+
+  (hasheq
+    [this]
+    (.hashCode this))
 
 
   java.lang.Comparable
@@ -63,14 +77,7 @@
     (compare [id size _attrs]
              [(:id that) (:size that)
               (when (instance? Block that)
-                      (._attrs ^Block that))]))
-
-
-  clojure.lang.IHashEq
-
-  (hasheq
-    [this]
-    (hash-combine (hash Block) (hash [id size _attrs])))
+                (._attrs ^Block that))]))
 
 
   clojure.lang.IObj
