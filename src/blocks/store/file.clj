@@ -21,8 +21,7 @@
     [blocks.data :as data]
     [clojure.java.io :as io]
     [clojure.string :as string]
-    [multihash.core :as multihash]
-    [multihash.hex :as hex])
+    [multihash.core :as multihash])
   (:import
     java.io.File
     java.util.Date))
@@ -30,6 +29,7 @@
 
 ;; ## File System Utilities
 
+; TODO: replace with file-seq
 (defn- find-files
   "Walks a directory tree depth first, returning a sequence of files found in
   lexical order."
@@ -74,7 +74,7 @@
   ^File
   [root id]
   (let [algorithm (:algorithm id)
-        digest (hex/encode (:digest id))]
+        digest (:hex-digest id)]
     (io/file
       root
       (name algorithm)

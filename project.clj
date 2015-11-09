@@ -18,7 +18,7 @@
 
   :dependencies
   [[byte-streams "0.2.0"]
-   [mvxcvi/multihash "1.0.0"]
+   [mvxcvi/multihash "1.1.0"]
    [org.clojure/clojure "1.7.0"]
    [org.clojure/tools.logging "0.3.1"]]
 
