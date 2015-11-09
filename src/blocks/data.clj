@@ -238,14 +238,7 @@
   ; TODO: what should this do?
   (deref
     [this]
-    (merge
-      _attrs
-      {:id id
-       :size size
-       :block/state
-       (cond content :literal
-             reader  :lazy
-             :else   :empty)}))
+    content)
 
 
   clojure.lang.IPending
