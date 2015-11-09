@@ -262,6 +262,10 @@
 
 ;; ## Constructors
 
+;; Remove automatic constructor function.
+(ns-unmap *ns* '->Block)
+
+
 (defn create-literal-block
   "Creates a block by reading a source into memory. The block is given the id
   directly, without being checked."

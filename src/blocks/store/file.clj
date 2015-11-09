@@ -158,3 +158,8 @@
   "Creates a new local file-based block store."
   [root]
   (FileBlockStore. (io/file root)))
+
+
+;; Remove automatic constructor functions.
+(ns-unmap *ns* '->FileBlockStore)
+(ns-unmap *ns* 'map->FileBlockStore)

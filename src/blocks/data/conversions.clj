@@ -1,4 +1,4 @@
-(ns blocks.data.conversions
+(ns ^:no-doc blocks.data.conversions
   "Conversions for PersistentBytes values.
 
   This is mostly in a separate namespace to appease Cloverage."
@@ -15,7 +15,6 @@
   (.toBuffer data))
 
 
-; TODO: figure out why byte-streams doesn't understand this
 (bytes/def-conversion [PersistentBytes InputStream]
   [data options]
   (.open data))

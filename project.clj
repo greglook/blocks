@@ -1,10 +1,11 @@
 (defproject mvxcvi/blocks "0.4.0-SNAPSHOT"
   :description "Content-addressed data storage interface."
-  :url "https://github.com/greglook/blobble"
+  :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
             :url "http://unlicense.org/"}
 
-  :aliases {"coverage" ["cloverage"
+  :aliases {"doc-lit" ["marg" "--dir" "doc/pages/marginalia"]
+            "coverage" ["cloverage"
                         "--ns-exclude-regex" "blocks.data.conversions"
                         "--ns-exclude-regex" "blocks.store.tests"]}
 
@@ -21,11 +22,16 @@
    [org.clojure/clojure "1.7.0"]
    [org.clojure/tools.logging "0.3.1"]]
 
+  :hiera
+  {:cluster-depth 1
+   :show-external true
+   :ignore-ns #{clojure user}}
+
   :codox
   {:metadata {:doc/format :markdown}
    :source-uri "https://github.com/greglook/blocks/blob/master/{filepath}#L{line}"
    :doc-paths ["doc/extra"]
-   :output-path "doc/api"}
+   :output-path "doc/pages/api"}
 
   :whidbey
   {:tag-types {'multihash.core.Multihash {'data/hash 'multihash.core/base58}}}

@@ -48,3 +48,8 @@
   "Creates a new in-memory block store."
   []
   (MemoryBlockStore. (atom (sorted-map) :validator map?)))
+
+
+;; Remove automatic constructor functions.
+(ns-unmap *ns* '->MemoryBlockStore)
+(ns-unmap *ns* 'map->MemoryBlockStore)
