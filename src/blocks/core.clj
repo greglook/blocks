@@ -61,7 +61,7 @@
     (let [block' (data/create-literal-block (:id block) (open block))]
       (Block. (:id block')
               (:size block')
-              (:content block')
+              (.content block')
               nil
               (._attrs block)
               (meta block)))))

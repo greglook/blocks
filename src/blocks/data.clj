@@ -214,7 +214,7 @@
 
   (iterator
     [this]
-    (.iterator (vec this)))
+    (clojure.lang.RT/iter (seq this)))
 
   (assoc
     [this k v]
