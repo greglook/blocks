@@ -98,19 +98,19 @@
             IllegalArgumentException #":foo"
             (block/list store :foo "bar")))
       (is (thrown-with-msg?
-            IllegalArgumentException #"be a keyword"
+            IllegalArgumentException #":algorithm .+ keyword.+ \"foo\""
             (block/list store :algorithm "foo")))
       (is (thrown-with-msg?
-            IllegalArgumentException #"be a hex string"
+            IllegalArgumentException #":after .+ hex string.+ 123"
             (block/list store :after 123)))
       (is (thrown-with-msg?
-            IllegalArgumentException #"be a hex string"
+            IllegalArgumentException #":after .+ hex string.+ \"123abx\""
             (block/list store :after "123abx")))
       (is (thrown-with-msg?
-            IllegalArgumentException #"be a positive integer"
+            IllegalArgumentException #":limit .+ positive integer.+ :xyz"
             (block/list store :limit :xyz)))
       (is (thrown-with-msg?
-            IllegalArgumentException #"be a positive integer"
+            IllegalArgumentException #":limit .+ positive integer.+ 0"
             (block/list store :limit 0)))
       (is (= {:algorithm :sha1, :after "012abc", :limit 10}
              (block/list store :algorithm :sha1, :after "012abc", :limit 10))))))
