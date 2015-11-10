@@ -20,6 +20,12 @@
 
   block/BlockStore
 
+  (stat
+    [this id]
+    (when-let [block (get @memory id)]
+      (block-stats block)))
+
+
   (-list
     [this opts]
     (->> @memory
@@ -44,13 +50,7 @@
 
   (delete!
     [this id]
-    (swap! memory dissoc id))
-
-
-  (stat
-    [this id]
-    (when-let [block (get @memory id)]
-      (block-stats block))))
+    (swap! memory dissoc id)))
 
 
 (defn memory-store

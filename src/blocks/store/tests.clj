@@ -22,8 +22,8 @@
 (defn populate-blocks!
   "Stores some test blocks in the given block store and returns a map of the
   ids to the original content values."
-  [store n]
-  (->> (repeatedly #(random-bytes (* 64 1024)))
+  [store n max-size]
+  (->> (repeatedly #(random-bytes max-size))
        (take n)
        (map (juxt (comp :id (partial block/store! store)) identity))
        (into (sorted-map))))
@@ -39,12 +39,16 @@
       (is (= (count content) (:size status))
           "should return the content size")))
   (testing "block retrieval"
-    (let [block (block/get store id)
-          stored-content (bytes/to-byte-array (block/open block))]
-      (is (bytes/bytes= content (bytes/to-byte-array (block/open block)))
-          "stored content should match")
+    (let [block (block/get store id)]
+      (is (= id (:id block))
+          "stored block has same id")
       (is (= (count content) (:size block))
-          "block contains size info"))))
+          "block contains size info")
+      (with-open [stream (block/open block)]
+        (is (bytes/bytes= content (bytes/to-byte-array stream))
+            "stored content should match"))
+      (is (= [:id :size] (keys block))
+          "block only contains id and size"))))
 
 
 (defn test-restore-block
@@ -54,25 +58,27 @@
         new-block  (block/store! store content)
         new-status (block/stat store id)]
     (is (= id (:id new-block)))
-    (is (= (:stat/stored-at status)
-           (:stat/stored-at new-status)))))
+    (is (= (:stored-at status)
+           (:stored-at new-status)))))
 
 
 (defn test-block-store
   "Tests a block store implementation."
-  [store label]
+  [label store n]
   (println "  *" label)
   (is (empty? (block/list store)) "starts empty")
   (testing (.getSimpleName (class store))
-    (let [stored-content (populate-blocks! store 20)]
-      (is (= (keys stored-content) (block/list store {}))
-          "enumerates all ids in sorted order")
+    (let [stored-content (populate-blocks! store n (* 256 1024))]
+      (testing "list stats"
+        (let [stats (block/list store)]
+          (is (= (keys stored-content) (map :id stats))
+              "enumerates all ids in sorted order")
+          (is (every? #(= (:size %) (count (get stored-content (:id %)))) stats)
+              "returns correct size for all blocks")))
       (doseq [[id content] stored-content]
         (test-block store id content))
       (let [[id content] (first (seq stored-content))]
         (test-restore-block store id content))
-      (let [expected-total (reduce + 0 (map count (vals stored-content)))]
-        (is (= expected-total (block/scan-size store))))
       (doseq [id (keys stored-content)]
         (block/delete! store id))
       (is (empty? (block/list store)) "ends empty"))))

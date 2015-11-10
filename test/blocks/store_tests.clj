@@ -12,17 +12,15 @@
     blocks.data.PersistentBytes))
 
 
-#_
 (deftest test-memory-store
   (let [store (memory-store)]
-    (test-block-store store "memory-store")))
+    (test-block-store "memory-store" store 25)))
 
 
-#_
 (deftest test-file-store
   (let [tmpdir (io/file "target" "test" "tmp"
                         (str "file-block-store."
                           (System/currentTimeMillis)))
         store (file-store tmpdir)]
-    (test-block-store store "file-store")
+    (test-block-store "file-store" store 10)
     (blocks.store.file/erase! store)))
