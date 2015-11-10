@@ -178,17 +178,17 @@
      (when-let [algorithm (:algorithm opts-map)]
        (when-not (keyword? algorithm)
          (throw (IllegalArgumentException.
-                  (str ":algorithm option must be a keyword: "
+                  (str "Option :algorithm is not a keyword: "
                        (pr-str algorithm))))))
      (when-let [after (:after opts-map)]
        (when-not (and (string? after) (re-matches #"^[0-9a-fA-F]*$" after))
          (throw (IllegalArgumentException.
-                  (str ":after option must be a hex string: "
+                  (str "Option :after is not a hex string: "
                        (pr-str after))))))
      (when-let [limit (:limit opts-map)]
        (when-not (and (integer? limit) (pos? limit))
          (throw (IllegalArgumentException.
-                  (str ":limit option must be a positive integer: "
+                  (str "Option :limit is not a positive integer: "
                        (pr-str limit))))))
      (-list store opts-map))))
 
