@@ -135,7 +135,9 @@
 
   (seq
     [this]
-    (seq (concat [[:id id] [:size size]] _attrs)))
+    (seq (concat [(clojure.lang.MapEntry. :id id)
+                  (clojure.lang.MapEntry. :size size)]
+                 _attrs)))
 
   (iterator
     [this]
