@@ -13,4 +13,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/puget/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.3.0...HEAD
