@@ -14,7 +14,9 @@
 
 (deftest test-memory-store
   (let [store (memory-store)]
-    (test-block-store "memory-store" store 25)))
+    (test-block-store "memory-store" store
+                      :blocks 25
+                      :max-size 4096)))
 
 
 (deftest test-file-store
@@ -22,5 +24,7 @@
                         (str "file-block-store."
                           (System/currentTimeMillis)))
         store (file-store tmpdir)]
-    (test-block-store "file-store" store 10)
+    (test-block-store "file-store" store
+                      :blocks 10
+                      :max-size 1024)
     (blocks.store.file/erase! store)))

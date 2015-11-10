@@ -51,7 +51,7 @@
           "block only contains id and size"))))
 
 
-(defn test-restore-block
+(defn- test-restore-block
   "Tests re-storing an existing block."
   [store id content]
   (let [status     (block/stat store id)
@@ -64,11 +64,11 @@
 
 (defn test-block-store
   "Tests a block store implementation."
-  [label store n]
+  [label store & {:keys [blocks max-size], :or {blocks 10, max-size 1024}}]
   (println "  *" label)
   (is (empty? (block/list store)) "starts empty")
   (testing (.getSimpleName (class store))
-    (let [stored-content (populate-blocks! store n (* 256 1024))]
+    (let [stored-content (populate-blocks! store blocks max-size)]
       (testing "list stats"
         (let [stats (block/list store)]
           (is (= (keys stored-content) (map :id stats))
