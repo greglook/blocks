@@ -6,8 +6,8 @@
 
 
 (deftest block-type
-  (let [b1 (data/read-block "howdy frobblenitz" :sha1)
-        b2 (data/read-block "howdy frobblenitz" :sha2-256)]
+  (let [b1 (data/read-block :sha1     "howdy frobblenitz")
+        b2 (data/read-block :sha2-256 "howdy frobblenitz")]
     (testing "equality"
       (is (= b1 (empty b1))
           "empty block should still be equal")
@@ -64,7 +64,7 @@
 
 (deftest lazy-blocks
   (let [original "foo bar baz abc123"
-        literal (data/read-block original :sha1)
+        literal (data/read-block :sha1 original)
         lazy (data/lazy-block (:id literal) (:size literal)
                               #(bytes/to-input-stream (.getBytes original)))]
     (testing "pending logic"

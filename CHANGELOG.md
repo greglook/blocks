@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - Rename `:origin` block stat to `:source`.
+- Switch argument order in `read-block` for consistency.
 
 ### Removed
 - Drop unused `tools.logging` dependency.

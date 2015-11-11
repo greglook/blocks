@@ -69,7 +69,7 @@
   ([source]
    (read! source default-algorithm))
   ([source algorithm]
-   (data/read-block source algorithm)))
+   (data/read-block algorithm source)))
 
 
 (defn write!

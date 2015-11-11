@@ -254,7 +254,7 @@
   "Creates a block by reading the source into memory and hashing it. This
   creates a realized block."
   ^blocks.data.Block
-  [source algorithm]
+  [algorithm source]
   (let [hash-fn (checked-hasher algorithm)
         content (bytes/to-byte-array source)]
     (Block. (hash-fn content)
