@@ -41,7 +41,7 @@ number of bytes in the block content.
 ```clojure
 => (require '[blocks.core :as block])
 
-; Read a block into memory.
+; Read a block into memory:
 => (def b1 (block/read! "hello, blocks!"))
 #'user/b1
 
@@ -55,6 +55,12 @@ number of bytes in the block content.
 
 => (:size b1)
 14
+
+; Write a block to some output stream:
+=> (let [baos (java.io.ByteArrayOutputStream.)]
+     (block/write! b1 baos)
+     (String. (.toByteArray baos)))
+"hello, blocks!"
 ```
 
 Internally, blocks either have a buffer holding the data in memory, or a reader
@@ -66,12 +72,15 @@ Dereferencing a realized block returns its content, while lazy blocks will give
 `nil`.
 
 ```clojure
+; b1 is a literal block:
 => (realized? b1)
 true
 
+; Content is an immutable byte sequence:
 => @b1
 #<blocks.data.PersistentBytes@7dde3f9b PersistentBytes[size=14]>
 
+; Create a lazy block from a local file:
 => (def b2 (block/from-file "README.md"))
 #'user/b2
 
@@ -80,10 +89,18 @@ false
 
 => @b2
 nil
+
+; Loading a block ensures that the content resides in memory:
+=> (let [b2+ (block/load! b2)] @b2+)
+#<blocks.data.PersistentBytes@3d4cd68c PersistentBytes[size=4860]>
+
+; Block values are still immutable, so this doesn't change the original block:
+=> @b2
+nil
 ```
 
-To abstract over this, you can generically open an input stream over a block's
-content:
+To abstract over the literal/lazy divide, you can generically create an input
+stream over a block's content using `open`:
 
 ```clojure
 => (slurp (block/open b1))
@@ -100,9 +117,20 @@ metadata and may have additional attributes associated with them, similar to
 Clojure records.
 
 ```clojure
+; The block id and size are not changeable:
 => (assoc b1 :id :foo)
 ; IllegalArgumentException Block :id cannot be changed  blocks.data.Block (data.clj:151)
 
+; If you're paranoid, you can validate blocks by rehashing the content:
+=> (validate! b1)
+nil
+
+; But if the README file backing the second block is changed:
+=> (validate! b2)
+; IllegalStateException Block hash:sha2-256:515c169aa0d95f0236ec05d2cf6ce864c149cf4a8ddd13286318bc1331011347
+;   has mismatched content  blocks.core/validate! (core.clj:115)
+
+; Other attributes are associative:
 => (assoc b1 :foo "bar")
 #blocks.data.Block
 {:foo "bar",
@@ -112,6 +140,7 @@ Clojure records.
 => (:foo *1)
 "bar"
 
+; Metadata can be set and queried:
 => (meta (with-meta b2 {:baz 123}))
 {:baz 123}
 ```
