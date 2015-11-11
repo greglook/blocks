@@ -3,24 +3,26 @@
 
   In many filesystems, directories are limited to 4,096 entries. In order to
   avoid this limit (and make navigating the filesystem a bit more efficient),
-  block content is stored in a nested hierarchy three levels deep.
+  block content is stored in nested directories three levels deep. All path
+  elements are lower-case hex-encoded bytes from the multihash.
 
-  The first level is the algorithm used in the block's multihash. The second
-  and third levels are formed by the first three characters and next three
-  characters from the id's digest. Finally, the block is stored in a file named
-  by the multihashes' hex string.
+  The first level is the two-byte multihash prefix, which designates the
+  algorithm and digest length. There will usually only be one or two of these
+  directories. The second and third levels are formed by the first two bytes of
+  the hash digest. Finally, the block is stored in a file containing the rest of
+  the digest.
 
-  Thus, a file path for the content \"foobar\" might be:
+  Thus, a file path for the content \"foobar\" stored under `root` might be:
 
-  `root/sha1/97d/f35/011497df3588b5a3...`
+  `root/1114/97/df/35011497df3588b5a3...`
 
   Using this scheme, leaf directories should start approaching the limit once the
-  user has 2^(3*12) entries, or about 68.7 billion blocks."
+  user has 2^28 entries, or about 268 million blocks."
   (:require
     [blocks.core :as block]
     [blocks.data :as data]
     [clojure.java.io :as io]
-    [clojure.string :as string]
+    [clojure.string :as str]
     [multihash.core :as multihash])
   (:import
     java.io.File
@@ -71,16 +73,15 @@
 (defn- id->file
   "Determines the filesystem path for a block of content with the given hash
   identifier."
-  ^File
+  ^java.io.File
   [root id]
-  (let [algorithm (:algorithm id)
-        digest (:hex-digest id)]
+  (let [hex (multihash/hex id)]
     (io/file
       root
-      (name algorithm)
-      (subs digest 0 3)
-      (subs digest 3 6)
-      (multihash/hex id))))
+      (subs hex 0 4)
+      (subs hex 4 6)
+      (subs hex 6 8)
+      (subs hex 8))))
 
 
 (defn- file->id
@@ -93,8 +94,7 @@
                (str "File " path " is not a child of root directory " root))))
     (-> path
         (subs (inc (count root)))
-        (string/split #"/")
-        (last)
+        (str/replace "/" "")
         (multihash/decode))))
 
 
