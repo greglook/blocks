@@ -261,3 +261,21 @@
             (count content)
             (PersistentBytes/wrap content)
             nil nil nil)))
+
+
+(defn merge-blocks
+  "Creates a new block by merging together two blocks representing the same
+  content. Block ids and sizes must match. The new block's content or reader
+  comes from the second block, and any extra attributes and metadata are merged
+  together."
+  [^Block a ^Block b]
+  (when (not= (.id a) (.id b))
+    (throw (IllegalArgumentException.
+             (str "Cannot merge blocks with differing ids " (.id a)
+                  " and " (.id b)))))
+  (Block. (.id b)
+          (.size b)
+          (.content b)
+          (.reader b)
+          (not-empty (merge (._attrs a) (._attrs b)))
+          (not-empty (merge (._meta  a) (._meta  b)))))
