@@ -7,9 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-Lots of high-level library changes! `blocks.data.Block` is now a custom type to
-protect immutable fields like `:id` and `:size` and support the `IPending`
-interface.
+...
+
+## [0.4.0] - 2015-11-10
+
+Lots of high-level (breaking) library changes! `blocks.data.Block` is now a
+custom type to protect immutable fields like `:id` and `:size` and support the
+`IPending` interface.
 
 ### Added
 - Blocks can be either _literal_ or _lazy_ to support larger block sizes.
