@@ -1,141 +1,152 @@
 (ns blocks.core
-  "Block record and storage protocol functions.
+  "Block storage protocol and utilities. Functions which may cause IO to occur
+  are marked with bangs.
 
-  Blocks have the following two primary attributes:
+  For example `(read! \"foo\")` doesn't have side-effects, but `(read!
+  some-input-stream)` will consume bytes from the stream.
 
-  - `:content`   read-only Java `ByteBuffer` with opaque content
-  - `:id`        `Multihash` with the digest identifying the content
+  When blocks are returned from a block store, they may include 'stat' metadata
+  about the blocks, including:
 
-  Blocks may be given other attributes describing their content. When blocks
-  are returned from a block store, they may include 'stat' metadata about the
-  blocks:
-
-  - `:stat/size`        content size in bytes
-  - `:stat/stored-at`   time block was added to the store
-  - `:stat/origin`      resource location for the block"
+  - `:stored-at`   time block was added to the store
+  - `:origin`      resource location for the block
+  "
   (:refer-clojure :exclude [get list])
   (:require
+    [blocks.data :as data]
+    [blocks.data.conversions]
     [byte-streams :as bytes]
+    [clojure.java.io :as io]
+    [clojure.set :as set]
+    [clojure.string :as str]
     [multihash.core :as multihash])
   (:import
-    java.nio.ByteBuffer
+    blocks.data.Block
+    blocks.data.PersistentBytes
+    java.io.File
+    java.io.IOException
     multihash.core.Multihash))
 
 
-(defn- resolve-hash!
-  "Resolves an algorithm designator to a hash function. Throws an exception on
-  invalid names or error."
-  [algorithm]
-  (cond
-    (nil? algorithm)
-      (throw (IllegalArgumentException.
-               "Cannot find hash function without algorithm name"))
-
-    (keyword? algorithm)
-      (if-let [hf (clojure.core/get multihash/functions algorithm)]
-        hf
-        (throw (IllegalArgumentException.
-                 (str "Cannot map algorithm name " algorithm
-                      " to a supported hash function"))))
-
-    (ifn? algorithm)
-      algorithm
-
-    :else
-      (throw (IllegalArgumentException.
-               (str "Hash algorithm must be keyword name or direct function, got: "
-                    (pr-str algorithm))))))
+(def default-algorithm
+  "The hashing algorithm used if not specified in functions which create blocks."
+  :sha2-256)
 
 
 
-;; ## Block Record
+;; ## Block IO
 
-; TODO: ideally, id and content should NOT be overwritable.
-(defrecord Block
-  [^Multihash id
-   ^ByteBuffer content])
-
-
-(defn empty-block
-  "Constructs a new block record with the given multihash identifier and no
-  content."
-  [id]
-  (when-not (instance? Multihash id)
-    (throw (IllegalArgumentException.
-             (str "Block identifier must be a Multihash, got: " (pr-str id)))))
-  (Block. id nil))
-
-
-(defn size
-  "Determine the number of bytes stored in a block."
-  [block]
-  (if-let [content (:content block)]
-    (.capacity ^ByteBuffer content)
-    (:stat/size block)))
+(defn from-file
+  "Creates a lazy block from a local file. The file is read once to calculate
+  the identifier."
+  ([file]
+   (from-file file default-algorithm))
+  ([file algorithm]
+   (let [file (io/file file)
+         hash-fn (data/checked-hasher algorithm)
+         reader #(io/input-stream file)
+         id (hash-fn (reader))]
+     (data/lazy-block id (.length file) reader))))
 
 
 (defn open
-  "Opens an input stream to read the content of the block. This is typically
-  preferable to directly accessing the content."
-  [block]
-  (when-let [content (:content block)]
-    ; TODO: should this create a separate ByteBuffer to avoid multi-thread headaches?
-    ; Need to look at how the input stream gets created.
-    (.rewind ^ByteBuffer content)
-    (bytes/to-input-stream content)))
+  "Opens an input stream to read the content of the block. Throws an IO
+  exception on empty blocks."
+  ^java.io.InputStream
+  [^Block block]
+  (let [content ^PersistentBytes (.content block)
+        reader (.reader block)]
+    (cond
+      content (.open content)
+      reader  (reader)
+      :else   (throw (IOException.
+                        (str "Cannot open empty block " (:id block)))))))
 
 
 (defn read!
   "Reads data into memory from the given source and hashes it to identify the
-  block. This can handle any source supported by the byte-streams library.
-  Defaults to sha2-256 if no algorithm is specified."
+  block."
   ([source]
-   (read! source :sha2-256))
+   (read! source default-algorithm))
   ([source algorithm]
-   (let [hash-fn (resolve-hash! algorithm)
-         content (bytes/to-byte-array source)]
-     (when-not (empty? content)
-       (Block. (hash-fn content)
-               (.asReadOnlyBuffer (ByteBuffer/wrap content)))))))
+   (data/read-block source algorithm)))
 
 
 (defn write!
-  "Writes block data to an output stream."
-  [block sink]
-  (when-let [content (open block)]
-    (bytes/transfer content sink)))
+  "Writes block content to an output stream."
+  [block out]
+  (with-open [stream (open block)]
+    (bytes/transfer stream out)))
+
+
+(defn load!
+  "Returns a literal block corresponding to the block given. If the block is
+  lazy, the stream is read into memory and returned as a new literal block. If
+  the block is already realized, it is returned unchanged.
+
+  The returned block will have the same extra attributes and metadata as the one
+  given."
+  [^Block block]
+  (if (realized? block)
+    block
+    (let [content (with-open [stream (open block)]
+                    (bytes/to-byte-array stream))]
+      (Block. (:id block)
+              (count content)
+              (PersistentBytes/wrap content)
+              nil
+              (._attrs block)
+              (meta block)))))
 
 
 (defn validate!
-  "Checks that the identifier of a block matches the actual digest of the
-  content. Throws an exception if the id does not match."
+  "Checks a block to verify that it confirms to the expected schema and has a
+  valid identifier for its content. Returns nil if the block is valid, or
+  throws an exception on any error."
   [block]
-  (let [{:keys [id content]} block]
-    (when-not (multihash/test id content)
+  (let [id (:id block)
+        size (:size block)]
+    (when-not (instance? Multihash id)
       (throw (IllegalStateException.
-               (str "Invalid block with content " content
-                    " but id " id))))))
+               (str "Block id is not a multihash: " (pr-str id)))))
+    (when (neg? size)
+      (throw (IllegalStateException.
+               (str "Block " id " has negative size: " size))))
+    ; TODO: check size correctness later with a counting-input-stream?
+    (when (realized? block)
+      (let [actual-size (count @block)]
+        (when (not= size actual-size)
+          (throw (IllegalStateException.
+                   (str "Block " id " reports size " size
+                        " but has actual size " actual-size))))))
+    (with-open [stream (open block)]
+      (when-not (multihash/test id stream)
+        (throw (IllegalStateException.
+                 (str "Block " id " has mismatched content")))))))
 
 
 
 ;; ## Storage Interface
 
 (defprotocol BlockStore
-  "Protocol for content storage keyed by hash identifiers."
-
-  (enumerate
-    [store opts]
-    "Enumerates the ids of the stored blocks with some filtering options. The
-    'list' function provides a nicer wrapper around this protocol method.")
+  "Protocol for content-addressable storage keyed by multihash identifiers."
 
   (stat
     [store id]
-    "Returns a block record with metadata but no content.")
+    "Returns a map with an `:id` and `:size` but no content. The returned map
+    may contain additional data like the date stored. Returns nil if the store
+    does not contain the identified block.")
 
-  (get*
+  (-list
+    [store opts]
+    "Lists the blocks contained in the store. Returns a lazy sequence of stat
+    metadata about each block. See `list` for the supported options.")
+
+  (-get
     [store id]
-    "Loads content for a hash-id and returns a block record. Returns nil if no
-    block is stored. The block should include stat metadata.")
+    "Returns the identified block if it is stored, otherwise nil. The block
+    should include stat metadata. Typically clients should use `get` instead,
+    which validates arguments and the returned block record.")
 
   (put!
     [store block]
@@ -144,73 +155,107 @@
 
   (delete!
     [store id]
-    "Removes a block from the store.")
+    "Removes a block from the store. Returns true if the block was stored."))
 
-  (erase!!
-    [store]
-    "Removes all blocks from the store."))
+
+; TODO: BlockEnumerator
+; Protocol which returns a lazy sequence of every block in the store, along with
+; an opaque marker which can be used to resume the stream in the same position.
+; Blocks are explicitly **not** returned in any defined order; it is assumed the
+; store will enumerate them in the most efficient order available.
 
 
 (defn list
-  "Enumerates the stored blocks, returning a sequence of multihashes.
-  See `select-ids` for the available query options."
-  ([store]
-   (enumerate store nil))
-  ([store opts]
-   (enumerate store opts))
-  ([store opt-key opt-val & opts]
-   (enumerate store (apply hash-map opt-key opt-val opts))))
+  "Enumerates the stored blocks, returning a lazy sequence of block stats.
+  Iterating over the list may result in additional operations to read from the
+  backing data store.
+
+  - `:algorithm`  only return blocks using this hash algorithm
+  - `:after`      list blocks whose id (in hex) lexically follows this string
+  - `:limit`      restrict the maximum number of results returned
+  "
+  ([store & opts]
+   (let [allowed-keys #{:algorithm :after :limit}
+         opts-map (cond
+                    (empty? opts) nil
+                    (and (= 1 (count opts)) (map? (first opts))) (first opts)
+                    :else (apply hash-map opts))
+         bad-opts (set/difference (set (keys opts-map)) allowed-keys)]
+     (when (not-empty bad-opts)
+       (throw (IllegalArgumentException.
+                (str "Invalid options passed to list: "
+                     (str/join " " bad-opts)))))
+     (when-let [algorithm (:algorithm opts-map)]
+       (when-not (keyword? algorithm)
+         (throw (IllegalArgumentException.
+                  (str "Option :algorithm is not a keyword: "
+                       (pr-str algorithm))))))
+     (when-let [after (:after opts-map)]
+       (when-not (and (string? after) (re-matches #"^[0-9a-fA-F]*$" after))
+         (throw (IllegalArgumentException.
+                  (str "Option :after is not a hex string: "
+                       (pr-str after))))))
+     (when-let [limit (:limit opts-map)]
+       (when-not (and (integer? limit) (pos? limit))
+         (throw (IllegalArgumentException.
+                  (str "Option :limit is not a positive integer: "
+                       (pr-str limit))))))
+     (-list store opts-map))))
 
 
 (defn get
   "Loads content for a multihash and returns a block record. Returns nil if no
-  block is stored. The block should include stat metadata.
-
-  This function checks the digest of the loaded content against the requested multihash,
-  and throws an exception if it does not match."
+  block is stored. The returned block is checked to make sure the id matches the
+  requested hash."
   [store id]
   (when-not (instance? Multihash id)
     (throw (IllegalArgumentException.
              (str "Id value must be a multihash, got: " (pr-str id)))))
-  (when-let [block (get* store id)]
-    (validate! block)
+  (when-let [block (-get store id)]
+    (when-not (= id (:id block))
+      (throw (RuntimeException.
+               (str "Asked for block " id " but got " (:id block)))))
     block))
 
 
 (defn store!
   "Stores content from a byte source in a block store and returns the block
-  record. This method accepts any source which can be handled as a byte
-  stream by the byte-streams library."
-  [store source]
-  (when-let [block (read! source)]
-    (put! store block)))
+  record.
+
+  If the source is a file, it will be streamed into the store. Otherwise, the
+  content is read into memory, so this may not be suitable for large sources."
+  ([store source]
+   (store! store source default-algorithm))
+  ([store source algorithm]
+   (put! store (if (instance? File source)
+                 (from-file source algorithm)
+                 (read! source algorithm)))))
 
 
 
 ;; ## Utility Functions
 
-(defn select-hashes
-  "Selects multihash identifiers from a sequence based on some criteria.
-
-  Available options:
-
-  - `:algorithm`  only return hashes using this algorithm
-  - `:encoder`    function to encode multihashes with (default: `hex`)
-  - `:after`      start enumerating ids lexically following this string
-  - `:prefix`     only return ids starting with the given string"
-  [opts ids]
-  ; TODO: this is an awkward way to search the store, think of a better approach
-  (let [{:keys [algorithm prefix encoder], :or {encoder multihash/hex}} opts
-        after (:after opts prefix)]
-    (cond->> ids
-      algorithm  (filter #(= algorithm (:algorithm %)))
-      after      (drop-while #(pos? (compare after (encoder %))))
-      prefix     (take-while #(.startsWith ^String (encoder %) prefix)))))
+(defn with-stats
+  "Adds stat information to a block's metadata."
+  [block stats]
+  (vary-meta block assoc :block/stats stats))
 
 
-(defn scan-size
-  "Scans the blocks in a store to determine the total stored content size."
-  [store]
-  (->> (list store)
-       (map (comp size (partial stat store)))
-       (reduce + 0N)))
+(defn meta-stats
+  "Returns stat information from a block's metadata, if present."
+  [block]
+  (:block/stats (meta block)))
+
+
+(defn ^:no-doc select-stats
+  "Selects block stats from a sequence based on the criteria spported in
+  `list`. Helper for block store implementers."
+  [opts stats]
+  (let [{:keys [algorithm after limit]} opts]
+    (cond->> stats
+      algorithm
+        (filter (comp #{algorithm} :algorithm :id))
+      after
+        (drop-while #(pos? (compare after (multihash/hex (:id %)))))
+      limit
+        (take limit))))

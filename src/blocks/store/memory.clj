@@ -1,17 +1,21 @@
 (ns blocks.store.memory
-  "Block storage backed by an atom in memory."
+  "Block storage backed by a map in an atom. Blocks put into this store will be
+  passed to `load!` to ensure the content resides in memory.
+
+  This store is most suitable for testing, caches, and other situations which
+  call for a non-persistent block store."
   (:require
-    [blocks.core :as block]
-    [multihash.core :as multihash]))
+    [blocks.core :as block])
+  (:import
+    java.util.Date))
 
 
 (defn- block-stats
-  "Augments a block with stat metadata."
+  "Build a map of stat data for a stored block."
   [block]
-  (assoc block
-    :stat/size (block/size block)
-    :stat/stored-at (or (:stat/stored-at block)
-                        (java.util.Date.))))
+  (merge (block/meta-stats block)
+         {:id (:id block)
+          :size (:size block)}))
 
 
 ;; Block records in a memory store are held in a map in an atom.
@@ -20,42 +24,47 @@
 
   block/BlockStore
 
-  (enumerate
-    [this opts]
-    (block/select-hashes opts (keys @memory)))
-
-
   (stat
     [this id]
     (when-let [block (get @memory id)]
-      (dissoc block :content)))
+      (block-stats block)))
 
 
-  (get*
+  (-list
+    [this opts]
+    (->> @memory
+         (map (comp block-stats val))
+         (block/select-stats opts)))
+
+
+  (-get
     [this id]
     (get @memory id))
 
 
   (put!
     [this block]
-    (if-let [id (:id block)]
+    (when-let [id (:id block)]
       (or (get @memory id)
-          (let [block (block-stats block)]
-            (swap! memory assoc id block)
-            block))))
+          (let [block' (block/with-stats (block/load! block)
+                                         {:stored-at (Date.)})]
+            (swap! memory assoc id block')
+            block'))))
 
 
   (delete!
     [this id]
-    (swap! memory dissoc id))
-
-
-  (erase!!
-    [this]
-    (swap! memory empty)))
+    (let [existed? (contains? @memory id)]
+      (swap! memory dissoc id)
+      existed?)))
 
 
 (defn memory-store
   "Creates a new in-memory block store."
   []
   (MemoryBlockStore. (atom (sorted-map) :validator map?)))
+
+
+;; Remove automatic constructor functions.
+(ns-unmap *ns* '->MemoryBlockStore)
+(ns-unmap *ns* 'map->MemoryBlockStore)

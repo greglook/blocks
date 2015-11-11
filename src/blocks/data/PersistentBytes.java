@@ -100,7 +100,7 @@ public class PersistentBytes implements IHashEq, Indexed, Iterable, Seqable, Seq
 
     @Override
     public String toString() {
-        return String.format("%s[size=%d]", this.getClass().getName(), count());
+        return String.format("%s[size=%d]", this.getClass().getSimpleName(), count());
     }
 
 

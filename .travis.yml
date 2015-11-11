@@ -1,3 +1,4 @@
+sudo: false
 language: clojure
 lein: lein2
 jdk:
@@ -5,3 +6,10 @@ jdk:
   - oraclejdk7
 after_script:
   - bash -ex test/coveralls.sh
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/e670861ddb72351fda72
+    on_success: change
+    on_failure: always
+    on_start: never

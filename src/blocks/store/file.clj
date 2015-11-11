@@ -1,27 +1,31 @@
 (ns blocks.store.file
-  "Content storage backed by a local filesystem.
+  "Block storage backed by files in nested directories. Each block is stored in
+  a separate file.
 
   In many filesystems, directories are limited to 4,096 entries. In order to
-  avoid this limit (and make navigating the filesystem a bit more efficient),
-  block content is stored in a nested hierarchy three levels deep.
+  avoid this limit (and make navigating the blocks a bit more efficient), block
+  content is stored in nested directories three levels deep. All path elements
+  are lower-case hex-encoded bytes from the multihash.
 
-  The first level is the algorithm used in the block's multihash. The second
-  and third levels are formed by the first three characters and next three
-  characters from the id's digest. Finally, the block is stored in a file named
-  by the multihashes' hex string.
+  The first level is the two-byte multihash prefix, which designates the
+  algorithm and digest length. There will usually only be one or two of these
+  directories. The second and third levels are formed by the first two bytes of
+  the hash digest. Finally, the block is stored in a file containing the rest of
+  the digest.
 
-  Thus, a file path for the content \"foobar\" might be:
+  Thus, a block containing the content `foobar` would have the sha1 digest
+  `97df3501149...` and be stored under the root directory at:
 
-  `root/sha1/97d/f35/011497df3588b5a3...`
+  `root/1114/97/df/35011497df3588b5a3...`
 
   Using this scheme, leaf directories should start approaching the limit once the
-  user has 2^(3*12) entries, or about 68.7 billion blocks."
+  user has 2^28 entries, or about 268 million blocks."
   (:require
     [blocks.core :as block]
+    [blocks.data :as data]
     [clojure.java.io :as io]
-    [clojure.string :as string]
-    [multihash.core :as multihash]
-    [multihash.hex :as hex])
+    [clojure.string :as str]
+    [multihash.core :as multihash])
   (:import
     java.io.File
     java.util.Date))
@@ -29,19 +33,75 @@
 
 ;; ## File System Utilities
 
+(defn- seek-marker
+  "Given a marker string, determine whether the file should be skipped, recursed
+  into with a substring, or listed in full. Returs nil if the file should be
+  skipped, otherwise a vector of the file and a marker to recurse with."
+  [marker ^File file]
+  (if (empty? marker)
+    [file nil]
+    (let [fname (.getName file)
+          len (min (count marker) (count fname))
+          cmp (compare (subs fname  0 len)
+                       (subs marker 0 len))]
+      (if-not (neg? cmp)
+        (if (zero? cmp)
+          [file (subs marker len)]
+          [file nil])))))
+
+
+(defn- find-files
+  "Walks a directory tree depth first, returning a sequence of files found in
+  lexical order. Intelligently skips directories based on the given marker."
+  [^File file marker]
+  (if (.isDirectory file)
+    (->> (.listFiles file)
+         (filter #(re-matches #"^[0-9a-f]+$" (.getName ^File %)))
+         (keep (partial seek-marker marker))
+         (sort-by first)
+         (keep (partial apply find-files))
+         (flatten))
+    (when (.isFile file)
+      [file])))
+
+
+(defn- rm-r
+  "Recursively removes a directory of files."
+  [^File path]
+  (when (.isDirectory path)
+    (dorun (map rm-r (.listFiles path))))
+  (.delete path))
+
+
+
+;; ## File Block Functions
+
+(defn- file-stats
+  "Calculates storage stats for a block file."
+  [^File file]
+  {:stored-at (Date. (.lastModified file))
+   :origin (.toURI file)})
+
+
+(defn- block-stats
+  "Calculates a merged stat map for a block."
+  [id ^File file]
+  (merge (file-stats file)
+         {:id id, :size (.length file)}))
+
+
 (defn- id->file
   "Determines the filesystem path for a block of content with the given hash
   identifier."
-  ^File
+  ^java.io.File
   [root id]
-  (let [algorithm (:algorithm id)
-        digest (hex/encode (:digest id))]
+  (let [hex (multihash/hex id)]
     (io/file
       root
-      (name algorithm)
-      (subs digest 0 3)
-      (subs digest 3 6)
-      (multihash/hex id))))
+      (subs hex 0 4)
+      (subs hex 4 6)
+      (subs hex 6 8)
+      (subs hex 8))))
 
 
 (defn- file->id
@@ -54,48 +114,26 @@
                (str "File " path " is not a child of root directory " root))))
     (-> path
         (subs (inc (count root)))
-        (string/split #"/")
-        (last)
+        (str/replace "/" "")
         (multihash/decode))))
 
 
-(defn- find-files
-  "Walks a directory tree depth first, returning a sequence of files found in
-  lexical order."
-  [^File file]
-  (cond
-    (.isFile file)
-      [file]
-    (.isDirectory file)
-      (->> file (.listFiles) (sort) (map find-files) (flatten))
-    :else
-      []))
+(defn- file->block
+  "Creates a lazy block to read from the given file."
+  [id ^File file]
+  (block/with-stats
+    (data/lazy-block id (.length file) #(io/input-stream file))
+    (file-stats file)))
 
 
-(defn- rm-r
-  "Recursively removes a directory of files."
-  [^File path]
-  (when (.isDirectory path)
-    (->> path (.listFiles) (map rm-r) (dorun)))
-  (.delete path))
-
-
-(defmacro ^:private when-block-file
-  "An unhygenic macro which binds the block file to `file` and executes the body
-  only if it exists."
-  [store id & body]
+(defmacro ^:private when-block
+  "An anaphoric macro which binds the block file to `file` and executes `body`
+  only if it exists. Assumes that the root directory is bound to `root`."
+  [id & body]
   `(let [~(with-meta 'file {:tag 'java.io.File})
-         (id->file (:root ~store) ~id)]
+         (id->file ~'root ~id)]
      (when (.exists ~'file)
        ~@body)))
-
-
-(defn- block-stats
-  "Calculates storage stats for a block file."
-  [^File file]
-  {:stat/size (.length file)
-   :stat/stored-at (Date. (.lastModified file))
-   :stat/origin (.toURI file)})
 
 
 
@@ -108,53 +146,56 @@
 
   block/BlockStore
 
-  (enumerate
-    [this opts]
-    (->> (find-files root)
-         (map (partial file->id root))
-         (block/select-hashes opts)))
-
-
   (stat
     [this id]
-    (when-block-file this id
-      (merge (block/empty-block id)
-             (block-stats file))))
+    (when-block id
+      (block-stats id file)))
 
 
-  (get*
+  (-list
+    [this opts]
+    (->> (find-files root (:after opts))
+         (map #(block-stats (file->id root %) %))
+         (block/select-stats opts)))
+
+
+  (-get
     [this id]
-    (when-block-file this id
-      (-> file
-          (io/input-stream)
-          (block/read!)
-          (merge (block-stats file)))))
+    (when-block id
+      (file->block id file)))
 
 
   (put!
     [this block]
-    (let [{:keys [id content]} block
+    (let [id (:id block)
           file (id->file root id)]
       (when-not (.exists file)
         (io/make-parents file)
-        ; For some reason, io/copy is much faster than byte-streams/transfer here.
-        (io/copy (block/open block) file)
+        (with-open [content (block/open block)]
+          (io/copy content file))
         (.setWritable file false false))
-      (merge block (block-stats file))))
+      (file->block id file)))
 
 
   (delete!
     [this id]
-    (when-block-file this id
-      (.delete file)))
+    (when-block id
+      (.delete file))))
 
 
-  (erase!!
-    [this]
-    (rm-r root)))
+(defn erase!
+  "Clears all contents of the file store by recursively deleting the root
+  directory."
+  [store]
+  (rm-r (:root store)))
 
 
 (defn file-store
   "Creates a new local file-based block store."
   [root]
   (FileBlockStore. (io/file root)))
+
+
+;; Remove automatic constructor functions.
+(ns-unmap *ns* '->FileBlockStore)
+(ns-unmap *ns* 'map->FileBlockStore)
