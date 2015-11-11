@@ -7,7 +7,21 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-...
+Lots of high-level library changes! `blocks.data.Block` is now a custom type to
+protect immutable fields like `:id` and `:size` and support the `IPending`
+interface.
+
+### Added
+- Blocks can be either _literal_ or _lazy_ to support larger block sizes.
+- A standard set of BlockStore integration tests are available in the
+  `blocks.store.tests` namespace.
+
+### Changed
+- `BlockStore` methods `enumerate` and `get*` changed to `-list` and `-get`,
+  respectively.
+- `list` now returns a sequence of block stats, rather than just multihashes.
+- Blocks returned by `get` and `put!` add stat information as metadata.
+- File stores now keep blocks in a manner compatible with IPFS.
 
 ## 0.3.0 - 2015-11-03
 
