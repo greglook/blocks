@@ -80,7 +80,7 @@
   "Calculates storage stats for a block file."
   [^File file]
   {:stored-at (Date. (.lastModified file))
-   :origin (.toURI file)})
+   :source (.toURI file)})
 
 
 (defn- block-stats

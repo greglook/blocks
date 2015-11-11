@@ -8,8 +8,8 @@
   When blocks are returned from a block store, they may include 'stat' metadata
   about the blocks, including:
 
+  - `:source`      resource location for the block content
   - `:stored-at`   time block was added to the store
-  - `:origin`      resource location for the block
   "
   (:refer-clojure :exclude [get list])
   (:require

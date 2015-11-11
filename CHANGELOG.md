@@ -7,7 +7,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-...
+### Changed
+- Rename `:origin` block stat to `:source`.
 
 ## [0.4.0] - 2015-11-10
 
