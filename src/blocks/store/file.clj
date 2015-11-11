@@ -31,18 +31,36 @@
 
 ;; ## File System Utilities
 
-; TODO: replace with file-seq
+(defn- seek-marker
+  "Given a marker string, determine whether the file should be skipped, recursed
+  into with a substring, or listed in full. Returs nil if the file should be
+  skipped, otherwise a vector of the file and a marker to recurse with."
+  [marker ^File file]
+  (if (empty? marker)
+    [file nil]
+    (let [fname (.getName file)
+          len (min (count marker) (count fname))
+          cmp (compare (subs fname  0 len)
+                       (subs marker 0 len))]
+      (if-not (neg? cmp)
+        (if (zero? cmp)
+          [file (subs marker len)]
+          [file nil])))))
+
+
 (defn- find-files
   "Walks a directory tree depth first, returning a sequence of files found in
-  lexical order."
-  [^File file]
-  (cond
-    (.isFile file)
-      [file]
-    (.isDirectory file)
-      (->> (.listFiles file) (sort) (map find-files) (flatten))
-    :else
-      []))
+  lexical order. Intelligently skips directories based on the given marker."
+  [^File file marker]
+  (if (.isDirectory file)
+    (->> (.listFiles file)
+         (filter #(re-matches #"^[0-9a-f]+$" (.getName ^File %)))
+         (keep (partial seek-marker marker))
+         (sort-by first)
+         (keep (partial apply find-files))
+         (flatten))
+    (when (.isFile file)
+      [file])))
 
 
 (defn- rm-r
@@ -134,7 +152,7 @@
 
   (-list
     [this opts]
-    (->> (find-files root)
+    (->> (find-files root (:after opts))
          (map #(block-stats (file->id root %) %))
          (block/select-stats opts)))
 
