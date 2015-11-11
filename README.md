@@ -38,6 +38,25 @@ content. All blocks have an `:id` and `:size`. The block identifier is a
 [multihash](//github.com/greglook/clj-multihash) value, and the size is the
 number of bytes in the block content.
 
+```clojure
+=> (require '[blocks.core :as block])
+
+; Read a block into memory.
+=> (def b1 (block/read! "hello, blocks!"))
+#'user/b1
+
+=> b1
+#blocks.data.Block
+{:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+ :size 14}
+
+=> (:id b1)
+#data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR"
+
+=> (:size b1)
+14
+```
+
 Internally, blocks either have a buffer holding the data in memory, or a reader
 function which can be invoked to create new input streams for the block content.
 Blocks can be treated as pending values; a block with in-memory content is
@@ -46,14 +65,55 @@ with a reader function is a _lazy block_ and `realized?` will return false.
 Dereferencing a realized block returns its content, while lazy blocks will give
 `nil`.
 
+```clojure
+=> (realized? b1)
+true
+
+=> @b1
+#<blocks.data.PersistentBytes@7dde3f9b PersistentBytes[size=14]>
+
+=> (def b2 (block/from-file "README.md"))
+#'user/b2
+
+=> (realized? b2)
+false
+
+=> @b2
+nil
+```
+
+To abstract over this, you can generically open an input stream over a block's
+content:
+
+```clojure
+=> (slurp (block/open b1))
+"hello, blocks!"
+
+; Ideally you should use with-open to ensure the stream is closed:
+=> (subs (with-open [content (block/open b2)] (slurp content)) 0 32)
+"Block Storage\n=============\n\n[!["
+```
+
 A block's `:id`, `:size`, and content cannot be changed after construction, so
 clients can be relatively certain that the block's id is valid. Blocks support
 metadata and may have additional attributes associated with them, similar to
 Clojure records.
 
 ```clojure
-=> (block/read! "foo")
-#blocks.data.Block {:id #data/hash "QmRJzsvyCQyizr73Gmms8ZRtvNxmgqumxc2KUp71dfEmoj", :size 3}
+=> (assoc b1 :id :foo)
+; IllegalArgumentException Block :id cannot be changed  blocks.data.Block (data.clj:151)
+
+=> (assoc b1 :foo "bar")
+#blocks.data.Block
+{:foo "bar",
+ :id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+ :size 14}
+
+=> (:foo *1)
+"bar"
+
+=> (meta (with-meta b2 {:baz 123}))
+{:baz 123}
 ```
 
 ## Storage Interface
