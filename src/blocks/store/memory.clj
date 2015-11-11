@@ -1,5 +1,9 @@
 (ns blocks.store.memory
-  "Block storage backed by an atom in memory."
+  "Block storage backed by a map in an atom. Blocks put into this store will be
+  passed to `load!` to ensure the content resides in memory.
+
+  This store is most suitable for testing, caches, and other situations which
+  call for a non-persistent block store."
   (:require
     [blocks.core :as block])
   (:import

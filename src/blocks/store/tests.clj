@@ -1,6 +1,6 @@
 (ns blocks.store.tests
-  "This namespace contains a suite of tests to verify that a given block store
-  implementation conforms to the spec."
+  "Suite of tests to verify that a given block store implementation conforms to
+  the spec."
   (:require
     [blocks.core :as block]
     [byte-streams :as bytes]

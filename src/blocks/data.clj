@@ -182,7 +182,7 @@
 
 ;; ## Utility Functions
 
-(defn resolve-hash
+(defn- resolve-hasher
   "Resolves an algorithm designator to a hash function. Throws an exception on
   invalid names or error."
   [algorithm]
@@ -207,12 +207,12 @@
                     (pr-str algorithm))))))
 
 
-(defn checked-hash
+(defn checked-hasher
   "Constructs a function for the given hash algorithm or function which checks
   that the result is a `Multihash`."
   [algorithm]
-  (let [hash-fn (resolve-hash algorithm)]
-    (fn checked-hasher
+  (let [hash-fn (resolve-hasher algorithm)]
+    (fn hasher
       [source]
       (let [id (hash-fn source)]
         (when-not (instance? Multihash id)
@@ -255,7 +255,7 @@
   creates a realized block."
   ^blocks.data.Block
   [source algorithm]
-  (let [hash-fn (checked-hash algorithm)
+  (let [hash-fn (checked-hasher algorithm)
         content (bytes/to-byte-array source)]
     (Block. (hash-fn content)
             (count content)

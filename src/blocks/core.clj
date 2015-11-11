@@ -1,8 +1,9 @@
 (ns blocks.core
   "Block storage protocol and utilities. Functions which may cause IO to occur
-  are marked with bangs; for example `(read! \"foo\")` doesn't have
-  side-effects, but `(read! some-input-stream)` will consume bytes from the
-  stream.
+  are marked with bangs.
+
+  For example `(read! \"foo\")` doesn't have side-effects, but `(read!
+  some-input-stream)` will consume bytes from the stream.
 
   When blocks are returned from a block store, they may include 'stat' metadata
   about the blocks, including:
@@ -27,24 +28,30 @@
     multihash.core.Multihash))
 
 
+(def default-algorithm
+  "The hashing algorithm used if not specified in functions which create blocks."
+  :sha2-256)
+
+
+
 ;; ## Block IO
 
 (defn from-file
   "Creates a lazy block from a local file. The file is read once to calculate
   the identifier."
   ([file]
-   (from-file file :sha2-256))
+   (from-file file default-algorithm))
   ([file algorithm]
    (let [file (io/file file)
-         hash-fn (data/checked-hash algorithm)
+         hash-fn (data/checked-hasher algorithm)
          reader #(io/input-stream file)
          id (hash-fn (reader))]
      (data/lazy-block id (.length file) reader))))
 
 
 (defn open
-  "Opens an input stream to read the content of the block. Returns nil for empty
-  blocks."
+  "Opens an input stream to read the content of the block. Throws an IO
+  exception on empty blocks."
   ^java.io.InputStream
   [^Block block]
   (let [content ^PersistentBytes (.content block)
@@ -58,15 +65,15 @@
 
 (defn read!
   "Reads data into memory from the given source and hashes it to identify the
-  block. Defaults to sha2-256 if no algorithm is specified."
+  block."
   ([source]
-   (read! source :sha2-256))
+   (read! source default-algorithm))
   ([source algorithm]
    (data/read-block source algorithm)))
 
 
 (defn write!
-  "Writes block data to an output stream."
+  "Writes block content to an output stream."
   [block out]
   (with-open [stream (open block)]
     (bytes/transfer stream out)))
@@ -74,8 +81,11 @@
 
 (defn load!
   "Returns a literal block corresponding to the block given. If the block is
-  lazy, the stream is read into memory and returned as a  If the block is
-  already realized, it is returned unchanged."
+  lazy, the stream is read into memory and returned as a new literal block. If
+  the block is already realized, it is returned unchanged.
+
+  The returned block will have the same extra attributes and metadata as the one
+  given."
   [^Block block]
   (if (realized? block)
     block
@@ -210,13 +220,16 @@
 
 (defn store!
   "Stores content from a byte source in a block store and returns the block
-  record. If the source is a file, it will be streamed into the store.
-  Otherwise, the content is read into memory, so this may not be suitable for
-  large sources."
-  [store source]
-  (put! store (if (instance? File source)
-                (from-file source)
-                (read! source))))
+  record.
+
+  If the source is a file, it will be streamed into the store. Otherwise, the
+  content is read into memory, so this may not be suitable for large sources."
+  ([store source]
+   (store! store source default-algorithm))
+  ([store source algorithm]
+   (put! store (if (instance? File source)
+                 (from-file source algorithm)
+                 (read! source algorithm)))))
 
 
 
@@ -234,9 +247,9 @@
   (:block/stats (meta block)))
 
 
-(defn select-stats
+(defn ^:no-doc select-stats
   "Selects block stats from a sequence based on the criteria spported in
-  `list`."
+  `list`. Helper for block store implementers."
   [opts stats]
   (let [{:keys [algorithm after limit]} opts]
     (cond->> stats

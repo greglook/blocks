@@ -1,10 +1,11 @@
 (ns blocks.store.file
-  "Content storage backed by a local filesystem.
+  "Block storage backed by files in nested directories. Each block is stored in
+  a separate file.
 
   In many filesystems, directories are limited to 4,096 entries. In order to
-  avoid this limit (and make navigating the filesystem a bit more efficient),
-  block content is stored in nested directories three levels deep. All path
-  elements are lower-case hex-encoded bytes from the multihash.
+  avoid this limit (and make navigating the blocks a bit more efficient), block
+  content is stored in nested directories three levels deep. All path elements
+  are lower-case hex-encoded bytes from the multihash.
 
   The first level is the two-byte multihash prefix, which designates the
   algorithm and digest length. There will usually only be one or two of these
@@ -12,7 +13,8 @@
   the hash digest. Finally, the block is stored in a file containing the rest of
   the digest.
 
-  Thus, a file path for the content \"foobar\" stored under `root` might be:
+  Thus, a block containing the content `foobar` would have the sha1 digest
+  `97df3501149...` and be stored under the root directory at:
 
   `root/1114/97/df/35011497df3588b5a3...`
 
@@ -182,7 +184,8 @@
 
 
 (defn erase!
-  "Clears all contents of the file store."
+  "Clears all contents of the file store by recursively deleting the root
+  directory."
   [store]
   (rm-r (:root store)))
 
