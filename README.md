@@ -44,23 +44,23 @@ number of bytes in the block content.
 => (require '[blocks.core :as block])
 
 ; Read a block into memory:
-=> (def b1 (block/read! "hello, blocks!"))
-#'user/b1
+=> (def hello (block/read! "hello, blocks!"))
+#'user/hello
 
-=> b1
+=> hello
 #blocks.data.Block
 {:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
  :size 14}
 
-=> (:id b1)
+=> (:id hello)
 #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR"
 
-=> (:size b1)
+=> (:size hello)
 14
 
 ; Write a block to some output stream:
 => (let [baos (java.io.ByteArrayOutputStream.)]
-     (block/write! b1 baos)
+     (block/write! hello baos)
      (String. (.toByteArray baos)))
 "hello, blocks!"
 ```
@@ -74,30 +74,30 @@ Dereferencing a realized block returns its content, while lazy blocks will give
 `nil`.
 
 ```clojure
-; b1 is a literal block:
-=> (realized? b1)
+; hello is a literal block:
+=> (realized? hello)
 true
 
 ; Content is an immutable byte sequence:
-=> @b1
+=> @hello
 #<blocks.data.PersistentBytes@7dde3f9b PersistentBytes[size=14]>
 
 ; Create a lazy block from a local file:
-=> (def b2 (block/from-file "README.md"))
-#'user/b2
+=> (def readme (block/from-file "README.md"))
+#'user/readme
 
-=> (realized? b2)
+=> (realized? readme)
 false
 
-=> @b2
+=> @readme
 nil
 
 ; Loading a block ensures that the content resides in memory:
-=> (let [b2+ (block/load! b2)] @b2+)
+=> (let [readme+ (block/load! readme)] @readme+)
 #<blocks.data.PersistentBytes@3d4cd68c PersistentBytes[size=4860]>
 
 ; Block values are still immutable, so this doesn't change the original block:
-=> @b2
+=> @readme
 nil
 ```
 
@@ -105,11 +105,13 @@ To abstract over the literal/lazy divide, you can generically create an input
 stream over a block's content using `open`:
 
 ```clojure
-=> (slurp (block/open b1))
+=> (slurp (block/open hello))
 "hello, blocks!"
 
 ; Ideally you should use with-open to ensure the stream is closed:
-=> (subs (with-open [content (block/open b2)] (slurp content)) 0 32)
+=> (-> (with-open [content (block/open readme)]
+         (slurp content))
+       (subs 0 32))
 "Block Storage\n=============\n\n[!["
 ```
 
@@ -120,21 +122,21 @@ Clojure records.
 
 ```clojure
 ; The block id and size are not changeable:
-=> (assoc b1 :id :foo)
+=> (assoc hello :id :foo)
 ; IllegalArgumentException Block :id cannot be changed
 ;   blocks.data.Block (data.clj:151)
 
 ; If you're paranoid, you can validate blocks by rehashing the content:
-=> (validate! b1)
+=> (validate! hello)
 nil
 
 ; But if the README file backing the second block is changed:
-=> (validate! b2)
+=> (validate! readme)
 ; IllegalStateException Block hash:sha2-256:515c169aa0d95... has mismatched content
 ;   blocks.core/validate! (core.clj:115)
 
 ; Other attributes are associative:
-=> (assoc b1 :foo "bar")
+=> (assoc hello :foo "bar")
 #blocks.data.Block
 {:foo "bar",
  :id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
@@ -144,7 +146,7 @@ nil
 "bar"
 
 ; Metadata can be set and queried:
-=> (meta (with-meta b2 {:baz 123}))
+=> (meta (with-meta readme {:baz 123}))
 {:baz 123}
 ```
 
