@@ -223,6 +223,20 @@ true
 nil
 ```
 
+## Implementations
+
+This library comes with a few block store implementations built in:
+
+- `blocks.store.memory` provides an in-memory map of blocks for transient
+  block storage.
+- `blocks.store.file` provides a simple one-file-per-block store in a local
+  directory.
+
+Other storage types are provided by separate libraries:
+
+- [blocks-s3](//github.com/greglook/blocks-s3) provides storage backed by a
+  bucket in Amazon S3.
+
 ## License
 
 This is free and unencumbered software released into the public domain.
