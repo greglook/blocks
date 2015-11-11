@@ -50,7 +50,9 @@
         "load returns literal block for lazy block")
     (is (identical? literal-readme (block/load! literal-readme))
         "load returns literal block unchanged")
-    (is (bytes= @literal-readme (block/open lazy-readme))
+    (is (bytes= @literal-readme
+                (with-open [content (block/open lazy-readme)]
+                  (bytes/to-byte-array content)))
         "literal block content should match lazy block")))
 
 
