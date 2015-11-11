@@ -119,7 +119,8 @@ Clojure records.
 ```clojure
 ; The block id and size are not changeable:
 => (assoc b1 :id :foo)
-; IllegalArgumentException Block :id cannot be changed  blocks.data.Block (data.clj:151)
+; IllegalArgumentException Block :id cannot be changed
+;   blocks.data.Block (data.clj:151)
 
 ; If you're paranoid, you can validate blocks by rehashing the content:
 => (validate! b1)
@@ -127,8 +128,8 @@ nil
 
 ; But if the README file backing the second block is changed:
 => (validate! b2)
-; IllegalStateException Block hash:sha2-256:515c169aa0d95f0236ec05d2cf6ce864c149cf4a8ddd13286318bc1331011347
-;   has mismatched content  blocks.core/validate! (core.clj:115)
+; IllegalStateException Block hash:sha2-256:515c169aa0d95... has mismatched content
+;   blocks.core/validate! (core.clj:115)
 
 ; Other attributes are associative:
 => (assoc b1 :foo "bar")
@@ -148,17 +149,77 @@ nil
 ## Storage Interface
 
 A _block store_ is a system which saves and retrieves block data. Block stores
-support a very simple interface; they must store, retrieve, and enumerate the
-contained blocks. The simplest type of block storage is a hash map in memory.
-Another simple example is a store backed by a local file system, where blocks are
-stored as files in a directory.
+have a very simple interface: they must store, retrieve, and enumerate the
+contained blocks. The simplest type of block storage is a memory store, which is
+backed by a map in memory. Another simple example is a store backed by a local
+filesystem, where blocks are stored as files in a directory.
 
 The block storage protocol is comprised of five methods:
-- `list` - enumerate the stored blocks
 - `stat` - get metadata about a stored block
+- `list` - enumerate the stored blocks
 - `get` - return the bytes stored for a block
 - `put!` - store a some bytes as a block
 - `delete!` - remove a block from the store
+
+```clojure
+; Create a new memory store:
+=> (def store (blocks.store.memory/memory-store))
+#'user/store
+
+=> store
+#blocks.store.memory.MemoryBlockStore {:memory #<Atom@2573332e {}>}
+
+; Add a bunch of random blocks to the store:
+=> (blocks.store.tests/populate-blocks! store 10 1024)
+; lots of output
+
+; `list` returns block metadata, and has some basic filtering options:
+=> (block/list store :limit 2)
+({:id #data/hash "QmP5xztngzcRwJYbfWsMCgRrc36gWQnu3My193bYMNK6Kr",
+  :size 139,
+  :stored-at #inst "2015-11-11T04:37:36.825-00:00"}
+ {:id #data/hash "QmRBHKch4AY4mPLtLm6z4gs1vSFkLoV7ZQbn3Tqa9cfAnb",
+  :size 6,
+  :stored-at #inst "2015-11-11T04:37:36.818-00:00"})
+
+; `stat` returns the same metadata, and can be used to check for block existence:
+=> (block/stat store (:id (second *1)))
+{:id #data/hash "QmRBHKch4AY4mPLtLm6z4gs1vSFkLoV7ZQbn3Tqa9cfAnb",
+ :size 6,
+ :stored-at #inst "2015-11-11T04:37:36.818-00:00"}
+
+; Use `get` to fetch blocks from the store:
+=> (block/get store (:id *1))
+#blocks.data.Block
+{:id #data/hash "QmRBHKch4AY4mPLtLm6z4gs1vSFkLoV7ZQbn3Tqa9cfAnb",
+ :size 6}
+
+; Returned blocks may have stats as metadata:
+=> (block/meta-stats *1)
+{:stored-at #inst "2015-11-11T04:37:36.818-00:00"}
+
+; Put blocks into the store directly:
+=> (block/put! store (block/read! "foo bar baz"))
+#blocks.data.Block
+{:id #data/hash "Qmd8kgzaFLGYtTS1zfF37qKGgYQd5yKcQMyBeSa8UkUz4W",
+ :size 11}
+
+; Or store them from a byte source like a file:
+=> (block/store! store (io/file "project.clj"))
+#blocks.data.Block
+{:id #data/hash "QmTrAoX9xSNf4hy1yikjQzHpuH26f58kaCfSivkV9nbYJE",
+ :size 1260}
+
+=> (def project-hash (:id *1))
+#'user/project-hash
+
+; Use `delete!` to remove blocks from a store:
+=> (block/delete! store project-hash)
+true
+
+=> (block/stat store project-hash)
+nil
+```
 
 ## License
 
