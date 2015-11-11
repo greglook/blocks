@@ -173,46 +173,51 @@ The block storage protocol is comprised of five methods:
 => store
 #blocks.store.memory.MemoryBlockStore {:memory #<Atom@2573332e {}>}
 
-; Add a bunch of random blocks to the store:
-=> (blocks.store.tests/populate-blocks! store 10 1024)
-; lots of output
+; Initially, the store is empty:
+=> (block/list store)
+()
 
-; `list` returns block metadata, and has some basic filtering options:
-=> (block/list store :limit 2)
-({:id #data/hash "QmP5xztngzcRwJYbfWsMCgRrc36gWQnu3My193bYMNK6Kr",
-  :size 139,
-  :stored-at #inst "2015-11-11T04:37:36.825-00:00"}
- {:id #data/hash "QmRBHKch4AY4mPLtLm6z4gs1vSFkLoV7ZQbn3Tqa9cfAnb",
-  :size 6,
-  :stored-at #inst "2015-11-11T04:37:36.818-00:00"})
+; Lets put our blocks in the store so they don't get lost:
+=> (block/put! store hello)
+#blocks.data.Block
+{:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+ :size 14}
 
-; `stat` returns the same metadata, and can be used to check for block existence:
-=> (block/stat store (:id (second *1)))
-{:id #data/hash "QmRBHKch4AY4mPLtLm6z4gs1vSFkLoV7ZQbn3Tqa9cfAnb",
- :size 6,
- :stored-at #inst "2015-11-11T04:37:36.818-00:00"}
+=> (block/put! store readme)
+#blocks.data.Block
+{:id #data/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
+ :size 8415}
+
+; We can `stat` block ids to get metadata without content:
+=> (block/stat store (:id hello))
+{:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+ :size 14,
+ :stored-at #inst "2015-11-11T21:06:00.112-00:00"}
+
+; `list` returns the same metadata, and has some basic filtering options:
+=> (block/list store :algorithm :sha2-256)
+({:id #data/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
+  :size 8415,
+  :stored-at #inst "2015-11-11T21:06:37.931-00:00"}
+ {:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+  :size 14,
+  :stored-at #inst "2015-11-11T21:06:00.112-00:00"})
 
 ; Use `get` to fetch blocks from the store:
-=> (block/get store (:id *1))
+=> (block/get store (:id readme))
 #blocks.data.Block
-{:id #data/hash "QmRBHKch4AY4mPLtLm6z4gs1vSFkLoV7ZQbn3Tqa9cfAnb",
- :size 6}
+{:id #data/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
+ :size 8415}
 
-; Returned blocks may have stats as metadata:
+; Returned blocks may have storage stats as metadata:
 => (block/meta-stats *1)
-{:stored-at #inst "2015-11-11T04:37:36.818-00:00"}
+{:stored-at #inst "2015-11-11T21:06:37.931-00:00"}
 
-; Put blocks into the store directly:
-=> (block/put! store (block/read! "foo bar baz"))
-#blocks.data.Block
-{:id #data/hash "Qmd8kgzaFLGYtTS1zfF37qKGgYQd5yKcQMyBeSa8UkUz4W",
- :size 11}
-
-; Or store them from a byte source like a file:
+; You can also store them directly from a byte source like a file:
 => (block/store! store (io/file "project.clj"))
 #blocks.data.Block
-{:id #data/hash "QmTrAoX9xSNf4hy1yikjQzHpuH26f58kaCfSivkV9nbYJE",
- :size 1260}
+{:id #data/hash "Qmd3NMig5YeLKR13q5vV1fy55Trf3WZv1qFNdtpRw7JwBm",
+ :size 1221}
 
 => (def project-hash (:id *1))
 #'user/project-hash
@@ -221,6 +226,7 @@ The block storage protocol is comprised of five methods:
 => (block/delete! store project-hash)
 true
 
+; Checking with stat reveals the block is gone:
 => (block/stat store project-hash)
 nil
 ```
