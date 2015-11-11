@@ -38,6 +38,27 @@
        (into (sorted-map))))
 
 
+(defn- test-put-attributes
+  "The put! method in a store should return a block with an updated content or
+  reader, but keep the same id, extra attributes, and any non-stat metadata."
+  [store]
+  (let [original (-> (block/read! (random-bytes 512))
+                     (assoc :foo "bar")
+                     (vary-meta assoc ::thing :baz))
+        stored (block/put! store original)]
+    (is (= (:id original) (:id stored))
+        "Stored block id should match original")
+    (is (= (:size original) (:size stored))
+        "Stored block size should match original")
+    (is (= "bar" (:foo stored))
+        "Stored block should retain extra attributes")
+    (is (= :baz (::thing (meta stored)))
+        "Stored block should retain extra metadata")
+    (is (= original stored)
+        "Stored block should test equal to original")
+    (is (true? (block/delete! store (:id stored))))))
+
+
 (defn- test-block
   "Determines whether the store contains the content for the given identifier."
   [store id content]
@@ -93,6 +114,8 @@
   (println "  *" label)
   (is (empty? (block/list store)) "starts empty")
   (testing (.getSimpleName (class store))
+    (testing "put attributes"
+      (test-put-attributes store))
     (let [stored-content (populate-blocks! store blocks max-size)]
       (testing "list stats"
         (let [stats (block/list store)]
