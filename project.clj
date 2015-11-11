@@ -19,8 +19,7 @@
   :dependencies
   [[byte-streams "0.2.0"]
    [mvxcvi/multihash "1.1.0"]
-   [org.clojure/clojure "1.7.0"]
-   [org.clojure/tools.logging "0.3.1"]]
+   [org.clojure/clojure "1.7.0"]]
 
   :hiera
   {:cluster-depth 1
@@ -39,4 +38,4 @@
 
   :profiles
   {:repl {:source-paths ["dev"]
-          :dependencies [[org.clojure/tools.namespace "0.2.10"]]}})
+          :dependencies [[org.clojure/tools.namespace "0.2.11"]]}})
