@@ -21,8 +21,8 @@ types and protocols for Clojure. Content-addressable storage has several useful 
   example, a file's contents can be referenced by different versions of
   metadata without duplicating the file data.
 
-Specifically, this tries to be compatible with the
-[ipfs](//ipfs.io) block storage layer.
+This library aims for compatibility with the [ipfs](//ipfs.io) block storage
+layer.
 
 ## Installation
 
@@ -33,7 +33,7 @@ Leiningen, add the following dependency to your project definition:
 
 ## Block Values
 
-A _block_ is a sequence of bytes identiied by the cryptographic digest of its
+A _block_ is a sequence of bytes identified by the cryptographic digest of its
 content. All blocks have an `:id` and `:size`. The block identifier is a
 [multihash](//github.com/greglook/clj-multihash) value, and the size is the
 number of bytes in the block content.
