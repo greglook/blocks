@@ -7,8 +7,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Logical cache store implementation in `blocks.store.cache`.
+
 ### Changed
 - Rename `:origin` block stat to `:source`.
+
+### Removed
+- Drop unused `tools.logging` dependency.
 
 ## [0.4.0] - 2015-11-10
 
