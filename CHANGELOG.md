@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+## [0.4.0] - 2015-11-10
+
 Lots of high-level library changes! `blocks.data.Block` is now a custom type to
 protect immutable fields like `:id` and `:size` and support the `IPending`
 interface.
@@ -27,4 +31,5 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/greglook/blocks/compare/0.3.0...0.4.0
