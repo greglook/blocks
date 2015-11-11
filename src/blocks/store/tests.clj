@@ -106,5 +106,5 @@
       (let [[id content] (first (seq stored-content))]
         (test-restore-block store id content))
       (doseq [id (keys stored-content)]
-        (block/delete! store id))
+        (is (true? (block/delete! store id))))
       (is (empty? (block/list store)) "ends empty"))))

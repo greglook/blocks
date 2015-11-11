@@ -54,7 +54,9 @@
 
   (delete!
     [this id]
-    (swap! memory dissoc id)))
+    (let [existed? (contains? @memory id)]
+      (swap! memory dissoc id)
+      existed?)))
 
 
 (defn memory-store
