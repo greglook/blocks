@@ -106,12 +106,12 @@
     (file-stats file)))
 
 
-(defmacro ^:private when-block-file
+(defmacro ^:private when-block
   "An anaphoric macro which binds the block file to `file` and executes `body`
-  only if it exists."
-  [store id & body]
+  only if it exists. Assumes that the root directory is bound to `root`."
+  [id & body]
   `(let [~(with-meta 'file {:tag 'java.io.File})
-         (id->file (:root ~store) ~id)]
+         (id->file ~'root ~id)]
      (when (.exists ~'file)
        ~@body)))
 
@@ -128,7 +128,7 @@
 
   (stat
     [this id]
-    (when-block-file this id
+    (when-block id
       (block-stats id file)))
 
 
@@ -141,7 +141,7 @@
 
   (-get
     [this id]
-    (when-block-file this id
+    (when-block id
       (file->block id file)))
 
 
@@ -159,7 +159,7 @@
 
   (delete!
     [this id]
-    (when-block-file this id
+    (when-block id
       (.delete file))))
 
 
