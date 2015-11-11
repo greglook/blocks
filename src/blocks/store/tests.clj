@@ -4,19 +4,28 @@
   (:require
     [blocks.core :as block]
     [byte-streams :as bytes]
-    [clojure.test :refer :all])
+    [clojure.test :refer :all]
+    [multihash.core :as multihash])
   (:import
     blocks.data.PersistentBytes))
 
 
 (defn random-bytes
-  "Returns a byte array between one and `max-size` bytes long with random
+  "Returns a byte array between one and `max-len` bytes long with random
   content."
-  [max-size]
-  (let [size (inc (rand-int max-size))
+  [max-len]
+  (let [size (inc (rand-int max-len))
         data (byte-array size)]
     (.nextBytes (java.security.SecureRandom.) data)
     data))
+
+
+(defn random-hex
+  "Returns a random hex string between one and `max-len` characters long."
+  [max-len]
+  (->> (repeatedly #(rand-nth "0123456789abcdef"))
+       (take (inc (rand-int max-len)))
+       (apply str)))
 
 
 (defn populate-blocks!
@@ -29,7 +38,7 @@
        (into (sorted-map))))
 
 
-(defn test-block
+(defn- test-block
   "Determines whether the store contains the content for the given identifier."
   [store id content]
   (testing "block stats"
@@ -62,6 +71,22 @@
            (:stored-at new-status)))))
 
 
+(defn- test-list-stats
+  "Tests the functionality of list's marker option."
+  [store ids n]
+  (let [prefix (-> (block/list store :limit 1) first :id multihash/hex (subs 0 4))]
+    (dotimes [i n]
+      (let [after (str prefix (random-hex 10))
+            limit (inc (rand-int 100))
+            stats (block/list store :after after :limit limit)
+            expected (->> ids
+                          (filter #(pos? (compare (multihash/hex %) after)))
+                          (sort)
+                          (take limit))]
+        (is (= expected (map :id stats))
+            "list should return the expected ids in sorted order")))))
+
+
 (defn test-block-store
   "Tests a block store implementation."
   [label store & {:keys [blocks max-size], :or {blocks 10, max-size 1024}}]
@@ -74,7 +99,8 @@
           (is (= (keys stored-content) (map :id stats))
               "enumerates all ids in sorted order")
           (is (every? #(= (:size %) (count (get stored-content (:id %)))) stats)
-              "returns correct size for all blocks")))
+              "returns correct size for all blocks"))
+        (test-list-stats store (keys stored-content) 100))
       (doseq [[id content] stored-content]
         (test-block store id content))
       (let [[id content] (first (seq stored-content))]
