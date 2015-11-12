@@ -7,9 +7,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-### Added
-- Logical cache store implementation in `blocks.store.cache`.
-
 ### Changed
 - Rename `:origin` block stat to `:source`.
 - Switch argument order in `read-block` for consistency.
