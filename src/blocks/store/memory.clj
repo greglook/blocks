@@ -5,7 +5,8 @@
   This store is most suitable for testing, caches, and other situations which
   call for a non-persistent block store."
   (:require
-    [blocks.core :as block])
+    [blocks.core :as block]
+    [blocks.data :as data])
   (:import
     java.util.Date))
 
@@ -45,11 +46,13 @@
   (put!
     [this block]
     (when-let [id (:id block)]
-      (or (get @memory id)
-          (let [block' (block/with-stats (block/load! block)
-                                         {:stored-at (Date.)})]
-            (swap! memory assoc id block')
-            block'))))
+      (if-let [extant (get @memory id)]
+        (data/merge-blocks block extant)
+        (let [block' (block/with-stats
+                       (block/load! block)
+                       {:stored-at (Date.)})]
+          (swap! memory assoc id block')
+          block'))))
 
 
   (delete!

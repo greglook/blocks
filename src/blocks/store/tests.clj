@@ -38,7 +38,28 @@
        (into (sorted-map))))
 
 
-(defn- test-block
+(defn test-put-attributes
+  "The put! method in a store should return a block with an updated content or
+  reader, but keep the same id, extra attributes, and any non-stat metadata."
+  [store]
+  (let [original (-> (block/read! (random-bytes 512))
+                     (assoc :foo "bar")
+                     (vary-meta assoc ::thing :baz))
+        stored (block/put! store original)]
+    (is (= (:id original) (:id stored))
+        "Stored block id should match original")
+    (is (= (:size original) (:size stored))
+        "Stored block size should match original")
+    (is (= "bar" (:foo stored))
+        "Stored block should retain extra attributes")
+    (is (= :baz (::thing (meta stored)))
+        "Stored block should retain extra metadata")
+    (is (= original stored)
+        "Stored block should test equal to original")
+    (is (true? (block/delete! store (:id stored))))))
+
+
+(defn test-block
   "Determines whether the store contains the content for the given identifier."
   [store id content]
   (testing "block stats"
@@ -60,7 +81,7 @@
           "block only contains id and size"))))
 
 
-(defn- test-restore-block
+(defn test-restore-block
   "Tests re-storing an existing block."
   [store id content]
   (let [status     (block/stat store id)
@@ -71,7 +92,7 @@
            (:stored-at new-status)))))
 
 
-(defn- test-list-stats
+(defn test-list-stats
   "Tests the functionality of list's marker option."
   [store ids n]
   (let [prefix (-> (block/list store :limit 1) first :id multihash/hex (subs 0 4))]
@@ -84,15 +105,25 @@
                           (sort)
                           (take limit))]
         (is (= expected (map :id stats))
-            "list should return the expected ids in sorted order")))))
+            (str "list should return the expected ids in sorted order for: "
+                 (pr-str {:after after, :limit limit})))))))
 
 
 (defn test-block-store
   "Tests a block store implementation."
-  [label store & {:keys [blocks max-size], :or {blocks 10, max-size 1024}}]
+  [label store & {:keys [blocks max-size eraser]
+                  :or {blocks 10, max-size 1024}}]
+  (when-not (empty? (block/list store))
+    (throw (IllegalStateException.
+             (str "Cannot run integration test on " (pr-str store)
+                  " as it already contains blocks!"))))
   (println "  *" label)
-  (is (empty? (block/list store)) "starts empty")
   (testing (.getSimpleName (class store))
+    (testing "querying non-existent block"
+      (is (nil? (block/stat store (multihash/sha1 "foo"))))
+      (is (nil? (block/get store (multihash/sha1 "bar")))))
+    (testing "put attributes"
+      (test-put-attributes store))
     (let [stored-content (populate-blocks! store blocks max-size)]
       (testing "list stats"
         (let [stats (block/list store)]
@@ -100,11 +131,13 @@
               "enumerates all ids in sorted order")
           (is (every? #(= (:size %) (count (get stored-content (:id %)))) stats)
               "returns correct size for all blocks"))
-        (test-list-stats store (keys stored-content) 100))
+        (test-list-stats store (keys stored-content) 10))
       (doseq [[id content] stored-content]
         (test-block store id content))
       (let [[id content] (first (seq stored-content))]
         (test-restore-block store id content))
-      (doseq [id (keys stored-content)]
-        (is (true? (block/delete! store id))))
+      (if eraser
+        (eraser store)
+        (doseq [id (keys stored-content)]
+          (is (true? (block/delete! store id)))))
       (is (empty? (block/list store)) "ends empty"))))

@@ -80,7 +80,7 @@
   "Calculates storage stats for a block file."
   [^File file]
   {:stored-at (Date. (.lastModified file))
-   :origin (.toURI file)})
+   :source (.toURI file)})
 
 
 (defn- block-stats
@@ -122,7 +122,9 @@
   "Creates a lazy block to read from the given file."
   [id ^File file]
   (block/with-stats
-    (data/lazy-block id (.length file) #(io/input-stream file))
+    (data/lazy-block
+      id (.length file)
+      (fn file-reader [] (io/input-stream file)))
     (file-stats file)))
 
 
@@ -138,6 +140,8 @@
 
 
 ;; ## File Store
+
+; TODO: File store operations should really be thread-safe
 
 ;; Block content is stored as files in a multi-level hierarchy under the given
 ;; root directory.
@@ -174,7 +178,9 @@
         (with-open [content (block/open block)]
           (io/copy content file))
         (.setWritable file false false))
-      (file->block id file)))
+      (data/merge-blocks
+        block
+        (file->block id file))))
 
 
   (delete!

@@ -19,3 +19,31 @@
     (let [hasher (data/checked-hasher (constantly :bar))]
       (is (thrown? RuntimeException (hasher :foo))
           "should throw an exception when invoked"))))
+
+
+(deftest block-merging
+  (let [a (-> (data/read-block :sha1 "foo")
+              (assoc :foo 123 :bar "baz")
+              (vary-meta assoc ::abc 123))
+        b (-> (data/read-block :sha1 "foo")
+              (assoc :foo true :qux 'thing)
+              (vary-meta assoc ::abc 456 ::xyz :ok))
+        c (data/read-block :sha1 "bar")]
+    (testing "merging blocks with different ids"
+      (is (thrown? IllegalArgumentException
+                   (data/merge-blocks a c))))
+    (testing "merged block"
+      (let [merged (data/merge-blocks a b)]
+        (is (= (:id merged) (:id b))
+            "should have b's id")
+        (is (= (:size merged) (:size b))
+            "should have b's size")
+        (is (identical? @merged @b)
+            "should have b's content")
+        (is (nil? (.reader merged))
+            "should have no reader")
+        (is (= true (:foo merged)))
+        (is (= "baz" (:bar merged)))
+        (is (= 'thing (:qux merged)))
+        (is (= 456 (::abc (meta merged))))
+        (is (= :ok (::xyz (meta merged))))))))

@@ -4,8 +4,8 @@ Block Storage
 [![Dependency Status](https://www.versioneye.com/user/projects/5639b2761d47d40015000018/badge.svg?style=flat)](https://www.versioneye.com/user/projects/5639b2761d47d40015000018)
 [![Build Status](https://travis-ci.org/greglook/blocks.svg?branch=develop)](https://travis-ci.org/greglook/blocks)
 [![Coverage Status](https://coveralls.io/repos/greglook/blocks/badge.svg?branch=develop&service=github)](https://coveralls.io/github/greglook/blocks?branch=develop)
-[![API codox](http://b.repl.ca/v1/doc-API-blue.png)](https://greglook.github.io/blocks/api/)
-[![marginalia docs](http://b.repl.ca/v1/doc-marginalia-blue.png)](https://greglook.github.io/blocks/marginalia/uberdoc.html)
+[![API codox](https://img.shields.io/badge/doc-API-blue.svg)](https://greglook.github.io/blocks/api/)
+[![marginalia docs](https://img.shields.io/badge/doc-marginalia-blue.svg)](https://greglook.github.io/blocks/marginalia/uberdoc.html)
 [![Join the chat at https://gitter.im/greglook/blocks](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/greglook/blocks)
 
 This library implements [content-addressable storage](https://en.wikipedia.org/wiki/Content-addressable_storage)
@@ -44,23 +44,23 @@ number of bytes in the block content.
 => (require '[blocks.core :as block])
 
 ; Read a block into memory:
-=> (def b1 (block/read! "hello, blocks!"))
-#'user/b1
+=> (def hello (block/read! "hello, blocks!"))
+#'user/hello
 
-=> b1
+=> hello
 #blocks.data.Block
 {:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
  :size 14}
 
-=> (:id b1)
+=> (:id hello)
 #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR"
 
-=> (:size b1)
+=> (:size hello)
 14
 
 ; Write a block to some output stream:
 => (let [baos (java.io.ByteArrayOutputStream.)]
-     (block/write! b1 baos)
+     (block/write! hello baos)
      (String. (.toByteArray baos)))
 "hello, blocks!"
 ```
@@ -74,30 +74,30 @@ Dereferencing a realized block returns its content, while lazy blocks will give
 `nil`.
 
 ```clojure
-; b1 is a literal block:
-=> (realized? b1)
+; hello is a literal block:
+=> (realized? hello)
 true
 
 ; Content is an immutable byte sequence:
-=> @b1
+=> @hello
 #<blocks.data.PersistentBytes@7dde3f9b PersistentBytes[size=14]>
 
 ; Create a lazy block from a local file:
-=> (def b2 (block/from-file "README.md"))
-#'user/b2
+=> (def readme (block/from-file "README.md"))
+#'user/readme
 
-=> (realized? b2)
+=> (realized? readme)
 false
 
-=> @b2
+=> @readme
 nil
 
 ; Loading a block ensures that the content resides in memory:
-=> (let [b2+ (block/load! b2)] @b2+)
+=> (let [readme+ (block/load! readme)] @readme+)
 #<blocks.data.PersistentBytes@3d4cd68c PersistentBytes[size=4860]>
 
 ; Block values are still immutable, so this doesn't change the original block:
-=> @b2
+=> @readme
 nil
 ```
 
@@ -105,11 +105,13 @@ To abstract over the literal/lazy divide, you can generically create an input
 stream over a block's content using `open`:
 
 ```clojure
-=> (slurp (block/open b1))
+=> (slurp (block/open hello))
 "hello, blocks!"
 
 ; Ideally you should use with-open to ensure the stream is closed:
-=> (subs (with-open [content (block/open b2)] (slurp content)) 0 32)
+=> (-> (with-open [content (block/open readme)]
+         (slurp content))
+       (subs 0 32))
 "Block Storage\n=============\n\n[!["
 ```
 
@@ -120,21 +122,21 @@ Clojure records.
 
 ```clojure
 ; The block id and size are not changeable:
-=> (assoc b1 :id :foo)
+=> (assoc hello :id :foo)
 ; IllegalArgumentException Block :id cannot be changed
 ;   blocks.data.Block (data.clj:151)
 
 ; If you're paranoid, you can validate blocks by rehashing the content:
-=> (validate! b1)
+=> (validate! hello)
 nil
 
 ; But if the README file backing the second block is changed:
-=> (validate! b2)
+=> (validate! readme)
 ; IllegalStateException Block hash:sha2-256:515c169aa0d95... has mismatched content
 ;   blocks.core/validate! (core.clj:115)
 
 ; Other attributes are associative:
-=> (assoc b1 :foo "bar")
+=> (assoc hello :foo "bar")
 #blocks.data.Block
 {:foo "bar",
  :id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
@@ -144,7 +146,7 @@ nil
 "bar"
 
 ; Metadata can be set and queried:
-=> (meta (with-meta b2 {:baz 123}))
+=> (meta (with-meta readme {:baz 123}))
 {:baz 123}
 ```
 
@@ -171,46 +173,51 @@ The block storage protocol is comprised of five methods:
 => store
 #blocks.store.memory.MemoryBlockStore {:memory #<Atom@2573332e {}>}
 
-; Add a bunch of random blocks to the store:
-=> (blocks.store.tests/populate-blocks! store 10 1024)
-; lots of output
+; Initially, the store is empty:
+=> (block/list store)
+()
 
-; `list` returns block metadata, and has some basic filtering options:
-=> (block/list store :limit 2)
-({:id #data/hash "QmP5xztngzcRwJYbfWsMCgRrc36gWQnu3My193bYMNK6Kr",
-  :size 139,
-  :stored-at #inst "2015-11-11T04:37:36.825-00:00"}
- {:id #data/hash "QmRBHKch4AY4mPLtLm6z4gs1vSFkLoV7ZQbn3Tqa9cfAnb",
-  :size 6,
-  :stored-at #inst "2015-11-11T04:37:36.818-00:00"})
+; Lets put our blocks in the store so they don't get lost:
+=> (block/put! store hello)
+#blocks.data.Block
+{:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+ :size 14}
 
-; `stat` returns the same metadata, and can be used to check for block existence:
-=> (block/stat store (:id (second *1)))
-{:id #data/hash "QmRBHKch4AY4mPLtLm6z4gs1vSFkLoV7ZQbn3Tqa9cfAnb",
- :size 6,
- :stored-at #inst "2015-11-11T04:37:36.818-00:00"}
+=> (block/put! store readme)
+#blocks.data.Block
+{:id #data/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
+ :size 8415}
+
+; We can `stat` block ids to get metadata without content:
+=> (block/stat store (:id hello))
+{:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+ :size 14,
+ :stored-at #inst "2015-11-11T21:06:00.112-00:00"}
+
+; `list` returns the same metadata, and has some basic filtering options:
+=> (block/list store :algorithm :sha2-256)
+({:id #data/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
+  :size 8415,
+  :stored-at #inst "2015-11-11T21:06:37.931-00:00"}
+ {:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+  :size 14,
+  :stored-at #inst "2015-11-11T21:06:00.112-00:00"})
 
 ; Use `get` to fetch blocks from the store:
-=> (block/get store (:id *1))
+=> (block/get store (:id readme))
 #blocks.data.Block
-{:id #data/hash "QmRBHKch4AY4mPLtLm6z4gs1vSFkLoV7ZQbn3Tqa9cfAnb",
- :size 6}
+{:id #data/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
+ :size 8415}
 
-; Returned blocks may have stats as metadata:
+; Returned blocks may have storage stats as metadata:
 => (block/meta-stats *1)
-{:stored-at #inst "2015-11-11T04:37:36.818-00:00"}
+{:stored-at #inst "2015-11-11T21:06:37.931-00:00"}
 
-; Put blocks into the store directly:
-=> (block/put! store (block/read! "foo bar baz"))
-#blocks.data.Block
-{:id #data/hash "Qmd8kgzaFLGYtTS1zfF37qKGgYQd5yKcQMyBeSa8UkUz4W",
- :size 11}
-
-; Or store them from a byte source like a file:
+; You can also store them directly from a byte source like a file:
 => (block/store! store (io/file "project.clj"))
 #blocks.data.Block
-{:id #data/hash "QmTrAoX9xSNf4hy1yikjQzHpuH26f58kaCfSivkV9nbYJE",
- :size 1260}
+{:id #data/hash "Qmd3NMig5YeLKR13q5vV1fy55Trf3WZv1qFNdtpRw7JwBm",
+ :size 1221}
 
 => (def project-hash (:id *1))
 #'user/project-hash
@@ -219,9 +226,24 @@ The block storage protocol is comprised of five methods:
 => (block/delete! store project-hash)
 true
 
+; Checking with stat reveals the block is gone:
 => (block/stat store project-hash)
 nil
 ```
+
+## Implementations
+
+This library comes with a few block store implementations built in:
+
+- `blocks.store.memory` provides an in-memory map of blocks for transient
+  block storage.
+- `blocks.store.file` provides a simple one-file-per-block store in a local
+  directory.
+
+Other storage types are provided by separate libraries:
+
+- [blocks-s3](//github.com/greglook/blocks-s3) provides storage backed by a
+  bucket in Amazon S3.
 
 ## License
 

@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "0.4.0"
+(defproject mvxcvi/blocks "0.4.1"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -39,4 +39,4 @@
 
   :profiles
   {:repl {:source-paths ["dev"]
-          :dependencies [[org.clojure/tools.namespace "0.2.10"]]}})
+          :dependencies [[org.clojure/tools.namespace "0.2.11"]]}})
