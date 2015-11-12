@@ -38,7 +38,7 @@
        (into (sorted-map))))
 
 
-(defn- test-put-attributes
+(defn test-put-attributes
   "The put! method in a store should return a block with an updated content or
   reader, but keep the same id, extra attributes, and any non-stat metadata."
   [store]
@@ -59,7 +59,7 @@
     (is (true? (block/delete! store (:id stored))))))
 
 
-(defn- test-block
+(defn test-block
   "Determines whether the store contains the content for the given identifier."
   [store id content]
   (testing "block stats"
@@ -81,7 +81,7 @@
           "block only contains id and size"))))
 
 
-(defn- test-restore-block
+(defn test-restore-block
   "Tests re-storing an existing block."
   [store id content]
   (let [status     (block/stat store id)
@@ -92,7 +92,7 @@
            (:stored-at new-status)))))
 
 
-(defn- test-list-stats
+(defn test-list-stats
   "Tests the functionality of list's marker option."
   [store ids n]
   (let [prefix (-> (block/list store :limit 1) first :id multihash/hex (subs 0 4))]
