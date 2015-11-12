@@ -111,11 +111,17 @@
 
 (defn test-block-store
   "Tests a block store implementation."
-  [label store & {:keys [blocks max-size clean]
-                  :or {blocks 10, max-size 1024, clean true}}]
+  [label store & {:keys [blocks max-size eraser]
+                  :or {blocks 10, max-size 1024}}]
+  (when-not (empty? (block/list store))
+    (throw (IllegalStateException.
+             (str "Cannot run integration test on " (pr-str store)
+                  " as it already contains blocks!"))))
   (println "  *" label)
-  (is (empty? (block/list store)) "starts empty")
   (testing (.getSimpleName (class store))
+    (testing "querying non-existent block"
+      (is (nil? (block/stat store (multihash/sha1 "foo"))))
+      (is (nil? (block/get store (multihash/sha1 "bar")))))
     (testing "put attributes"
       (test-put-attributes store))
     (let [stored-content (populate-blocks! store blocks max-size)]
@@ -130,7 +136,8 @@
         (test-block store id content))
       (let [[id content] (first (seq stored-content))]
         (test-restore-block store id content))
-      (when clean
+      (if eraser
+        (eraser store)
         (doseq [id (keys stored-content)]
-          (is (true? (block/delete! store id))))
-        (is (empty? (block/list store)) "ends empty")))))
+          (is (true? (block/delete! store id)))))
+      (is (empty? (block/list store)) "ends empty"))))
