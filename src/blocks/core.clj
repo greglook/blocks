@@ -49,6 +49,7 @@
      (data/lazy-block id (.length file) reader))))
 
 
+; TODO: support opening a byte range
 (defn open
   "Opens an input stream to read the content of the block. Throws an IO
   exception on empty blocks."

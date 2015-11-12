@@ -141,6 +141,8 @@
 
 ;; ## File Store
 
+; TODO: File store operations should really be thread-safe
+
 ;; Block content is stored as files in a multi-level hierarchy under the given
 ;; root directory.
 (defrecord FileBlockStore
