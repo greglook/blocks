@@ -2865,8 +2865,8 @@ net.brehaut.ClojureTools = (function (SH) {
     build_tree: build_tree
   };
 })(SyntaxHighlighter);
-</script><title>mvxcvi/blocks -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name"><a href="https://github.com/greglook/blocks">mvxcvi/blocks</a></h1><h2 class="project-version">0.4.0</h2><br /><p>Content-addressed data storage interface.</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">byte-streams</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">mvxcvi/multihash</td><td class="dotted"><hr /></td><td class="dep-version">1.1.0</td></tr><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.6.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.3.1</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#blocks.core">blocks.core</a></li><li><a href="#blocks.data">blocks.data</a></li><li><a href="#blocks.data.conversions">blocks.data.conversions</a></li><li><a href="#blocks.store.file">blocks.store.file</a></li><li><a href="#blocks.store.memory">blocks.store.memory</a></li><li><a href="#blocks.store.tests">blocks.store.tests</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#blocks.core" name="blocks.core"><h1 class="project-name">blocks.core</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Block storage protocol and utilities. Functions which may cause IO to occur
+</script><title>mvxcvi/blocks -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name"><a href="https://github.com/greglook/blocks">mvxcvi/blocks</a></h1><h2 class="project-version">0.4.1</h2><br /><p>Content-addressed data storage interface.</p>
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">byte-streams</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">mvxcvi/multihash</td><td class="dotted"><hr /></td><td class="dep-version">1.1.0</td></tr><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.7.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.3.1</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#blocks.core">blocks.core</a></li><li><a href="#blocks.data">blocks.data</a></li><li><a href="#blocks.data.conversions">blocks.data.conversions</a></li><li><a href="#blocks.store.file">blocks.store.file</a></li><li><a href="#blocks.store.memory">blocks.store.memory</a></li><li><a href="#blocks.store.tests">blocks.store.tests</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#blocks.core" name="blocks.core"><h1 class="project-name">blocks.core</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Block storage protocol and utilities. Functions which may cause IO to occur
   are marked with bangs.</p>
 
 <p>  For example <code>(read! "foo")</code> doesn't have side-effects, but `(read!
@@ -2876,8 +2876,8 @@ net.brehaut.ClojureTools = (function (SH) {
   about the blocks, including:</p>
 
 <ul>
+<li><code>:source</code>      resource location for the block content</li>
 <li><code>:stored-at</code>   time block was added to the store</li>
-<li><code>:origin</code>      resource location for the block</li>
 </ul>
 </td><td class="codes"><pre class="brush: clojure">(ns blocks.core
   (:refer-clojure :exclude [get list])
@@ -2924,7 +2924,7 @@ net.brehaut.ClojureTools = (function (SH) {
   ([source]
    (read! source default-algorithm))
   ([source algorithm]
-   (data/read-block source algorithm)))</pre></td></tr><tr><td class="docs"><p>Writes block content to an output stream.</p>
+   (data/read-block algorithm source)))</pre></td></tr><tr><td class="docs"><p>Writes block content to an output stream.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn write!
   [block out]
   (with-open [stream (open block)]
@@ -3260,13 +3260,28 @@ net.brehaut.ClojureTools = (function (SH) {
   creates a realized block.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn read-block
   ^blocks.data.Block
-  [source algorithm]
+  [algorithm source]
   (let [hash-fn (checked-hasher algorithm)
         content (bytes/to-byte-array source)]
     (Block. (hash-fn content)
             (count content)
             (PersistentBytes/wrap content)
-            nil nil nil)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#blocks.data.conversions" name="blocks.data.conversions"><h1 class="project-name">blocks.data.conversions</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Conversions for PersistentBytes values.</p>
+            nil nil nil)))</pre></td></tr><tr><td class="docs"><p>Creates a new block by merging together two blocks representing the same
+  content. Block ids and sizes must match. The new block's content or reader
+  comes from the second block, and any extra attributes and metadata are merged
+  together.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn merge-blocks
+  [^Block a ^Block b]
+  (when (not= (.id a) (.id b))
+    (throw (IllegalArgumentException.
+             (str &quot;Cannot merge blocks with differing ids &quot; (.id a)
+                  &quot; and &quot; (.id b)))))
+  (Block. (.id b)
+          (.size b)
+          (.content b)
+          (.reader b)
+          (not-empty (merge (._attrs a) (._attrs b)))
+          (not-empty (merge (._meta  a) (._meta  b)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#blocks.data.conversions" name="blocks.data.conversions"><h1 class="project-name">blocks.data.conversions</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Conversions for PersistentBytes values.</p>
 
 <p>  This is mostly in a separate namespace to appease Cloverage.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns ^:no-doc blocks.data.conversions
@@ -3351,7 +3366,7 @@ net.brehaut.ClojureTools = (function (SH) {
 </td><td class="codes"><pre class="brush: clojure">(defn- file-stats
   [^File file]
   {:stored-at (Date. (.lastModified file))
-   :origin (.toURI file)})</pre></td></tr><tr><td class="docs"><p>Calculates a merged stat map for a block.</p>
+   :source (.toURI file)})</pre></td></tr><tr><td class="docs"><p>Calculates a merged stat map for a block.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- block-stats
   [id ^File file]
   (merge (file-stats file)
@@ -3381,7 +3396,9 @@ net.brehaut.ClojureTools = (function (SH) {
 </td><td class="codes"><pre class="brush: clojure">(defn- file-&gt;block
   [id ^File file]
   (block/with-stats
-    (data/lazy-block id (.length file) #(io/input-stream file))
+    (data/lazy-block
+      id (.length file)
+      (fn file-reader [] (io/input-stream file)))
     (file-stats file)))</pre></td></tr><tr><td class="docs"><p>An anaphoric macro which binds the block file to <code>file</code> and executes <code>body</code>
   only if it exists. Assumes that the root directory is bound to <code>root</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmacro ^:private when-block
@@ -3417,7 +3434,9 @@ root directory.</p>
         (with-open [content (block/open block)]
           (io/copy content file))
         (.setWritable file false false))
-      (file-&gt;block id file)))
+      (data/merge-blocks
+        block
+        (file-&gt;block id file))))
   (delete!
     [this id]
     (when-block id
@@ -3437,7 +3456,8 @@ root directory.</p>
   call for a non-persistent block store.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns blocks.store.memory
   (:require
-    [blocks.core :as block])
+    [blocks.core :as block]
+    [blocks.data :as data])
   (:import
     java.util.Date))</pre></td></tr><tr><td class="docs"><p>Build a map of stat data for a stored block.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- block-stats
@@ -3463,11 +3483,13 @@ root directory.</p>
   (put!
     [this block]
     (when-let [id (:id block)]
-      (or (get @memory id)
-          (let [block' (block/with-stats (block/load! block)
-                                         {:stored-at (Date.)})]
-            (swap! memory assoc id block')
-            block'))))
+      (if-let [extant (get @memory id)]
+        (data/merge-blocks block extant)
+        (let [block' (block/with-stats
+                       (block/load! block)
+                       {:stored-at (Date.)})]
+          (swap! memory assoc id block')
+          block'))))
   (delete!
     [this id]
     (let [existed? (contains? @memory id)]
@@ -3505,8 +3527,26 @@ root directory.</p>
   (-&gt;&gt; (repeatedly #(random-bytes max-size))
        (take n)
        (map (juxt (comp :id (partial block/store! store)) identity))
-       (into (sorted-map))))</pre></td></tr><tr><td class="docs"><p>Determines whether the store contains the content for the given identifier.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn- test-block
+       (into (sorted-map))))</pre></td></tr><tr><td class="docs"><p>The put! method in a store should return a block with an updated content or
+  reader, but keep the same id, extra attributes, and any non-stat metadata.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn test-put-attributes
+  [store]
+  (let [original (-&gt; (block/read! (random-bytes 512))
+                     (assoc :foo &quot;bar&quot;)
+                     (vary-meta assoc ::thing :baz))
+        stored (block/put! store original)]
+    (is (= (:id original) (:id stored))
+        &quot;Stored block id should match original&quot;)
+    (is (= (:size original) (:size stored))
+        &quot;Stored block size should match original&quot;)
+    (is (= &quot;bar&quot; (:foo stored))
+        &quot;Stored block should retain extra attributes&quot;)
+    (is (= :baz (::thing (meta stored)))
+        &quot;Stored block should retain extra metadata&quot;)
+    (is (= original stored)
+        &quot;Stored block should test equal to original&quot;)
+    (is (true? (block/delete! store (:id stored))))))</pre></td></tr><tr><td class="docs"><p>Determines whether the store contains the content for the given identifier.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn test-block
   [store id content]
   (testing &quot;block stats&quot;
     (let [status (block/stat store id)]
@@ -3525,7 +3565,7 @@ root directory.</p>
             &quot;stored content should match&quot;))
       (is (= [:id :size] (keys block))
           &quot;block only contains id and size&quot;))))</pre></td></tr><tr><td class="docs"><p>Tests re-storing an existing block.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn- test-restore-block
+</td><td class="codes"><pre class="brush: clojure">(defn test-restore-block
   [store id content]
   (let [status     (block/stat store id)
         new-block  (block/store! store content)
@@ -3533,7 +3573,7 @@ root directory.</p>
     (is (= id (:id new-block)))
     (is (= (:stored-at status)
            (:stored-at new-status)))))</pre></td></tr><tr><td class="docs"><p>Tests the functionality of list's marker option.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn- test-list-stats
+</td><td class="codes"><pre class="brush: clojure">(defn test-list-stats
   [store ids n]
   (let [prefix (-&gt; (block/list store :limit 1) first :id multihash/hex (subs 0 4))]
     (dotimes [i n]
@@ -3545,12 +3585,22 @@ root directory.</p>
                           (sort)
                           (take limit))]
         (is (= expected (map :id stats))
-            &quot;list should return the expected ids in sorted order&quot;)))))</pre></td></tr><tr><td class="docs"><p>Tests a block store implementation.</p>
+            (str &quot;list should return the expected ids in sorted order for: &quot;
+                 (pr-str {:after after, :limit limit})))))))</pre></td></tr><tr><td class="docs"><p>Tests a block store implementation.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn test-block-store
-  [label store &amp; {:keys [blocks max-size], :or {blocks 10, max-size 1024}}]
+  [label store &amp; {:keys [blocks max-size eraser]
+                  :or {blocks 10, max-size 1024}}]
+  (when-not (empty? (block/list store))
+    (throw (IllegalStateException.
+             (str &quot;Cannot run integration test on &quot; (pr-str store)
+                  &quot; as it already contains blocks!&quot;))))
   (println &quot;  *&quot; label)
-  (is (empty? (block/list store)) &quot;starts empty&quot;)
   (testing (.getSimpleName (class store))
+    (testing &quot;querying non-existent block&quot;
+      (is (nil? (block/stat store (multihash/sha1 &quot;foo&quot;))))
+      (is (nil? (block/get store (multihash/sha1 &quot;bar&quot;)))))
+    (testing &quot;put attributes&quot;
+      (test-put-attributes store))
     (let [stored-content (populate-blocks! store blocks max-size)]
       (testing &quot;list stats&quot;
         (let [stats (block/list store)]
@@ -3558,13 +3608,15 @@ root directory.</p>
               &quot;enumerates all ids in sorted order&quot;)
           (is (every? #(= (:size %) (count (get stored-content (:id %)))) stats)
               &quot;returns correct size for all blocks&quot;))
-        (test-list-stats store (keys stored-content) 100))
+        (test-list-stats store (keys stored-content) 10))
       (doseq [[id content] stored-content]
         (test-block store id content))
       (let [[id content] (first (seq stored-content))]
         (test-restore-block store id content))
-      (doseq [id (keys stored-content)]
-        (is (true? (block/delete! store id))))
+      (if eraser
+        (eraser store)
+        (doseq [id (keys stored-content)]
+          (is (true? (block/delete! store id)))))
       (is (empty? (block/list store)) &quot;ends empty&quot;))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/gdeer81/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a><div id="floating-toc"><ul><li class="floating-toc-li" id="floating-toc_blocks.core">blocks.core</li><li class="floating-toc-li" id="floating-toc_blocks.data">blocks.data</li><li class="floating-toc-li" id="floating-toc_blocks.data.conversions">blocks.data.conversions</li><li class="floating-toc-li" id="floating-toc_blocks.store.file">blocks.store.file</li><li class="floating-toc-li" id="floating-toc_blocks.store.memory">blocks.store.memory</li><li class="floating-toc-li" id="floating-toc_blocks.store.tests">blocks.store.tests</li></ul></div></div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
 SyntaxHighlighter.all();
 
