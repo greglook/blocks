@@ -19,7 +19,8 @@
   :dependencies
   [[byte-streams "0.2.0"]
    [mvxcvi/multihash "1.1.0"]
-   [org.clojure/clojure "1.7.0"]]
+   [org.clojure/clojure "1.7.0"]
+   [org.clojure/data.priority-map "0.0.7"]]
 
   :hiera
   {:cluster-depth 1
