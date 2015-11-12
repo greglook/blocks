@@ -3,6 +3,7 @@
   the spec."
   (:require
     [blocks.core :as block]
+    [blocks.util :as util]
     [byte-streams :as bytes]
     [clojure.test :refer :all]
     [multihash.core :as multihash])
@@ -10,29 +11,11 @@
     blocks.data.PersistentBytes))
 
 
-(defn random-bytes
-  "Returns a byte array between one and `max-len` bytes long with random
-  content."
-  [max-len]
-  (let [size (inc (rand-int max-len))
-        data (byte-array size)]
-    (.nextBytes (java.security.SecureRandom.) data)
-    data))
-
-
-(defn random-hex
-  "Returns a random hex string between one and `max-len` characters long."
-  [max-len]
-  (->> (repeatedly #(rand-nth "0123456789abcdef"))
-       (take (inc (rand-int max-len)))
-       (apply str)))
-
-
 (defn populate-blocks!
   "Stores some test blocks in the given block store and returns a map of the
   ids to the original content values."
   [store n max-size]
-  (->> (repeatedly #(random-bytes max-size))
+  (->> (repeatedly #(util/random-bytes max-size))
        (take n)
        (map (juxt (comp :id (partial block/store! store)) identity))
        (into (sorted-map))))
@@ -42,7 +25,7 @@
   "The put! method in a store should return a block with an updated content or
   reader, but keep the same id, extra attributes, and any non-stat metadata."
   [store]
-  (let [original (-> (block/read! (random-bytes 512))
+  (let [original (-> (block/read! (util/random-bytes 512))
                      (assoc :foo "bar")
                      (vary-meta assoc ::thing :baz))
         stored (block/put! store original)]
@@ -97,7 +80,7 @@
   [store ids n]
   (let [prefix (-> (block/list store :limit 1) first :id multihash/hex (subs 0 4))]
     (dotimes [i n]
-      (let [after (str prefix (random-hex 10))
+      (let [after (str prefix (util/random-hex 6))
             limit (inc (rand-int 100))
             stats (block/list store :after after :limit limit)
             expected (->> ids
