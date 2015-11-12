@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+## [0.4.1] - 2015-11-12
+
 ### Changed
 - Rename `:origin` block stat to `:source`.
 - Switch argument order in `read-block` for consistency.
@@ -39,5 +43,6 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.4.1...HEAD
+[0.4.1]: https://github.com/greglook/blocks/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/greglook/blocks/compare/0.3.0...0.4.0
