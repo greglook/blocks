@@ -105,12 +105,14 @@
                           (sort)
                           (take limit))]
         (is (= expected (map :id stats))
-            "list should return the expected ids in sorted order")))))
+            (str "list should return the expected ids in sorted order for: "
+                 (pr-str {:after after, :limit limit})))))))
 
 
 (defn test-block-store
   "Tests a block store implementation."
-  [label store & {:keys [blocks max-size], :or {blocks 10, max-size 1024}}]
+  [label store & {:keys [blocks max-size clean]
+                  :or {blocks 10, max-size 1024, clean true}}]
   (println "  *" label)
   (is (empty? (block/list store)) "starts empty")
   (testing (.getSimpleName (class store))
@@ -123,11 +125,12 @@
               "enumerates all ids in sorted order")
           (is (every? #(= (:size %) (count (get stored-content (:id %)))) stats)
               "returns correct size for all blocks"))
-        (test-list-stats store (keys stored-content) 100))
+        (test-list-stats store (keys stored-content) 10))
       (doseq [[id content] stored-content]
         (test-block store id content))
       (let [[id content] (first (seq stored-content))]
         (test-restore-block store id content))
-      (doseq [id (keys stored-content)]
-        (is (true? (block/delete! store id))))
-      (is (empty? (block/list store)) "ends empty"))))
+      (when clean
+        (doseq [id (keys stored-content)]
+          (is (true? (block/delete! store id))))
+        (is (empty? (block/list store)) "ends empty")))))
