@@ -4,12 +4,12 @@
   :license {:name "Public Domain"
             :url "http://unlicense.org/"}
 
+  :deploy-branches ["master"]
+
   :aliases {"doc-lit" ["marg" "--dir" "doc/pages/marginalia"]
             "coverage" ["cloverage"
                         "--ns-exclude-regex" "blocks.data.conversions"
                         "--ns-exclude-regex" "blocks.store.tests"]}
-
-  :deploy-branches ["master"]
 
   :java-source-paths ["src"]
 

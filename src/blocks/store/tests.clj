@@ -4,7 +4,7 @@
   (:require
     [blocks.core :as block]
     [blocks.util :as util]
-    [byte-streams :as bytes]
+    [clojure.java.io :as io]
     [clojure.test :refer :all]
     [multihash.core :as multihash])
   (:import
@@ -57,8 +57,10 @@
           "stored block has same id")
       (is (= (count content) (:size block))
           "block contains size info")
-      (with-open [stream (block/open block)]
-        (is (bytes/bytes= content (bytes/to-byte-array stream))
+      (let [baos (java.io.ByteArrayOutputStream.)]
+        (with-open [stream (block/open block)]
+          (io/copy stream baos))
+        (is (= (seq content) (seq (.toByteArray baos)))
             "stored content should match"))
       (is (= [:id :size] (keys block))
           "block only contains id and size"))))
