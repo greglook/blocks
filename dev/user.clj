@@ -1,4 +1,14 @@
 (ns user
+  "Custom repl customization for local development. To use this, add the
+  following to the `:repl` profile in `profiles.clj`:
+
+  ```
+  :source-paths [\"dev\"]
+  :dependencies
+  [[clj-stacktrace \"RELEASE\"]
+   [org.clojure/tools.namespace \"RELEASE\"]]
+  ```
+  "
   (:require
     [byte-streams :as bytes :refer [bytes=]]
     (blocks
