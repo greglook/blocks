@@ -246,17 +246,3 @@
   "Returns stat information from a block's metadata, if present."
   [block]
   (:block/stats (meta block)))
-
-
-(defn ^:no-doc select-stats
-  "Selects block stats from a sequence based on the criteria spported in
-  `list`. Helper for block store implementers."
-  [opts stats]
-  (let [{:keys [algorithm after limit]} opts]
-    (cond->> stats
-      algorithm
-        (filter (comp #{algorithm} :algorithm :id))
-      after
-        (drop-while #(pos? (compare after (multihash/hex (:id %)))))
-      limit
-        (take limit))))

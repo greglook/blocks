@@ -146,8 +146,6 @@
 
 ;; ## File Store
 
-; TODO: File store operations should really be thread-safe
-
 ;; Block content is stored as files in a multi-level hierarchy under the given
 ;; root directory.
 (defrecord FileBlockStore
@@ -165,7 +163,7 @@
     [this opts]
     (->> (find-files root (:after opts))
          (keep #(block-stats (file->id root %) %))
-         (block/select-stats opts)))
+         (util/select-stats opts)))
 
 
   (-get

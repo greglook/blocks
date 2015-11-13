@@ -1,5 +1,7 @@
 (ns blocks.util
-  "Various utility functions for handling and testing blocks.")
+  "Various utility functions for handling and testing blocks."
+  (:require
+    [multihash.core :as multihash]))
 
 
 (defmacro check
@@ -41,3 +43,17 @@
   (->> (repeatedly #(rand-nth "0123456789abcdef"))
        (take (* 2 (inc (rand-int max-len))))
        (apply str)))
+
+
+(defn select-stats
+  "Selects block stats from a sequence based on the criteria spported in
+  `blocks.core/list`. Helper for block store implementers."
+  [opts stats]
+  (let [{:keys [algorithm after limit]} opts]
+    (cond->> stats
+      algorithm
+        (filter (comp #{algorithm} :algorithm :id))
+      after
+        (drop-while #(pos? (compare after (multihash/hex (:id %)))))
+      limit
+        (take limit))))
