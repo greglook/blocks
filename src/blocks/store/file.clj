@@ -86,8 +86,9 @@
 (defn- block-stats
   "Calculates a merged stat map for a block."
   [id ^File file]
-  (merge (file-stats file)
-         {:id id, :size (.length file)}))
+  (when id
+    (merge (file-stats file)
+           {:id id, :size (.length file)})))
 
 
 (defn- id->file
@@ -159,7 +160,7 @@
   (-list
     [this opts]
     (->> (find-files root (:after opts))
-         (map #(block-stats (file->id root %) %))
+         (keep #(block-stats (file->id root %) %))
          (block/select-stats opts)))
 
 
