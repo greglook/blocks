@@ -174,11 +174,12 @@
     [this block]
     (let [id (:id block)
           file (id->file root id)]
-      (when-not (.exists file)
-        (io/make-parents file)
-        (with-open [content (block/open block)]
-          (io/copy content file))
-        (.setWritable file false false))
+      (locking this
+        (when-not (.exists file)
+          (io/make-parents file)
+          (with-open [content (block/open block)]
+            (io/copy content file))
+          (.setWritable file false false)))
       (data/merge-blocks
         block
         (file->block id file))))
@@ -187,14 +188,16 @@
   (delete!
     [this id]
     (when-block id
-      (.delete file))))
+      (locking this
+        (.delete file)))))
 
 
 (defn erase!
   "Clears all contents of the file store by recursively deleting the root
   directory."
   [store]
-  (rm-r (:root store)))
+  (locking store
+    (rm-r (:root store))))
 
 
 (defn file-store
