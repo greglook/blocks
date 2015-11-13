@@ -94,6 +94,17 @@
                  (pr-str {:after after, :limit limit})))))))
 
 
+(defmacro ^:private test-section
+  [title & body]
+  `(do (printf "    * %s\n" ~title)
+       (let [start# (System/nanoTime)
+             result# (testing ~title
+                       ~@body)]
+         (printf "        %.3f ms\n"
+                 (/ (double (- (System/nanoTime) start#)) 1000000.0))
+         result#)))
+
+
 (defn test-block-store
   "Tests a block store implementation."
   [label store & {:keys [blocks max-size eraser]
@@ -102,27 +113,34 @@
     (throw (IllegalStateException.
              (str "Cannot run integration test on " (pr-str store)
                   " as it already contains blocks!"))))
-  (println "  *" label)
+  (printf "  Beginning %s integration tests...\n" label)
   (testing (.getSimpleName (class store))
-    (testing "querying non-existent block"
-      (is (nil? (block/stat store (multihash/sha1 "foo"))))
-      (is (nil? (block/get store (multihash/sha1 "bar")))))
-    (testing "put attributes"
-      (test-put-attributes store))
-    (let [stored-content (populate-blocks! store blocks max-size)]
-      (testing "list stats"
-        (let [stats (block/list store)]
-          (is (= (keys stored-content) (map :id stats))
-              "enumerates all ids in sorted order")
-          (is (every? #(= (:size %) (count (get stored-content (:id %)))) stats)
-              "returns correct size for all blocks"))
-        (test-list-stats store (keys stored-content) 10))
-      (doseq [[id content] stored-content]
-        (test-block store id content))
-      (let [[id content] (first (seq stored-content))]
-        (test-restore-block store id content))
-      (if eraser
-        (eraser store)
-        (doseq [id (keys stored-content)]
-          (is (true? (block/delete! store id)))))
-      (is (empty? (block/list store)) "ends empty"))))
+    (let [start-nano (System/nanoTime)]
+      (test-section "querying non-existent block"
+        (is (nil? (block/stat store (multihash/sha1 "foo"))))
+        (is (nil? (block/get store (multihash/sha1 "bar")))))
+      (test-section "put attributes"
+        (test-put-attributes store))
+      (let [stored-content (test-section (str "populating " blocks " blocks")
+                             (populate-blocks! store blocks max-size))]
+        (test-section "list stats"
+          (let [stats (block/list store)]
+            (is (= (keys stored-content) (map :id stats))
+                "enumerates all ids in sorted order")
+            (is (every? #(= (:size %) (count (get stored-content (:id %)))) stats)
+                "returns correct size for all blocks"))
+          (test-list-stats store (keys stored-content) 10))
+        (test-section "stored blocks"
+          (doseq [[id content] stored-content]
+            (test-block store id content)))
+        (test-section "re-storing block"
+          (let [[id content] (first (seq stored-content))]
+            (test-restore-block store id content)))
+        (test-section "erasing store"
+          (if eraser
+            (eraser store)
+            (doseq [id (keys stored-content)]
+              (is (true? (block/delete! store id)))))
+          (is (empty? (block/list store)) "ends empty")))
+      (printf "  Total time: %.3f ms\n"
+              (/ (double (- (System/nanoTime) start-nano)) 1000000.0)))))
