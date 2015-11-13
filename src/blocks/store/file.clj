@@ -21,10 +21,13 @@
   Using this scheme, leaf directories should start approaching the limit once the
   user has 2^28 entries, or about 268 million blocks."
   (:require
-    [blocks.core :as block]
-    [blocks.data :as data]
+    (blocks
+      [core :as block]
+      [data :as data]
+      [util :as util])
     [clojure.java.io :as io]
     [clojure.string :as str]
+    [clojure.tools.logging :as log]
     [multihash.core :as multihash])
   (:import
     java.io.File
@@ -56,7 +59,6 @@
   [^File file marker]
   (if (.isDirectory file)
     (->> (.listFiles file)
-         (filter #(re-matches #"^[0-9a-f]+$" (.getName ^File %)))
          (keep (partial seek-marker marker))
          (sort-by first)
          (keep (partial apply find-files))
@@ -107,16 +109,18 @@
 
 (defn- file->id
   "Reconstructs the hash identifier represented by the given file path."
-  [root file]
-  (let [root (str root)
-        path (str file)]
-    (when-not (.startsWith path root)
-      (throw (IllegalStateException.
-               (str "File " path " is not a child of root directory " root))))
-    (-> path
-        (subs (inc (count root)))
-        (str/replace "/" "")
-        (multihash/decode))))
+  [root ^File file]
+  (let [root (str root)]
+    (some->
+      file
+      (.getPath)
+      (util/check #(.startsWith ^String % root)
+        (log/warnf "File %s is not a child of root directory %s" file root))
+      (subs (inc (count root)))
+      (str/replace "/" "")
+      (util/check util/hex?
+        (log/warnf "File %s did not form valid hex entry: %s" file value))
+      (multihash/decode))))
 
 
 (defn- file->block
