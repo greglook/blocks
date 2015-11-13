@@ -6,7 +6,7 @@
     [clojure.test :refer :all]))
 
 
-(deftest test-memory-store
+(deftest ^:integration test-memory-store
   (let [store (memory-store)]
     (test-block-store
       "memory-store" store

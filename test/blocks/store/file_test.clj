@@ -18,7 +18,7 @@
           "should return nil for non-hex files"))))
 
 
-(deftest test-file-store
+(deftest ^:integration test-file-store
   (let [tmpdir (io/file "target" "test" "tmp"
                         (str "file-block-store."
                           (System/currentTimeMillis)))
