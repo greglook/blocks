@@ -5,12 +5,6 @@
             :url "http://unlicense.org/"}
 
   :deploy-branches ["master"]
-
-  :aliases {"doc-lit" ["marg" "--dir" "doc/pages/marginalia"]
-            "coverage" ["cloverage"
-                        "--ns-exclude-regex" "blocks.data.conversions"
-                        "--ns-exclude-regex" "blocks.store.tests"]}
-
   :java-source-paths ["src"]
 
   :plugins
@@ -21,6 +15,14 @@
    [mvxcvi/multihash "1.1.0"]
    [org.clojure/clojure "1.7.0"]
    [org.clojure/tools.logging "0.3.1"]]
+
+  :aliases {"doc-lit" ["marg" "--dir" "doc/pages/marginalia"]
+            "coverage" ["with-profile" "+test,+coverage" "cloverage"
+                        "--ns-exclude-regex" "blocks.data.conversions"
+                        "--ns-exclude-regex" "blocks.store.tests"]}
+
+  :test-selectors {:unit (complement :integration)
+                   :integration :integration}
 
   :hiera
   {:cluster-depth 1
@@ -39,4 +41,8 @@
 
   :profiles
   {:repl {:source-paths ["dev"]
-          :dependencies [[org.clojure/tools.namespace "0.2.11"]]}})
+          :dependencies [[org.clojure/tools.namespace "0.2.11"]]}
+   :test {:dependencies [[commons-logging "1.1.3"]]
+          :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
+   :coverage {:jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
+                         "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
