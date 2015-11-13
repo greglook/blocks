@@ -9,6 +9,16 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ...
 
+## [0.4.2] - 2015-11-13
+
+### Changed
+- File store now locks itself during `put!`, `delete!`, and `erase!` to
+  prevent concurrent modifications.
+- `select-stats` moved from core to util namespace.
+
+### Fixed
+- File store skips over malformed files instead of throwing an exception.
+
 ## [0.4.1] - 2015-11-12
 
 ### Changed
@@ -43,6 +53,7 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.4.1...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.4.2...HEAD
+[0.4.2]: https://github.com/greglook/blocks/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/greglook/blocks/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/greglook/blocks/compare/0.3.0...0.4.0
