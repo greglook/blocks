@@ -5,8 +5,10 @@
   This store is most suitable for testing, caches, and other situations which
   call for a non-persistent block store."
   (:require
-    [blocks.core :as block]
-    [blocks.data :as data])
+    (blocks
+      [core :as block]
+      [data :as data]
+      [util :as util]))
   (:import
     java.util.Date))
 
@@ -35,7 +37,7 @@
     [this opts]
     (->> @memory
          (map (comp block-stats val))
-         (block/select-stats opts)))
+         (util/select-stats opts)))
 
 
   (-get

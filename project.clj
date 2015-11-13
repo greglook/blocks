@@ -1,16 +1,10 @@
-(defproject mvxcvi/blocks "0.4.1"
+(defproject mvxcvi/blocks "0.4.2"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
             :url "http://unlicense.org/"}
 
-  :aliases {"doc-lit" ["marg" "--dir" "doc/pages/marginalia"]
-            "coverage" ["cloverage"
-                        "--ns-exclude-regex" "blocks.data.conversions"
-                        "--ns-exclude-regex" "blocks.store.tests"]}
-
   :deploy-branches ["master"]
-
   :java-source-paths ["src"]
 
   :plugins
@@ -21,6 +15,14 @@
    [mvxcvi/multihash "1.1.0"]
    [org.clojure/clojure "1.7.0"]
    [org.clojure/tools.logging "0.3.1"]]
+
+  :aliases {"doc-lit" ["marg" "--dir" "doc/pages/marginalia"]
+            "coverage" ["with-profile" "+test,+coverage" "cloverage"
+                        "--ns-exclude-regex" "blocks.data.conversions"
+                        "--ns-exclude-regex" "blocks.store.tests"]}
+
+  :test-selectors {:unit (complement :integration)
+                   :integration :integration}
 
   :hiera
   {:cluster-depth 1
@@ -38,5 +40,7 @@
                'blocks.data.Block {'blocks.data.Block (partial into {})}}}
 
   :profiles
-  {:repl {:source-paths ["dev"]
-          :dependencies [[org.clojure/tools.namespace "0.2.11"]]}})
+  {:test {:dependencies [[commons-logging "1.2"]]
+          :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
+   :coverage {:jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
+                         "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
