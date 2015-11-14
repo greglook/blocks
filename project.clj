@@ -15,7 +15,7 @@
    [org.clojure/data.priority-map "0.0.7"]
    [org.clojure/tools.logging "0.3.1"]]
 
-  :aliases {"doc-lit" ["marg" "--dir" "doc/pages/marginalia"]
+  :aliases {"doc-lit" ["marg" "--dir" "doc/marginalia"]
             "coverage" ["with-profile" "+test,+coverage" "cloverage"
                         "--ns-exclude-regex" "blocks.data.conversions"
                         "--ns-exclude-regex" "blocks.store.tests"]}
@@ -31,8 +31,8 @@
   :codox
   {:metadata {:doc/format :markdown}
    :source-uri "https://github.com/greglook/blocks/blob/master/{filepath}#L{line}"
-   :doc-paths ["doc/extra"]
-   :output-path "doc/pages/api"}
+   :doc-paths [""]
+   :output-path "doc/api"}
 
   :whidbey
   {:tag-types {'multihash.core.Multihash {'data/hash 'multihash.core/base58}
