@@ -1,8 +1,10 @@
 (ns blocks.store.cache
-  "Logical block store which is backed by two other stores, a _primary store_
-  and a _cache_. Blocks will be added to the cache on reads and writes. Blocks
-  will be removed from the cache based on usage to keep it below a certain total
-  size."
+  "Logical block storage backed by two other stores, a _primary store_ and a
+  _cache_. Blocks are added to the cache on reads and writes, and evicted with
+  a least-recently-used strategy to keep the cache under a certain total size.
+
+  Operations on this store will prefer to look up blocks in the cache, and fall
+  back to the primary store when not available."
   (:require
     [blocks.core :as block]
     [clojure.data.priority-map :refer [priority-map]]
