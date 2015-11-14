@@ -16,7 +16,7 @@
   "Stores some test blocks in the given block store and returns a map of the
   ids to the original content values."
   [store n max-size]
-  (->> (repeatedly #(util/random-bytes max-size))
+  (->> (repeatedly #(util/random-bytes (inc (rand-int max-size))))
        (take n)
        (map (juxt (comp :id (partial block/store! store)) identity))
        (into (sorted-map))))
