@@ -40,7 +40,7 @@
              "Cache not initialized, no :state available"))))
 
 
-(defn reap-space!
+(defn reap!
   "Given a target amount of space to free and a cache store, deletes blocks from
   the cache to free up the desired amount of space. Returns a vector of the
   deleted entries."
@@ -69,7 +69,7 @@
                (or (nil? max-block-size)
                    (<= (:size block) max-block-size)))
       ; Free up enough space for the new block.
-      (reap-space! store (:size block))
+      (reap! store (:size block))
       ; Store the block and update cache state.
       (when-let [cached (block/put! cache block)]
         (swap! (:state store)
@@ -103,11 +103,6 @@
           (log/infof "Cache has %d bytes in %d blocks"
                      (:total-size initial-state)
                      (count (:priorities initial-state)))
-          (when (< size-limit (:total-size initial-state))
-            (log/infof "Reaping cache down to size limit of %d bytes" size-limit)
-            (let [deleted (reap-space! this 0)]
-              (log/infof "Deleted %d blocks to free %d bytes of space"
-                         (count deleted) (reduce + 0 (map :size deleted)))))
           this))))
 
 
