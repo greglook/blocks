@@ -6,9 +6,7 @@
       [memory :refer [memory-store]]
       [tests :as tests :refer [test-block-store]])
     [clojure.test :refer :all]
-    [com.stuartsierra.component :as component]
-    [multihash.core :as multihash]
-    [puget.printer :as puget]))
+    [com.stuartsierra.component :as component]))
 
 
 (defn new-cache
@@ -71,6 +69,13 @@
     (cache/reap! store 512)
     (is (<= (:total-size @(:state store)) 512)
         "reap cleans up at least the desired free space")))
+
+
+(deftest block-over-size
+  (let [store (component/start (new-cache 16))
+        block (block/put! store (block/read! "0123456789abcdef0123"))]
+    (is (block/stat store (:id block)) "block is stored")
+    (is (nil? (block/stat (:cache store) (:id block))) "cache should not store block")))
 
 
 (deftest ^:integration test-cache-store
