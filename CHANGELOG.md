@@ -7,7 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-...
+### Added
+- `blocks.store.cache` namespace with logical caching block store
+  implementation.
 
 ## [0.4.2] - 2015-11-13
 
