@@ -7,15 +7,29 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-### Added
-- Logical cache store implementation in `blocks.store.cache`.
+...
+
+## [0.4.2] - 2015-11-13
+
+### Changed
+- File store now locks itself during `put!`, `delete!`, and `erase!` to
+  prevent concurrent modifications.
+- `select-stats` moved from core to util namespace.
+
+### Fixed
+- File store skips over malformed files instead of throwing an exception.
+
+## [0.4.1] - 2015-11-12
 
 ### Changed
 - Rename `:origin` block stat to `:source`.
 - Switch argument order in `read-block` for consistency.
 
-### Removed
-- Drop unused `tools.logging` dependency.
+### Fixed
+- `put!` retains extra attributes and metadata on the block argument in the
+  returned block.
+- Expanded integration test suite to cover `stat` and `get` on non-existent
+  blocks and `put!` merging.
 
 ## [0.4.0] - 2015-11-10
 
@@ -39,5 +53,7 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.4.2...HEAD
+[0.4.2]: https://github.com/greglook/blocks/compare/0.4.1...0.4.2
+[0.4.1]: https://github.com/greglook/blocks/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/greglook/blocks/compare/0.3.0...0.4.0
