@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `blocks.store.cache` namespace with logical caching block store
+  implementation.
+
 ### Changed
 - `random-bytes` and `random-hex` now generate fixed-width data.
 
