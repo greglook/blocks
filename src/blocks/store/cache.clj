@@ -35,7 +35,7 @@
   (when-not (:cache store)
     (throw (IllegalStateException.
              "Cache not initialized, no :cache store set")))
-  (when-not (:state store)
+  (when-not (deref (:state store))
     (throw (IllegalStateException.
              "Cache not initialized, no :state available"))))
 
@@ -87,7 +87,7 @@
 
   (start
     [this]
-    (if state
+    (if @state
       (do (log/info "CachingBlockStore is already initialized")
           this)
       (do
@@ -98,17 +98,17 @@
           (throw (IllegalStateException.
                    "Cannot start caching store without backing cache store")))
         (log/info "Scanning cache store to build state...")
-        (let [initial-state (scan-state cache)
-              this' (assoc this :state (atom initial-state))]
+        (let [initial-state (scan-state cache)]
+          (reset! state initial-state)
           (log/infof "Cache has %d bytes in %d blocks"
                      (:total-size initial-state)
                      (count (:priorities initial-state)))
           (when (< size-limit (:total-size initial-state))
             (log/infof "Reaping cache down to size limit of %d bytes" size-limit)
-            (let [deleted (reap-space! this' 0)]
+            (let [deleted (reap-space! this 0)]
               (log/infof "Deleted %d blocks to free %d bytes of space"
                          (count deleted) (reduce + 0 (map :size deleted)))))
-          this'))))
+          this))))
 
 
   (stop
@@ -177,7 +177,7 @@
     (:max-block-size opts)
     (:primary opts)
     (:cache opts)
-    nil))
+    (atom nil)))
 
 
 ;; Remove automatic constructor functions.
