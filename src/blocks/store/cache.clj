@@ -133,8 +133,8 @@
     (ensure-initialized! this)
     (or (block/-get cache id)
         (when-let [block (block/-get primary id)]
-          (maybe-cache! this block)
-          block)))
+          (or (maybe-cache! this block)
+              block))))
 
 
   (put!
