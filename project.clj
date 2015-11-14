@@ -7,9 +7,6 @@
   :deploy-branches ["master"]
   :java-source-paths ["src"]
 
-  :plugins
-  [[lein-cloverage "1.0.6"]]
-
   :dependencies
   [[byte-streams "0.2.0"]
    [mvxcvi/multihash "1.1.0"]
@@ -42,5 +39,6 @@
   :profiles
   {:test {:dependencies [[commons-logging "1.2"]]
           :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
-   :coverage {:jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
+   :coverage {:plugins [[lein-cloverage "1.0.6"]]
+              :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                          "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
