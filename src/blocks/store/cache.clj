@@ -162,11 +162,19 @@
 
   Supported options are:
 
-  - `:max-block-size` do not cache blocks larger than this size.
+  - `:max-block-size` do not cache blocks larger than this size
   - `:primary` set a backing primary store
   - `:cache` set a backing cache store"
   [size-limit & {:as opts}]
-  ; FIXME: validate arguments and opts
+  (when-not (and (integer? size-limit) (pos? size-limit))
+    (throw (IllegalArgumentException.
+             (str "Cache store size-limit must be a positive integer: "
+                  (pr-str size-limit)))))
+  (when-let [mbs (:max-block-size opts)]
+    (when-not (and (integer? mbs) (pos? mbs))
+      (throw (IllegalArgumentException.
+               (str "Cache store max-block-size must be a positive integer if set: "
+                    (pr-str mbs))))))
   (CachingBlockStore.
     size-limit
     (:max-block-size opts)
