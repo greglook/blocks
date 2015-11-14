@@ -147,4 +147,5 @@
               (is (true? (block/delete! store id)))))
           (is (empty? (block/list store)) "ends empty")))
       (printf "  Total time: %.3f ms\n"
-              (/ (double (- (System/nanoTime) start-nano)) 1000000.0)))))
+              (/ (double (- (System/nanoTime) start-nano)) 1000000.0))
+      (component/stop store))))

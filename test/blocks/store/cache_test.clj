@@ -4,7 +4,8 @@
       [cache :refer [cache-store]]
       [memory :refer [memory-store]]
       [tests :as tests :refer [test-block-store]])
-    [clojure.test :refer :all]))
+    [clojure.test :refer :all]
+    [com.stuartsierra.component :as component]))
 
 
 (deftest ^:integration test-cache-store
@@ -18,7 +19,11 @@
     (test-block-store
       "cache-store" store
       :max-size 4096
-      :blocks 50))
+      :blocks 50)
+    (is (= store (component/start (component/start store)))
+        "starting cache store again is a no-op")
+    (is (= store (component/stop store))
+        "starting cache store again is a no-op"))
   (let [size-limit (* 16 1024)
         primary (memory-store)
         cache (memory-store)
