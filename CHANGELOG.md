@@ -7,7 +7,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-...
+### Changed
+- `random-bytes` and `random-hex` now generate fixed-width data.
 
 ## [0.4.2] - 2015-11-13
 
