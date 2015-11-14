@@ -6,6 +6,7 @@
     [blocks.util :as util]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
+    [com.stuartsierra.component :as component]
     [multihash.core :as multihash])
   (:import
     blocks.data.PersistentBytes))
@@ -109,13 +110,15 @@
   "Tests a block store implementation."
   [label store & {:keys [blocks max-size eraser]
                   :or {blocks 10, max-size 1024}}]
-  (when-not (empty? (block/list store))
-    (throw (IllegalStateException.
-             (str "Cannot run integration test on " (pr-str store)
-                  " as it already contains blocks!"))))
   (printf "  Beginning %s integration tests...\n" label)
   (testing (.getSimpleName (class store))
-    (let [start-nano (System/nanoTime)]
+    (let [start-nano (System/nanoTime)
+          store (test-section "starting store"
+                  (component/start store))]
+      (when-not (empty? (block/list store))
+        (throw (IllegalStateException.
+                 (str "Cannot run integration test on " (pr-str store)
+                      " as it already contains blocks!"))))
       (test-section "querying non-existent block"
         (is (nil? (block/stat store (multihash/sha1 "foo"))))
         (is (nil? (block/get store (multihash/sha1 "bar")))))
