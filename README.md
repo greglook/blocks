@@ -239,8 +239,10 @@ This library comes with a few block store implementations built in:
   block storage.
 - `blocks.store.file` provides a simple one-file-per-block store in a local
   directory.
+- `blocks.store.cache` manages two backing stores to provide an LRU cache that
+  will stay under a certain size limit.
 
-Other storage types are provided by separate libraries:
+Other storage backends are provided by separate libraries:
 
 - [blocks-s3](//github.com/greglook/blocks-s3) provides storage backed by a
   bucket in Amazon S3.
