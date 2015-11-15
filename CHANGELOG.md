@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+## [0.5.0] - 2015-11-14
+
 ### Added
 - `blocks.store.cache` namespace with logical caching block store
   implementation.
@@ -58,7 +62,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.4.2...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/greglook/blocks/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/greglook/blocks/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/greglook/blocks/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/greglook/blocks/compare/0.3.0...0.4.0
