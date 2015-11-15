@@ -28,20 +28,18 @@
 
 
 (defn random-bytes
-  "Returns a byte array between one and `max-len` bytes long with random
-  content."
-  [max-len]
-  (let [size (inc (rand-int max-len))
-        data (byte-array size)]
+  "Returns a byte array `size` bytes long with random content."
+  [size]
+  (let [data (byte-array size)]
     (.nextBytes (java.security.SecureRandom.) data)
     data))
 
 
 (defn random-hex
-  "Returns a random hex string between one and `max-len` bytes long."
-  [max-len]
+  "Returns a random hex string `size` bytes long."
+  [size]
   (->> (repeatedly #(rand-nth "0123456789abcdef"))
-       (take (* 2 (inc (rand-int max-len))))
+       (take (* 2 size))
        (apply str)))
 
 

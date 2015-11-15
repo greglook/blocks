@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "0.4.2"
+(defproject mvxcvi/blocks "0.5.0"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -7,16 +7,15 @@
   :deploy-branches ["master"]
   :java-source-paths ["src"]
 
-  :plugins
-  [[lein-cloverage "1.0.6"]]
-
   :dependencies
   [[byte-streams "0.2.0"]
+   [com.stuartsierra/component "0.3.0"]
    [mvxcvi/multihash "1.1.0"]
    [org.clojure/clojure "1.7.0"]
+   [org.clojure/data.priority-map "0.0.7"]
    [org.clojure/tools.logging "0.3.1"]]
 
-  :aliases {"doc-lit" ["marg" "--dir" "doc/pages/marginalia"]
+  :aliases {"doc-lit" ["marg" "--dir" "doc/marginalia"]
             "coverage" ["with-profile" "+test,+coverage" "cloverage"
                         "--ns-exclude-regex" "blocks.data.conversions"
                         "--ns-exclude-regex" "blocks.store.tests"]}
@@ -32,8 +31,8 @@
   :codox
   {:metadata {:doc/format :markdown}
    :source-uri "https://github.com/greglook/blocks/blob/master/{filepath}#L{line}"
-   :doc-paths ["doc/extra"]
-   :output-path "doc/pages/api"}
+   :doc-paths [""]
+   :output-path "doc/api"}
 
   :whidbey
   {:tag-types {'multihash.core.Multihash {'data/hash 'multihash.core/base58}
@@ -42,5 +41,6 @@
   :profiles
   {:test {:dependencies [[commons-logging "1.2"]]
           :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
-   :coverage {:jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
+   :coverage {:plugins [[lein-cloverage "1.0.6"]]
+              :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                          "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
