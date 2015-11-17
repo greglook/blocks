@@ -123,6 +123,12 @@
       (test-section "querying non-existent block"
         (is (nil? (block/stat store (multihash/sha1 "foo"))))
         (is (nil? (block/get store (multihash/sha1 "bar")))))
+      (test-section "ranged open"
+        (let [block (block/store! store "012 345 678")]
+          (is (= "345" (with-open [subrange (block/open block 4 7)]
+                         (slurp subrange)))
+              "subrange should return correct bytes")
+          (is (true? (block/delete! store (:id block))))))
       (test-section "put attributes"
         (test-put-attributes store))
       (let [stored-content (test-section (str "populating " blocks " blocks")
