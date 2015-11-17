@@ -159,18 +159,14 @@
     (when (neg? size)
       (throw (IllegalStateException.
                (str "Block " id " has negative size: " size))))
-    ; TODO: check size correctness later with a counting-input-stream?
-    (when (realized? block)
-      (let [actual-size (count @block)]
-        (when (not= size actual-size)
-          (throw (IllegalStateException.
-                   (str "Block " id " reports size " size
-                        " but has actual size " actual-size))))))
-    (with-open [stream (open block)]
+    (with-open [stream (CountingInputStream. (open block))]
       (when-not (multihash/test id stream)
         (throw (IllegalStateException.
-                 (str "Block " id " has mismatched content")))))))
-
+                 (str "Block " id " has mismatched content"))))
+      (when (not= size (.getByteCount stream))
+        (throw (IllegalStateException.
+                 (str "Block " id " reports size " size " but has actual size "
+                      (.getByteCount stream))))))))
 
 
 ;; ## Storage Interface
