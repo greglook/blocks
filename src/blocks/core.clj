@@ -34,6 +34,21 @@
 
 
 
+;; ## Stat Metadata
+
+(defn with-stats
+  "Adds stat information to a block's metadata."
+  [block stats]
+  (vary-meta block assoc :block/stats stats))
+
+
+(defn meta-stats
+  "Returns stat information from a block's metadata, if present."
+  [block]
+  (:block/stats (meta block)))
+
+
+
 ;; ## Block IO
 
 (defn from-file
@@ -231,18 +246,3 @@
    (put! store (if (instance? File source)
                  (from-file source algorithm)
                  (read! source algorithm)))))
-
-
-
-;; ## Utility Functions
-
-(defn with-stats
-  "Adds stat information to a block's metadata."
-  [block stats]
-  (vary-meta block assoc :block/stats stats))
-
-
-(defn meta-stats
-  "Returns stat information from a block's metadata, if present."
-  [block]
-  (:block/stats (meta block)))
