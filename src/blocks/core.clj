@@ -21,11 +21,17 @@
     [clojure.string :as str]
     [multihash.core :as multihash])
   (:import
-    blocks.data.Block
-    blocks.data.PersistentBytes
-    java.io.File
-    java.io.IOException
-    multihash.core.Multihash))
+    (blocks.data
+      Block
+      PersistentBytes)
+    (java.io
+      File
+      IOException
+      InputStream)
+    multihash.core.Multihash
+    (org.apache.commons.io.input
+      BoundedInputStream
+      CountingInputStream)))
 
 
 (def default-algorithm
@@ -34,7 +40,29 @@
 
 
 
+;; ## Stat Metadata
+
+(defn with-stats
+  "Adds stat information to a block's metadata."
+  [block stats]
+  (vary-meta block assoc :block/stats stats))
+
+
+(defn meta-stats
+  "Returns stat information from a block's metadata, if present."
+  [block]
+  (:block/stats (meta block)))
+
+
+
 ;; ## Block IO
+
+(defn- bounded-input-stream
+  ^java.io.InputStream
+  [^InputStream input start end]
+  (.skip input start)
+  (BoundedInputStream. input (- end start)))
+
 
 (defn from-file
   "Creates a lazy block from a local file. The file is read once to calculate
@@ -49,19 +77,37 @@
      (data/lazy-block id (.length file) reader))))
 
 
-; TODO: support opening a byte range
 (defn open
-  "Opens an input stream to read the content of the block. Throws an IO
-  exception on empty blocks."
-  ^java.io.InputStream
-  [^Block block]
-  (let [content ^PersistentBytes (.content block)
-        reader (.reader block)]
-    (cond
-      content (.open content)
-      reader  (reader)
-      :else   (throw (IOException.
-                        (str "Cannot open empty block " (:id block)))))))
+  "Opens an input stream to read the contents of the block. If `start` and
+  `end` are given, the input stream will only return bytes in that range.
+  Throws an IO exception on empty blocks."
+  (^java.io.InputStream
+   [^Block block]
+   (let [content ^PersistentBytes (.content block)
+         reader (.reader block)]
+     (cond
+       content (.open content)
+       reader  (reader)
+       :else   (throw (IOException.
+                         (str "Cannot open empty block " (:id block)))))))
+  (^java.io.InputStream
+   [^Block block start end]
+   (when-not (and (number? start) (number? end)
+                  (<= 0 start end (:size block)))
+     (throw (IllegalArgumentException.
+              (str "Range bounds must be within block bounds: ["
+                   (pr-str start) ", " (pr-str end) "]"))))
+   (let [content ^PersistentBytes (.content block)
+         reader (.reader block)]
+     (cond
+       content (bounded-input-stream (.open content) start end)
+       reader  (try
+                 (reader start end)
+                 (catch clojure.lang.ArityException e
+                   ; Native ranged open not supported, use naive approach.
+                   (bounded-input-stream (reader) start end)))
+       :else   (throw (IOException.
+                         (str "Cannot open empty block " (:id block))))))))
 
 
 (defn read!
@@ -113,18 +159,14 @@
     (when (neg? size)
       (throw (IllegalStateException.
                (str "Block " id " has negative size: " size))))
-    ; TODO: check size correctness later with a counting-input-stream?
-    (when (realized? block)
-      (let [actual-size (count @block)]
-        (when (not= size actual-size)
-          (throw (IllegalStateException.
-                   (str "Block " id " reports size " size
-                        " but has actual size " actual-size))))))
-    (with-open [stream (open block)]
+    (with-open [stream (CountingInputStream. (open block))]
       (when-not (multihash/test id stream)
         (throw (IllegalStateException.
-                 (str "Block " id " has mismatched content")))))))
-
+                 (str "Block " id " has mismatched content"))))
+      (when (not= size (.getByteCount stream))
+        (throw (IllegalStateException.
+                 (str "Block " id " reports size " size " but has actual size "
+                      (.getByteCount stream))))))))
 
 
 ;; ## Storage Interface
@@ -231,18 +273,3 @@
    (put! store (if (instance? File source)
                  (from-file source algorithm)
                  (read! source algorithm)))))
-
-
-
-;; ## Utility Functions
-
-(defn with-stats
-  "Adds stat information to a block's metadata."
-  [block stats]
-  (vary-meta block assoc :block/stats stats))
-
-
-(defn meta-stats
-  "Returns stat information from a block's metadata, if present."
-  [block]
-  (:block/stats (meta block)))

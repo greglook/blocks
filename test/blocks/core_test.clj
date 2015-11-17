@@ -16,18 +16,30 @@
 ;; ## IO Tests
 
 (deftest block-input-stream
+  (testing "ranged open validation"
+    (let [block (block/read! "abcdefg")]
+      (is (thrown? IllegalArgumentException (block/open block nil 4)))
+      (is (thrown? IllegalArgumentException (block/open block -1 4)))
+      (is (thrown? IllegalArgumentException (block/open block 0 nil)))
+      (is (thrown? IllegalArgumentException (block/open block 0 -1)))
+      (is (thrown? IllegalArgumentException (block/open block 3 1)))
+      (is (thrown? IllegalArgumentException (block/open block 0 10)))))
   (testing "empty block"
     (let [block (empty (block/read! "abc"))]
-      (is (thrown? IOException (block/open block)))))
+      (is (thrown? IOException (block/open block))
+          "full open should throw exception")
+      (is (thrown? IOException (block/open block 0 3))
+          "ranged open should throw exception")))
   (testing "literal block"
-    (let [block (block/read! "the old dog jumped")
-          stream (block/open block)]
-      (is (instance? InputStream stream))
-      (is (= "the old dog jumped" (slurp stream)))))
+    (let [block (block/read! "the old dog jumped")]
+      (is (= "the old dog jumped" (slurp (block/open block))))
+      (is (= "old dog" (slurp (block/open block 4 11))))))
   (testing "lazy block"
-    (let [block (block/from-file "README.md")]
+    (let [block (block/from-file "README.md")
+          readme (slurp (block/open block))]
       (is (not (realized? block)) "file blocks should be lazy")
-      (is (string? (slurp (block/open block)))))))
+      (is (string? readme))
+      (is (= (subs readme 10 20) (slurp (block/open block 10 20)))))))
 
 
 (deftest block-reading
