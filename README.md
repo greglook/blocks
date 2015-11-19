@@ -127,11 +127,11 @@ Clojure records.
 ;   blocks.data.Block (data.clj:151)
 
 ; If you're paranoid, you can validate blocks by rehashing the content:
-=> (validate! hello)
+=> (block/validate! hello)
 nil
 
 ; But if the README file backing the second block is changed:
-=> (validate! readme)
+=> (block/validate! readme)
 ; IllegalStateException Block hash:sha2-256:515c169aa0d95... has mismatched content
 ;   blocks.core/validate! (core.clj:115)
 
