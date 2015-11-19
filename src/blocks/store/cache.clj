@@ -82,7 +82,7 @@
         cached))))
 
 
-(defrecord CachingBlockStore
+(defrecord CachingStore
   [size-limit max-block-size primary cache state]
 
   component/Lifecycle
@@ -90,7 +90,7 @@
   (start
     [this]
     (if @state
-      (do (log/info "CachingBlockStore is already initialized")
+      (do (log/info "CachingStore is already initialized")
           this)
       (do
         (when-not primary
@@ -177,7 +177,7 @@
       (throw (IllegalArgumentException.
                (str "Cache store max-block-size must be a positive integer if set: "
                     (pr-str mbs))))))
-  (CachingBlockStore.
+  (CachingStore.
     size-limit
     (:max-block-size opts)
     (:primary opts)
@@ -186,5 +186,5 @@
 
 
 ;; Remove automatic constructor functions.
-(ns-unmap *ns* '->CachingBlockStore)
-(ns-unmap *ns* 'map->CachingBlockStore)
+(ns-unmap *ns* '->CachingStore)
+(ns-unmap *ns* 'map->CachingStore)

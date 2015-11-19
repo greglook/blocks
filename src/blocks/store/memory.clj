@@ -22,7 +22,7 @@
 
 
 ;; Block records in a memory store are held in a map in an atom.
-(defrecord MemoryBlockStore
+(defrecord MemoryStore
   [memory]
 
   block/BlockStore
@@ -67,9 +67,9 @@
 (defn memory-store
   "Creates a new in-memory block store."
   []
-  (MemoryBlockStore. (atom (sorted-map) :validator map?)))
+  (MemoryStore. (atom (sorted-map) :validator map?)))
 
 
 ;; Remove automatic constructor functions.
-(ns-unmap *ns* '->MemoryBlockStore)
-(ns-unmap *ns* 'map->MemoryBlockStore)
+(ns-unmap *ns* '->MemoryStore)
+(ns-unmap *ns* 'map->MemoryStore)

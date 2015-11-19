@@ -171,7 +171,7 @@ The block storage protocol is comprised of five methods:
 #'user/store
 
 => store
-#blocks.store.memory.MemoryBlockStore {:memory #<Atom@2573332e {}>}
+#blocks.store.memory.MemoryStore {:memory #<Atom@2573332e {}>}
 
 ; Initially, the store is empty:
 => (block/list store)
