@@ -1,14 +1,5 @@
 (ns user
-  "Custom repl customization for local development. To use this, add the
-  following to the `:repl` profile in `profiles.clj`:
-
-  ```
-  :source-paths [\"dev\"]
-  :dependencies
-  [[clj-stacktrace \"RELEASE\"]
-   [org.clojure/tools.namespace \"RELEASE\"]]
-  ```
-  "
+  "Custom repl customization for local development."
   (:require
     [byte-streams :as bytes :refer [bytes=]]
     (blocks
@@ -22,11 +13,15 @@
     [clojure.java.io :as io]
     [clojure.repl :refer :all]
     [clojure.string :as str]
-    [clojure.tools.namespace.repl :refer [refresh]]
     [multihash.core :as multihash])
   (:import
     blocks.data.Block
     multihash.core.Multihash))
+
+
+; Conditional imports from clj-stacktrace and clojure.tools.namespace:
+(try (require '[clojure.stacktrace :refer [print-cause-trace]]) (catch Exception e nil))
+(try (require '[clojure.tools.namespace.repl :refer [refresh]]) (catch Exception e nil))
 
 
 (def tbs

@@ -40,7 +40,8 @@
                'blocks.data.Block {'blocks.data.Block (partial into {})}}}
 
   :profiles
-  {:test {:dependencies [[commons-logging "1.2"]]
+  {:repl {:source-paths ["dev"]}
+   :test {:dependencies [[commons-logging "1.2"]]
           :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
    :coverage {:plugins [[lein-cloverage "1.0.6"]]
               :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
