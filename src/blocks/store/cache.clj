@@ -11,6 +11,12 @@
     [clojure.tools.logging :as log]
     [com.stuartsierra.component :as component]))
 
+; TODO: use a generic sorted-kv interface to persist state.
+; keys would look like:
+; [:priorities tick size] -> block id
+; [:total-size] -> size
+; [:tick] -> tick counter
+
 
 (defn- scan-state
   "Computes the state of a cache, including priorities for all stored blocks and
