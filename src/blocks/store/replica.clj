@@ -3,7 +3,8 @@
   durability. Lookups will try the backing stores in order to find blocks."
   (:require
     (blocks
-      [core :as block])))
+      [core :as block]
+      [util :as util])))
 
 
 (defrecord ReplicaStore
@@ -18,8 +19,10 @@
 
   (-list
     [this opts]
-    ; TODO: merge from all stores
-    (block/-list (first stores) opts))
+    (->> stores
+         (map #(block/-list % opts))
+         (doall)
+         (util/merge-block-lists)))
 
 
   (-get
