@@ -183,7 +183,8 @@
   (-list
     [store opts]
     "Lists the blocks contained in the store. Returns a lazy sequence of stat
-    metadata about each block. See `list` for the supported options.")
+    metadata about each block. The stats should be returned in order sorted by
+    multihash id. See `list` for the supported options.")
 
   (-get
     [store id]
@@ -209,9 +210,9 @@
 
 
 (defn list
-  "Enumerates the stored blocks, returning a lazy sequence of block stats.
-  Iterating over the list may result in additional operations to read from the
-  backing data store.
+  "Enumerates the stored blocks, returning a lazy sequence of block stats sorted
+  by id. Iterating over the list may result in additional operations to read
+  from the backing data store.
 
   - `:algorithm`  only return blocks using this hash algorithm
   - `:after`      list blocks whose id (in hex) lexically follows this string
