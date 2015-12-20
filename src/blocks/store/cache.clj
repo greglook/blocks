@@ -7,6 +7,7 @@
   back to the primary store when not available."
   (:require
     [blocks.core :as block]
+    [blocks.util :as util]
     [clojure.data.priority-map :refer [priority-map]]
     [clojure.tools.logging :as log]
     [com.stuartsierra.component :as component]))
@@ -143,9 +144,7 @@
     (ensure-initialized! this)
     (when-let [id (:id block)]
       (let [cached (maybe-cache! this block)
-            preferred (if (or (realized? block) (nil? cached))
-                        block
-                        cached)
+            preferred (util/preferred-copy cached block)
             stored (block/put! primary preferred)]
         (or cached stored))))
 

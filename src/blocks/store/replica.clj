@@ -33,7 +33,7 @@
   (put!
     [this block]
     (let [stored-block (block/put! (first stores) block)
-          copy-block (if (realized? block) block stored-block)]
+          copy-block (util/preferred-copy block stored-block)]
       (dorun (map #(block/put! % copy-block) (rest stores)))
       stored-block))
 

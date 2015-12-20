@@ -43,6 +43,16 @@
        (apply str)))
 
 
+(defn preferred-copy
+  "Chooses among multiple blocks to determine the optimal one to use for
+  copying into a new store. Returns the first realized block, if any are
+  keeping in-memory content. If none are, returns the first block."
+  [& blocks]
+  (when-let [blocks (seq (remove nil? blocks))]
+    (or (first (filter realized? blocks))
+        (first blocks))))
+
+
 (defn select-stats
   "Selects block stats from a sequence based on the criteria spported in
   `blocks.core/list`. Helper for block store implementers."
