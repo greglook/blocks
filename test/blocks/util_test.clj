@@ -58,3 +58,20 @@
          [f]        {:algorithm :sha2-256}
          [c d e f]  {:after "111473fd2"}
          [a b c]    {:limit 3})))
+
+
+(deftest stat-list-merging
+  (let [list-a (list {:id "aaa", :foo :bar}
+                     {:id "abb", :baz :qux}
+                     {:id "abc", :key :val})
+        list-b (list {:id "aab", :xyz 123}
+                     {:id "abc", :ack :bar})
+        list-c (list {:id "aaa", :foo 123}
+                     {:id "xyz", :wqr :axo})]
+    (is (= [{:id "aaa", :foo :bar}
+            {:id "aab", :xyz 123}
+            {:id "abb", :baz :qux}
+            {:id "abc", :key :val}
+            {:id "xyz", :wqr :axo}]
+           (util/merge-block-lists
+             [list-a list-b list-c])))))
