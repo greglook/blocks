@@ -43,6 +43,16 @@
        (apply str)))
 
 
+(defn preferred-copy
+  "Chooses among multiple blocks to determine the optimal one to use for
+  copying into a new store. Returns the first realized block, if any are
+  keeping in-memory content. If none are, returns the first block."
+  [& blocks]
+  (when-let [blocks (seq (remove nil? blocks))]
+    (or (first (filter realized? blocks))
+        (first blocks))))
+
+
 (defn select-stats
   "Selects block stats from a sequence based on the criteria spported in
   `blocks.core/list`. Helper for block store implementers."
@@ -55,3 +65,20 @@
         (drop-while #(pos? (compare after (multihash/hex (:id %)))))
       limit
         (take limit))))
+
+
+(defn merge-block-lists
+  "Merges multiple lists of block stats (as from `block/list`) and returns a
+  lazy sequence with one entry per unique id, in sorted order. The input
+  sequences are consumed lazily and must already be sorted."
+  [lists]
+  (lazy-seq
+    (let [lists (remove empty? lists)
+          earliest (first (sort-by :id (map first lists)))]
+      (when earliest
+        (cons earliest
+              (merge-block-lists
+                (map #(if (= (:id earliest) (:id (first %)))
+                        (rest %)
+                        %)
+                     lists)))))))
