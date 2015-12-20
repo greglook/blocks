@@ -81,7 +81,8 @@
       ; Store the block and update cache state.
       (when-let [cached (block/put! cache block)]
         (swap! (:state store)
-               (fn [{:keys [priorities total-size tick]}]
+               (fn update-state
+                 [{:keys [priorities total-size tick]}]
                  {:priorities (assoc priorities (:id cached) [tick (:size cached)])
                   :total-size (+ total-size (:size cached))
                   :tick (inc tick)}))
