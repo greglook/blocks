@@ -9,7 +9,7 @@
 
   :dependencies
   [[byte-streams "0.2.0"]
-   [com.stuartsierra/component "0.3.0"]
+   [com.stuartsierra/component "0.3.1"]
    [commons-io "2.4"]
    [mvxcvi/multihash "1.1.0"]
    [org.clojure/clojure "1.7.0"]
