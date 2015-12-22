@@ -71,7 +71,7 @@
   "Merges multiple lists of block stats (as from `block/list`) and returns a
   lazy sequence with one entry per unique id, in sorted order. The input
   sequences are consumed lazily and must already be sorted."
-  [lists]
+  [& lists]
   (lazy-seq
     (let [lists (remove empty? lists)
           earliest (first (sort-by :id (map first lists)))]

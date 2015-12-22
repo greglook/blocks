@@ -22,7 +22,7 @@
     (->> stores
          (map #(block/-list % opts))
          (doall)
-         (util/merge-block-lists)))
+         (apply util/merge-block-lists)))
 
 
   (-get
