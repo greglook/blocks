@@ -133,7 +133,9 @@
   (-list
     [this opts]
     (ensure-initialized! this)
-    (block/-list primary opts))
+    (util/merge-block-lists
+      (block/-list cache   opts)
+      (block/-list primary opts)))
 
 
   (-get
