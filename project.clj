@@ -25,8 +25,9 @@
                    :integration :integration}
 
   :hiera
-  {:cluster-depth 1
-   :show-external true
+  {:cluster-depth 2
+   :vertical false
+   :show-external false
    :ignore-ns #{clojure user}}
 
   :codox
