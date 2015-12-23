@@ -77,7 +77,8 @@
           earliest (first (sort-by :id (map first lists)))]
       (when earliest
         (cons earliest
-              (merge-block-lists
+              (apply
+                merge-block-lists
                 (map #(if (= (:id earliest) (:id (first %)))
                         (rest %)
                         %)

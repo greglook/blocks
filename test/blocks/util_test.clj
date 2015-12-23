@@ -74,4 +74,4 @@
             {:id "abc", :key :val}
             {:id "xyz", :wqr :axo}]
            (util/merge-block-lists
-             [list-a list-b list-c])))))
+             list-a list-b list-c)))))

@@ -10,7 +10,7 @@
 
 
 (defrecord BufferStore
-  [buffer store]
+  [store buffer]
 
   block/BlockStore
 
@@ -44,6 +44,20 @@
     (let [buffered? (block/delete! buffer id)
           stored?   (block/delete! store  id)]
       (boolean (or buffered? stored?)))))
+
+
+(defn flush!
+  "Flushes the store, writing all buffered blocks to the backing store. Returns
+  a seq of the flushed block ids."
+  [store]
+  (->> (block/list (:buffer store))
+       (map (fn copy [stats]
+              (->> (:id stats)
+                   (block/get (:buffer store))
+                   (block/put! (:store store)))
+              (block/delete! (:buffer store) (:id stats))
+              (:id stats)))
+       (doall)))
 
 
 (defn buffer-store
