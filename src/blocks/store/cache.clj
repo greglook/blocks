@@ -133,9 +133,11 @@
   (-list
     [this opts]
     (ensure-initialized! this)
-    (util/merge-block-lists
-      (block/-list cache   opts)
-      (block/-list primary opts)))
+    (util/select-stats
+      opts
+      (util/merge-block-lists
+        (block/-list cache   opts)
+        (block/-list primary opts))))
 
 
   (-get
@@ -160,7 +162,7 @@
   (delete!
     [this id]
     (ensure-initialized! this)
-    (block/delete! cache id)
+    (block/delete! cache   id)
     (block/delete! primary id)))
 
 
