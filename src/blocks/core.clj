@@ -206,7 +206,8 @@
 ; Protocol which returns a lazy sequence of every block in the store, along with
 ; an opaque marker which can be used to resume the stream in the same position.
 ; Blocks are explicitly **not** returned in any defined order; it is assumed the
-; store will enumerate them in the most efficient order available.
+; store will enumerate them in the most efficient order available. For example,
+; a file store could iterate them in on-disk order.
 
 
 (defn list
