@@ -202,14 +202,6 @@
     "Removes a block from the store. Returns true if the block was stored."))
 
 
-; TODO: BlockEnumerator
-; Protocol which returns a lazy sequence of every block in the store, along with
-; an opaque marker which can be used to resume the stream in the same position.
-; Blocks are explicitly **not** returned in any defined order; it is assumed the
-; store will enumerate them in the most efficient order available. For example,
-; a file store could iterate them in on-disk order.
-
-
 (defn list
   "Enumerates the stored blocks, returning a lazy sequence of block stats sorted
   by id. Iterating over the list may result in additional operations to read
@@ -275,3 +267,64 @@
    (put! store (if (instance? File source)
                  (from-file source algorithm)
                  (read! source algorithm)))))
+
+
+
+;; ## Batch Storage Functions
+
+(defprotocol BatchingStore
+  "Protocol for stores which can perform batch operations on blocks."
+
+  (-get-batch
+    [store ids]
+    "Retrieves blocks identified by a collection of multihashes. Returns a
+    sequence of the requested blocks in no particular order.")
+
+  (-put-batch!
+    [store blocks]
+    "Saves a collection of blocks in the store. Returns a sequence of the
+    stored blocks.")
+
+  (-delete-batch!
+    [store ids]
+    "Removes multiple blocks from the store identified by a collection of
+    multihashes. Returns a sequence of multihashes for the deleted blocks."))
+
+
+(defn get-batch
+  "Retrieves blocks identified by a collection of multihashes. Returns a
+  sequence of the requested blocks in no particular order."
+  [store ids]
+  ; TODO: validate ids
+  (if (satisfies? BatchingStore store)
+    (-get-batch store ids)
+    (doall (map (partial get store) ids))))
+
+
+(defn put-batch!
+  "Saves a collection of blocks in the store. Returns a sequence of the
+  stored blocks."
+  [store blocks]
+  ; TODO: validate blocks
+  (if (satisfies? BatchingStore store)
+    (-put-batch! store blocks)
+    (doall (map (partial put! store) blocks))))
+
+
+(defn delete-batch!
+  [store ids]
+  ; TODO: validate ids
+  (if (satisfies? BatchingStore store)
+    (-delete-batch! store ids)
+    (doall (filter (partial delete! store) ids))))
+
+
+
+;; ## Block Enumerator
+
+; TODO:
+; Protocol which returns a lazy sequence of every block in the store, along with
+; an opaque marker which can be used to resume the stream in the same position.
+; Blocks are explicitly **not** returned in any defined order; it is assumed the
+; store will enumerate them in the most efficient order available. For example,
+; a file store could iterate them in on-disk order.
