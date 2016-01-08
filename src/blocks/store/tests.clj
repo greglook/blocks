@@ -3,7 +3,7 @@
   the spec."
   (:require
     [blocks.core :as block]
-    [blocks.util :as util]
+    [blocks.store.util :as util]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]

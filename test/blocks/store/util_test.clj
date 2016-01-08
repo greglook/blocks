@@ -1,6 +1,6 @@
-(ns blocks.util-test
+(ns blocks.store.util-test
   (:require
-    [blocks.util :as util]
+    [blocks.store.util :as util]
     [clojure.test :refer :all]
     [multihash.core :as multihash]))
 

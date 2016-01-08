@@ -7,7 +7,7 @@
   back to the primary store when not available."
   (:require
     [blocks.core :as block]
-    [blocks.util :as util]
+    [blocks.store.util :as util]
     [clojure.data.priority-map :refer [priority-map]]
     [clojure.tools.logging :as log]
     [com.stuartsierra.component :as component]))

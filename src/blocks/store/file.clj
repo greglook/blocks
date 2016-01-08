@@ -22,8 +22,8 @@
   (:require
     (blocks
       [core :as block]
-      [data :as data]
-      [util :as util])
+      [data :as data])
+    [blocks.store.util :as util]
     [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]

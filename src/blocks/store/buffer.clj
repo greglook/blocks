@@ -3,10 +3,9 @@
   store. Reads return a unified view of the existing and buffered blocks. The
   buffer can be _flushed_ to write all the new blocks to the backing store."
   (:require
-    (blocks
-      [core :as block]
-      [util :as util])
-    [blocks.store.memory :refer [memory-store]]))
+    [blocks.core :as block]
+    [blocks.store.memory :refer [memory-store]]
+    [blocks.store.util :as util]))
 
 
 (defrecord BufferStore

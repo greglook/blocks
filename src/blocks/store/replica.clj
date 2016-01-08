@@ -2,9 +2,8 @@
   "Logical block storage which writes to multiple backing stores to ensure
   durability. Lookups will try the backing stores in order to find blocks."
   (:require
-    (blocks
-      [core :as block]
-      [util :as util])))
+    [blocks.core :as block]
+    [blocks.store.util :as util]))
 
 
 (defrecord ReplicaStore

@@ -1,4 +1,4 @@
-(ns blocks.util
+(ns blocks.store.util
   "Various utility functions for handling and testing blocks."
   (:require
     [multihash.core :as multihash]))

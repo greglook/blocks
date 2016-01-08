@@ -7,8 +7,8 @@
   (:require
     (blocks
       [core :as block]
-      [data :as data]
-      [util :as util]))
+      [data :as data])
+    [blocks.store.util :as util])
   (:import
     java.util.Date))
 
