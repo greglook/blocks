@@ -1,7 +1,7 @@
 (ns blocks.store
-  "Block storage protocol and utilities.
-
-  These functions are mostly used to implement new kinds of block stores."
+  "Block storage protocols. Typically, clients of the library should use the
+  API wrapper functions in `blocks.core` instead of using these methods
+  directly."
   (:require
     [multihash.core :as multihash]))
 

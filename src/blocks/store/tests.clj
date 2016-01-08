@@ -1,4 +1,4 @@
-(ns blocks.store.tests
+(ns ^:no-doc blocks.store.tests
   "Suite of tests to verify that a given block store implementation conforms to
   the spec."
   (:require

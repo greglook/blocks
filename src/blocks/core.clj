@@ -44,7 +44,7 @@
 ;; ## Stat Metadata
 
 (defn with-stats
-  "Adds stat information to a block's metadata."
+  "Returns the given block with updated stat metadata."
   [block stats]
   (vary-meta block assoc :block/stats stats))
 
@@ -223,8 +223,10 @@
 
 (defn get
   "Loads content for a multihash and returns a block record. Returns nil if no
-  block is stored. The returned block is checked to make sure the id matches the
-  requested multihash."
+  block is stored for that id.
+
+  The returned block is checked to make sure the id matches the requested
+  multihash."
   [store id]
   (when-not (instance? Multihash id)
     (throw (IllegalArgumentException.
@@ -262,7 +264,8 @@
 
 
 (defn delete!
-  "Removes a block from the store. Returns true if the block was stored."
+  "Removes a block from the store. Returns true if the block was found and
+  removed."
   [store id]
   (when id
     (store/-delete! store id)))
@@ -286,7 +289,7 @@
 
 (defn get-batch
   "Retrieves a batch of blocks identified by a collection of multihashes.
-  Returns a sequence of the requested blocks in no particular order. Any ids
+  Returns a sequence of the requested blocks in no particular order. Any blocks
   which were not found in the store are omitted from the result."
   [store ids]
   (validate-collection-of Multihash ids)
@@ -306,8 +309,9 @@
 
 
 (defn delete-batch!
-  "Removes a batch of blocks from the store. Returns a set of ids for the
-  blocks which were found and deleted."
+  "Removes a batch of blocks from the store, identified by a collection of
+  multihashes. Returns a set of ids for the blocks which were found and
+  deleted."
   [store ids]
   (validate-collection-of Multihash ids)
   (if (satisfies? store/BatchingStore store)
