@@ -291,11 +291,24 @@
     multihashes. Returns a sequence of multihashes for the deleted blocks."))
 
 
+(defn- validate-collection-of
+  "Validates that the given argument is a collection of a certain class of
+  entries."
+  [cls xs]
+  (when-not (coll? xs)
+    (throw (IllegalArgumentException.
+             (str "Argument must be a collection: " (pr-str xs)))))
+  (when-let [bad-entries (seq (filter (complement (partial instance? cls)) xs))]
+    (throw (IllegalArgumentException.
+             (str "Collection entries must be " cls " values: "
+                  (pr-str bad-entries))))))
+
+
 (defn get-batch
   "Retrieves blocks identified by a collection of multihashes. Returns a
   sequence of the requested blocks in no particular order."
   [store ids]
-  ; TODO: validate ids
+  (validate-collection-of Multihash ids)
   (if (satisfies? BatchingStore store)
     (-get-batch store ids)
     (doall (map (partial get store) ids))))
@@ -305,7 +318,7 @@
   "Saves a collection of blocks in the store. Returns a sequence of the
   stored blocks."
   [store blocks]
-  ; TODO: validate blocks
+  (validate-collection-of Block blocks)
   (if (satisfies? BatchingStore store)
     (-put-batch! store blocks)
     (doall (map (partial put! store) blocks))))
@@ -313,7 +326,7 @@
 
 (defn delete-batch!
   [store ids]
-  ; TODO: validate ids
+  (validate-collection-of Multihash ids)
   (if (satisfies? BatchingStore store)
     (-delete-batch! store ids)
     (doall (filter (partial delete! store) ids))))
