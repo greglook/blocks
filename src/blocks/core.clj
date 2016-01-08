@@ -202,14 +202,6 @@
     "Removes a block from the store. Returns true if the block was stored."))
 
 
-; TODO: BlockEnumerator
-; Protocol which returns a lazy sequence of every block in the store, along with
-; an opaque marker which can be used to resume the stream in the same position.
-; Blocks are explicitly **not** returned in any defined order; it is assumed the
-; store will enumerate them in the most efficient order available. For example,
-; a file store could iterate them in on-disk order.
-
-
 (defn list
   "Enumerates the stored blocks, returning a lazy sequence of block stats sorted
   by id. Iterating over the list may result in additional operations to read
@@ -275,3 +267,77 @@
    (put! store (if (instance? File source)
                  (from-file source algorithm)
                  (read! source algorithm)))))
+
+
+
+;; ## Batch Storage Functions
+
+(defprotocol BatchingStore
+  "Protocol for stores which can perform batch operations on blocks."
+
+  (-get-batch
+    [store ids]
+    "Retrieves blocks identified by a collection of multihashes. Returns a
+    sequence of the requested blocks in no particular order.")
+
+  (-put-batch!
+    [store blocks]
+    "Saves a collection of blocks in the store. Returns a sequence of the
+    stored blocks.")
+
+  (-delete-batch!
+    [store ids]
+    "Removes multiple blocks from the store identified by a collection of
+    multihashes. Returns a sequence of multihashes for the deleted blocks."))
+
+
+(defn- validate-collection-of
+  "Validates that the given argument is a collection of a certain class of
+  entries."
+  [cls xs]
+  (when-not (coll? xs)
+    (throw (IllegalArgumentException.
+             (str "Argument must be a collection: " (pr-str xs)))))
+  (when-let [bad-entries (seq (filter (complement (partial instance? cls)) xs))]
+    (throw (IllegalArgumentException.
+             (str "Collection entries must be " cls " values: "
+                  (pr-str bad-entries))))))
+
+
+(defn get-batch
+  "Retrieves blocks identified by a collection of multihashes. Returns a
+  sequence of the requested blocks in no particular order."
+  [store ids]
+  (validate-collection-of Multihash ids)
+  (if (satisfies? BatchingStore store)
+    (remove nil? (-get-batch store ids))
+    (doall (keep (partial get store) ids))))
+
+
+(defn put-batch!
+  "Saves a collection of blocks in the store. Returns a sequence of the
+  stored blocks."
+  [store blocks]
+  (validate-collection-of Block blocks)
+  (if (satisfies? BatchingStore store)
+    (-put-batch! store blocks)
+    (doall (map (partial put! store) blocks))))
+
+
+(defn delete-batch!
+  [store ids]
+  (validate-collection-of Multihash ids)
+  (if (satisfies? BatchingStore store)
+    (-delete-batch! store ids)
+    (doall (filter (partial delete! store) ids))))
+
+
+
+;; ## Block Enumerator
+
+; TODO:
+; Protocol which returns a lazy sequence of every block in the store, along with
+; an opaque marker which can be used to resume the stream in the same position.
+; Blocks are explicitly **not** returned in any defined order; it is assumed the
+; store will enumerate them in the most efficient order available. For example,
+; a file store could iterate them in on-disk order.

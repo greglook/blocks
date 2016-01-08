@@ -158,6 +158,99 @@
             "should be read into memory")))))
 
 
+(deftest batch-operations
+  (let [a (block/read! "foo")
+        b (block/read! "bar")
+        c (block/read! "baz")
+        test-blocks {(:id a) a
+                     (:id b) b
+                     (:id c) c}]
+    (testing "get-batch"
+      (testing "validation"
+        (is (thrown? IllegalArgumentException
+                     (block/get-batch nil :foo))
+            "with non-collection throws error")
+        (is (thrown? IllegalArgumentException
+                     (block/get-batch nil [(multihash/sha1 "foo") :foo]))
+            "with non-multihash entry throws error"))
+      (let [store (reify
+                    block/BlockStore
+                    (-get
+                      [_ id]
+                      [:get id])
+                    block/BatchingStore
+                    (-get-batch
+                      [_ ids]
+                      [:batch ids]))
+            ids [(:id a) (:id b) (:id c)]]
+        (is (= [:batch ids] (block/get-batch store ids))
+            "should use optimized method where available"))
+      (let [store (reify
+                    block/BlockStore
+                    (-get
+                      [_ id]
+                      (get test-blocks id)))
+            ids [(:id a) (:id b) (:id c) (multihash/sha1 "frobble")]]
+        (is (= [a b c] (block/get-batch store ids))
+            "should fall back to normal get method")))
+    (testing "put-batch!"
+      (testing "validation"
+        (is (thrown? IllegalArgumentException
+                     (block/put-batch! nil :foo))
+            "with non-collection throws error")
+        (is (thrown? IllegalArgumentException
+                     (block/put-batch! nil [(block/read! "foo") :foo]))
+            "with non-block entry throws error"))
+      (let [store (reify
+                    block/BlockStore
+                    (put!
+                      [_ block]
+                      [:put block])
+                    block/BatchingStore
+                    (-put-batch!
+                      [_ blocks]
+                      [:batch blocks]))]
+        (is (= [:batch [a b c]]
+               (block/put-batch! store [a b c]))
+            "should use optimized method where available"))
+      (let [store (reify
+                    block/BlockStore
+                    (put!
+                      [_ block]
+                      [:put block]))]
+        (is (= [[:put a] [:put b] [:put c]]
+               (block/put-batch! store [a b c]))
+            "should fall back to normal put method")))
+    (testing "delete-batch!"
+      (testing "validation"
+        (is (thrown? IllegalArgumentException
+                     (block/delete-batch! nil :foo))
+            "with non-collection throws error")
+        (is (thrown? IllegalArgumentException
+                     (block/delete-batch! nil [(multihash/sha1 "foo") :foo]))
+            "with non-multihash entry throws error"))
+      (let [store (reify
+                    block/BlockStore
+                    (delete!
+                      [_ id]
+                      [:delete id])
+                    block/BatchingStore
+                    (-delete-batch!
+                      [_ ids]
+                      [:batch ids]))]
+        (is (= [:batch (map :id [a b c])]
+               (block/delete-batch! store (map :id [a b c])))
+            "should use optimized method where available"))
+      (let [store (reify
+                    block/BlockStore
+                    (delete!
+                      [_ id]
+                      (contains? test-blocks id)))]
+        (is (= [(:id a) (:id b)]
+               (block/delete-batch! store [(:id a) (multihash/sha1 "qux") (:id b)]))
+            "should fall back to normal delete method")))))
+
+
 
 ;; ## Utility Tests
 

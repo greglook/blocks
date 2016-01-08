@@ -12,13 +12,19 @@
     blocks.data.PersistentBytes))
 
 
+(defn random-blocks
+  "Returns a lazy sequence of blocks with random content up to max-size bytes."
+  [max-size]
+  (map block/read! (repeatedly #(util/random-bytes (inc (rand-int max-size))))))
+
+
 (defn populate-blocks!
   "Stores some test blocks in the given block store and returns a map of the
   ids to the original content values."
   [store n max-size]
-  (->> (repeatedly #(util/random-bytes (inc (rand-int max-size))))
+  (->> (random-blocks max-size)
        (take n)
-       (map (juxt (comp :id (partial block/store! store)) identity))
+       (map (juxt (comp :id (partial block/put! store)) deref))
        (into (sorted-map))))
 
 
@@ -96,6 +102,26 @@
                  (pr-str {:after after, :limit limit})))))))
 
 
+(defn test-batch-ops
+  "Tests the batch functionality of a store."
+  [store]
+  (let [blocks (take 10 (random-blocks 512))]
+    (testing "put-batch!"
+      (let [block-batch (block/put-batch! store blocks)]
+        (is (= (count blocks) (count block-batch)))
+        (is (every? (set (map :id block-batch)) (map :id blocks)))))
+    (testing "get-batch"
+      (let [block-batch (block/get-batch store (cons (multihash/sha1 "foo")
+                                                     (map :id blocks)))]
+        (is (= (count blocks) (count block-batch)))
+        (is (every? (set (map :id block-batch)) (map :id blocks)))))
+    (testing "delete-batch!"
+      (let [deleted-ids (block/delete-batch! store (cons (multihash/sha1 "foo")
+                                                         (map :id blocks)))]
+        (is (= (count blocks) (count deleted-ids)))
+        (is (every? (set deleted-ids) (map :id blocks)))))))
+
+
 (defmacro ^:private test-section
   [title & body]
   `(do (printf "    * %s\n" ~title)
@@ -131,6 +157,8 @@
           (is (true? (block/delete! store (:id block))))))
       (test-section "put attributes"
         (test-put-attributes store))
+      (test-section "batch operations"
+        (test-batch-ops store))
       (let [stored-content (test-section (str "populating " blocks " blocks")
                              (populate-blocks! store blocks max-size))]
         (test-section "list stats"
