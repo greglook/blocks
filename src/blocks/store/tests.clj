@@ -12,13 +12,19 @@
     blocks.data.PersistentBytes))
 
 
+(defn random-blocks
+  "Returns a lazy sequence of blocks with random content up to max-size bytes."
+  [max-size]
+  (map block/read! (repeatedly #(util/random-bytes (inc (rand-int max-size))))))
+
+
 (defn populate-blocks!
   "Stores some test blocks in the given block store and returns a map of the
   ids to the original content values."
   [store n max-size]
-  (->> (repeatedly #(util/random-bytes (inc (rand-int max-size))))
+  (->> (random-blocks max-size)
        (take n)
-       (map (juxt (comp :id (partial block/store! store)) identity))
+       (map (juxt (comp :id (partial block/put! store)) deref))
        (into (sorted-map))))
 
 
