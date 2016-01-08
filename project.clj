@@ -28,7 +28,7 @@
   {:cluster-depth 2
    :vertical false
    :show-external false
-   :ignore-ns #{clojure user}}
+   :ignore-ns #{blocks.data.conversions blocks.store.tests}}
 
   :codox
   {:metadata {:doc/format :markdown}
