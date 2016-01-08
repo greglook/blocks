@@ -2,6 +2,7 @@
   (:require
     [blocks.core :as block]
     [blocks.data :as data]
+    [blocks.store :as store]
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
@@ -99,7 +100,7 @@
 ;; ## Storage Tests
 
 (deftest list-wrapper
-  (let [store (reify block/BlockStore (-list [_ opts] opts))]
+  (let [store (reify store/BlockStore (-list [_ opts] opts))]
     (testing "opts-map conversion"
       (is (nil? (block/list store))
           "no arguments should return nil options map")
@@ -134,20 +135,20 @@
   (testing "non-multihash id"
     (is (thrown? IllegalArgumentException (block/get {} "foo"))))
   (testing "no block result"
-    (let [store (reify block/BlockStore (-get [_ id] nil))]
+    (let [store (reify store/BlockStore (-get [_ id] nil))]
       (is (nil? (block/get store (multihash/sha1 "foo bar"))))))
   (testing "invalid block result"
-    (let [store (reify block/BlockStore (-get [_ id] (block/read! "foo")))
+    (let [store (reify store/BlockStore (-get [_ id] (block/read! "foo")))
           other-id (multihash/sha1 "baz")]
       (is (thrown? RuntimeException (block/get store other-id)))))
   (testing "valid block result"
     (let [block (block/read! "foo")
-          store (reify block/BlockStore (-get [_ id] block))]
+          store (reify store/BlockStore (-get [_ id] block))]
       (is (= block (block/get store (:id block)))))))
 
 
 (deftest store-wrapper
-  (let [store (reify block/BlockStore (put! [_ block] block))]
+  (let [store (reify store/BlockStore (-put! [_ block] block))]
     (testing "file source"
       (let [block (block/store! store (io/file "README.md"))]
         (is (not (realized? block))
@@ -174,11 +175,11 @@
                      (block/get-batch nil [(multihash/sha1 "foo") :foo]))
             "with non-multihash entry throws error"))
       (let [store (reify
-                    block/BlockStore
+                    store/BlockStore
                     (-get
                       [_ id]
                       [:get id])
-                    block/BatchingStore
+                    store/BatchingStore
                     (-get-batch
                       [_ ids]
                       [:batch ids]))
@@ -186,7 +187,7 @@
         (is (= [:batch ids] (block/get-batch store ids))
             "should use optimized method where available"))
       (let [store (reify
-                    block/BlockStore
+                    store/BlockStore
                     (-get
                       [_ id]
                       (get test-blocks id)))
@@ -202,11 +203,11 @@
                      (block/put-batch! nil [(block/read! "foo") :foo]))
             "with non-block entry throws error"))
       (let [store (reify
-                    block/BlockStore
-                    (put!
+                    store/BlockStore
+                    (-put!
                       [_ block]
                       [:put block])
-                    block/BatchingStore
+                    store/BatchingStore
                     (-put-batch!
                       [_ blocks]
                       [:batch blocks]))]
@@ -214,8 +215,8 @@
                (block/put-batch! store [a b c]))
             "should use optimized method where available"))
       (let [store (reify
-                    block/BlockStore
-                    (put!
+                    store/BlockStore
+                    (-put!
                       [_ block]
                       [:put block]))]
         (is (= [[:put a] [:put b] [:put c]]
@@ -230,23 +231,23 @@
                      (block/delete-batch! nil [(multihash/sha1 "foo") :foo]))
             "with non-multihash entry throws error"))
       (let [store (reify
-                    block/BlockStore
-                    (delete!
+                    store/BlockStore
+                    (-delete!
                       [_ id]
-                      [:delete id])
-                    block/BatchingStore
+                      (contains? test-blocks id))
+                    store/BatchingStore
                     (-delete-batch!
                       [_ ids]
-                      [:batch ids]))]
-        (is (= [:batch (map :id [a b c])]
+                      (filter test-blocks ids)))]
+        (is (= (set (map :id [a b c]))
                (block/delete-batch! store (map :id [a b c])))
             "should use optimized method where available"))
       (let [store (reify
-                    block/BlockStore
-                    (delete!
+                    store/BlockStore
+                    (-delete!
                       [_ id]
                       (contains? test-blocks id)))]
-        (is (= [(:id a) (:id b)]
+        (is (= #{(:id a) (:id b)}
                (block/delete-batch! store [(:id a) (multihash/sha1 "qux") (:id b)]))
             "should fall back to normal delete method")))))
 

@@ -7,7 +7,8 @@
   back to the primary store when not available."
   (:require
     [blocks.core :as block]
-    [blocks.util :as util]
+    [blocks.store :as store]
+    [blocks.store.util :as util]
     [clojure.data.priority-map :refer [priority-map]]
     [clojure.tools.logging :as log]
     [com.stuartsierra.component :as component]))
@@ -121,13 +122,13 @@
     this)
 
 
-  block/BlockStore
+  store/BlockStore
 
-  (stat
+  (-stat
     [this id]
     (ensure-initialized! this)
-    (or (block/stat cache   id)
-        (block/stat primary id)))
+    (or (store/-stat cache   id)
+        (store/-stat primary id)))
 
 
   (-list
@@ -136,34 +137,34 @@
     (util/select-stats
       opts
       (util/merge-block-lists
-        (block/-list cache   opts)
-        (block/-list primary opts))))
+        (store/-list cache   opts)
+        (store/-list primary opts))))
 
 
   (-get
     [this id]
     (ensure-initialized! this)
-    (or (block/-get cache id)
-        (when-let [block (block/-get primary id)]
+    (or (store/-get cache id)
+        (when-let [block (store/-get primary id)]
           (or (maybe-cache! this block)
               block))))
 
 
-  (put!
+  (-put!
     [this block]
     (ensure-initialized! this)
     (when-let [id (:id block)]
       (let [cached (maybe-cache! this block)
             preferred (util/preferred-copy cached block)
-            stored (block/put! primary preferred)]
+            stored (store/-put! primary preferred)]
         (or cached stored))))
 
 
-  (delete!
+  (-delete!
     [this id]
     (ensure-initialized! this)
-    (block/delete! cache   id)
-    (block/delete! primary id)))
+    (store/-delete! cache   id)
+    (store/-delete! primary id)))
 
 
 (defn cache-store

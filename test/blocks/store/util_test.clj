@@ -1,6 +1,7 @@
-(ns blocks.util-test
+(ns blocks.store.util-test
   (:require
-    [blocks.util :as util]
+    [blocks.core :as block]
+    [blocks.store.util :as util]
     [clojure.test :refer :all]
     [multihash.core :as multihash]))
 
@@ -42,6 +43,18 @@
     (dotimes [i 20]
       (is (util/hex? (util/random-hex 10))
           "should return valid hex"))))
+
+
+(deftest block-preference
+  (is (nil? (util/preferred-copy nil))
+      "returns nil with no block arguments")
+  (let [literal (block/read! "foo")
+        lazy-a (block/from-file "project.clj")
+        lazy-b (block/from-file "README.md")]
+    (is (= literal (util/preferred-copy lazy-a literal lazy-b))
+        "returns literal block if present")
+    (is (= lazy-a (util/preferred-copy lazy-a lazy-b))
+        "returns first block if all lazy")))
 
 
 (deftest stat-selection

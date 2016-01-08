@@ -1,9 +1,9 @@
-(ns blocks.store.tests
+(ns ^:no-doc blocks.store.tests
   "Suite of tests to verify that a given block store implementation conforms to
   the spec."
   (:require
     [blocks.core :as block]
-    [blocks.util :as util]
+    [blocks.store.util :as util]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]

@@ -23,7 +23,8 @@
     (blocks
       [core :as block]
       [data :as data]
-      [util :as util])
+      [store :as store])
+    [blocks.store.util :as util]
     [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
@@ -153,9 +154,9 @@
 (defrecord FileStore
   [^File root]
 
-  block/BlockStore
+  store/BlockStore
 
-  (stat
+  (-stat
     [this id]
     (when-block id
       (block-stats id file)))
@@ -174,7 +175,7 @@
       (file->block id file)))
 
 
-  (put!
+  (-put!
     [this block]
     (let [id (:id block)
           file (id->file root id)]
@@ -189,7 +190,7 @@
         (file->block id file))))
 
 
-  (delete!
+  (-delete!
     [this id]
     (when-block id
       (locking this
