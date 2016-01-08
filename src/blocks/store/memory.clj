@@ -7,7 +7,8 @@
   (:require
     (blocks
       [core :as block]
-      [data :as data])
+      [data :as data]
+      [store :as store])
     [blocks.store.util :as util])
   (:import
     java.util.Date))
@@ -25,9 +26,9 @@
 (defrecord MemoryStore
   [memory]
 
-  block/BlockStore
+  store/BlockStore
 
-  (stat
+  (-stat
     [this id]
     (when-let [block (get @memory id)]
       (block-stats block)))
@@ -45,7 +46,7 @@
     (get @memory id))
 
 
-  (put!
+  (-put!
     [this block]
     (when-let [id (:id block)]
       (if-let [extant (get @memory id)]
@@ -57,7 +58,7 @@
           block'))))
 
 
-  (delete!
+  (-delete!
     [this id]
     (let [existed? (contains? @memory id)]
       (swap! memory dissoc id)

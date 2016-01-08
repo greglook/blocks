@@ -1,6 +1,6 @@
 (ns blocks.core
-  "Block storage protocol and utilities. Functions which may cause IO to occur
-  are marked with bangs.
+  "Block storage API. Functions which may cause IO to occur are marked with
+  bangs.
 
   For example `(read! \"foo\")` doesn't have side-effects, but `(read!
   some-input-stream)` will consume bytes from the stream.
@@ -15,6 +15,7 @@
   (:require
     [blocks.data :as data]
     [blocks.data.conversions]
+    [blocks.store :as store]
     [byte-streams :as bytes]
     [clojure.java.io :as io]
     [clojure.set :as set]
@@ -169,37 +170,17 @@
                       (.getByteCount stream))))))))
 
 
-;; ## Storage Interface
 
-(defprotocol BlockStore
-  "Protocol for content-addressable storage keyed by multihash identifiers."
+;; ## Storage API
 
-  (stat
-    [store id]
-    "Returns a map with an `:id` and `:size` but no content. The returned map
-    may contain additional data like the date stored. Returns nil if the store
-    does not contain the identified block.")
-
-  (-list
-    [store opts]
-    "Lists the blocks contained in the store. Returns a lazy sequence of stat
-    metadata about each block. The stats should be returned in order sorted by
-    multihash id. See `list` for the supported options.")
-
-  (-get
-    [store id]
-    "Returns the identified block if it is stored, otherwise nil. The block
-    should include stat metadata. Typically clients should use `get` instead,
-    which validates arguments and the returned block record.")
-
-  (put!
-    [store block]
-    "Saves a block into the store. Returns the block record, updated with stat
-    metadata.")
-
-  (delete!
-    [store id]
-    "Removes a block from the store. Returns true if the block was stored."))
+(defn stat
+  "Returns a map with an `:id` and `:size` but no content. The returned map
+  may contain additional data like the date stored. Returns nil if the store
+  does not contain the identified block."
+  [store id]
+  (when id
+    ; TODO: verify that id is a Multihash?
+    (store/-stat store id)))
 
 
 (defn list
@@ -237,22 +218,31 @@
          (throw (IllegalArgumentException.
                   (str "Option :limit is not a positive integer: "
                        (pr-str limit))))))
-     (-list store opts-map))))
+     (store/-list store opts-map))))
 
 
 (defn get
   "Loads content for a multihash and returns a block record. Returns nil if no
   block is stored. The returned block is checked to make sure the id matches the
-  requested hash."
+  requested multihash."
   [store id]
   (when-not (instance? Multihash id)
     (throw (IllegalArgumentException.
              (str "Id value must be a multihash, got: " (pr-str id)))))
-  (when-let [block (-get store id)]
+  (when-let [block (store/-get store id)]
     (when-not (= id (:id block))
       (throw (RuntimeException.
                (str "Asked for block " id " but got " (:id block)))))
     block))
+
+
+(defn put!
+  "Saves a block into the store. Returns the block record, updated with stat
+  metadata."
+  [store block]
+  ; TODO: verify that block is a Block?
+  (when block
+    (store/-put! store block)))
 
 
 (defn store!
@@ -264,32 +254,22 @@
   ([store source]
    (store! store source default-algorithm))
   ([store source algorithm]
-   (put! store (if (instance? File source)
-                 (from-file source algorithm)
-                 (read! source algorithm)))))
+   (store/-put!
+     store
+     (if (instance? File source)
+       (from-file source algorithm)
+       (read! source algorithm)))))
+
+
+(defn delete!
+  "Removes a block from the store. Returns true if the block was stored."
+  [store id]
+  (when id
+    (store/-delete! store id)))
 
 
 
-;; ## Batch Storage Functions
-
-(defprotocol BatchingStore
-  "Protocol for stores which can perform batch operations on blocks."
-
-  (-get-batch
-    [store ids]
-    "Retrieves blocks identified by a collection of multihashes. Returns a
-    sequence of the requested blocks in no particular order.")
-
-  (-put-batch!
-    [store blocks]
-    "Saves a collection of blocks in the store. Returns a sequence of the
-    stored blocks.")
-
-  (-delete-batch!
-    [store ids]
-    "Removes multiple blocks from the store identified by a collection of
-    multihashes. Returns a sequence of multihashes for the deleted blocks."))
-
+;; ## Batch API
 
 (defn- validate-collection-of
   "Validates that the given argument is a collection of a certain class of
@@ -305,39 +285,31 @@
 
 
 (defn get-batch
-  "Retrieves blocks identified by a collection of multihashes. Returns a
-  sequence of the requested blocks in no particular order."
+  "Retrieves a batch of blocks identified by a collection of multihashes.
+  Returns a sequence of the requested blocks in no particular order. Any ids
+  which were not found in the store are omitted from the result."
   [store ids]
   (validate-collection-of Multihash ids)
-  (if (satisfies? BatchingStore store)
-    (remove nil? (-get-batch store ids))
+  (if (satisfies? store/BatchingStore store)
+    (remove nil? (store/-get-batch store ids))
     (doall (keep (partial get store) ids))))
 
 
 (defn put-batch!
-  "Saves a collection of blocks in the store. Returns a sequence of the
-  stored blocks."
+  "Saves a collection of blocks into the store. Returns a sequence of the
+  stored blocks, in no particular order."
   [store blocks]
   (validate-collection-of Block blocks)
-  (if (satisfies? BatchingStore store)
-    (-put-batch! store blocks)
+  (if (satisfies? store/BatchingStore store)
+    (seq (store/-put-batch! store blocks))
     (doall (map (partial put! store) blocks))))
 
 
 (defn delete-batch!
+  "Removes a batch of blocks from the store. Returns a set of ids for the
+  blocks which were found and deleted."
   [store ids]
   (validate-collection-of Multihash ids)
-  (if (satisfies? BatchingStore store)
-    (-delete-batch! store ids)
-    (doall (filter (partial delete! store) ids))))
-
-
-
-;; ## Block Enumerator
-
-; TODO:
-; Protocol which returns a lazy sequence of every block in the store, along with
-; an opaque marker which can be used to resume the stream in the same position.
-; Blocks are explicitly **not** returned in any defined order; it is assumed the
-; store will enumerate them in the most efficient order available. For example,
-; a file store could iterate them in on-disk order.
+  (if (satisfies? store/BatchingStore store)
+    (set (store/-delete-batch! store ids))
+    (set (filter (partial delete! store) ids))))

@@ -4,6 +4,7 @@
   buffer can be _flushed_ to write all the new blocks to the backing store."
   (:require
     [blocks.core :as block]
+    [blocks.store :as store]
     [blocks.store.memory :refer [memory-store]]
     [blocks.store.util :as util]))
 
@@ -11,43 +12,43 @@
 (defrecord BufferStore
   [store buffer]
 
-  block/BlockStore
+  store/BlockStore
 
-  (stat
+  (-stat
     [this id]
-    (or (block/stat buffer id)
-        (block/stat store  id)))
+    (or (store/-stat buffer id)
+        (store/-stat store  id)))
 
 
   (-list
     [this opts]
     (util/merge-block-lists
-      (block/-list buffer opts)
-      (block/-list store  opts)))
+      (store/-list buffer opts)
+      (store/-list store  opts)))
 
 
   (-get
     [this id]
-    (or (block/-get buffer id)
-        (block/-get store  id)))
+    (or (store/-get buffer id)
+        (store/-get store  id)))
 
 
-  (put!
+  (-put!
     [this block]
-    (or (block/get store (:id block))
-        (block/put! buffer block)))
+    (or (store/-get store (:id block))
+        (store/-put! buffer block)))
 
 
-  (delete!
+  (-delete!
     [this id]
-    (let [buffered? (block/delete! buffer id)
-          stored?   (block/delete! store  id)]
+    (let [buffered? (store/-delete! buffer id)
+          stored?   (store/-delete! store  id)]
       (boolean (or buffered? stored?)))))
 
 
 (defn flush!
   "Flushes the store, writing all buffered blocks to the backing store. Returns
-  a seq of the flushed block ids."
+  a sequence of the flushed block ids."
   [store]
   (->> (block/list (:buffer store))
        (map (fn copy [stats]

@@ -1,6 +1,7 @@
 (ns blocks.store.cache-test
   (:require
     [blocks.core :as block]
+    [blocks.store :as store]
     (blocks.store
       [cache :as cache :refer [cache-store]]
       [memory :refer [memory-store]]
@@ -23,7 +24,7 @@
   (is (thrown? IllegalArgumentException (cache-store 0)))
   (is (thrown? IllegalArgumentException (cache-store 512 :max-block-size "foo")))
   (is (thrown? IllegalArgumentException (cache-store 512 :max-block-size 0)))
-  (is (satisfies? block/BlockStore (cache-store 512 :max-block-size 128))))
+  (is (satisfies? store/BlockStore (cache-store 512 :max-block-size 128))))
 
 
 (deftest store-lifecycle

@@ -2,46 +2,46 @@
   "Logical block storage which writes to multiple backing stores to ensure
   durability. Lookups will try the backing stores in order to find blocks."
   (:require
-    [blocks.core :as block]
+    [blocks.store :as store]
     [blocks.store.util :as util]))
 
 
 (defrecord ReplicaStore
   [stores]
 
-  block/BlockStore
+  store/BlockStore
 
-  (stat
+  (-stat
     [this id]
-    (some #(block/stat % id) stores))
+    (some #(store/-stat % id) stores))
 
 
   (-list
     [this opts]
     (->> stores
-         (map #(block/-list % opts))
+         (map #(store/-list % opts))
          (doall)
          (apply util/merge-block-lists)))
 
 
   (-get
     [this id]
-    (some #(block/-get % id) stores))
+    (some #(store/-get % id) stores))
 
 
-  (put!
+  (-put!
     [this block]
-    (let [stored-block (block/put! (first stores) block)
+    (let [stored-block (store/-put! (first stores) block)
           copy-block (util/preferred-copy block stored-block)]
-      (dorun (map #(block/put! % copy-block) (rest stores)))
+      (dorun (map #(store/-put! % copy-block) (rest stores)))
       stored-block))
 
 
-  (delete!
+  (-delete!
     [this id]
     (reduce
       (fn [existed? store]
-        (let [result (block/delete! store id)]
+        (let [result (store/-delete! store id)]
           (or existed? result)))
       false
       stores)))
