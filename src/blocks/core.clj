@@ -310,8 +310,8 @@
   [store ids]
   (validate-collection-of Multihash ids)
   (if (satisfies? BatchingStore store)
-    (-get-batch store ids)
-    (doall (map (partial get store) ids))))
+    (remove nil? (-get-batch store ids))
+    (doall (keep (partial get store) ids))))
 
 
 (defn put-batch!
