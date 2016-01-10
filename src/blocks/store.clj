@@ -64,16 +64,8 @@
   "An enumerator provides a way to efficiently iterate over all the stored
   blocks."
 
-  (-enumerate
-    [store marker]
+  (enumerate
+    [store]
     "Returns a lazy sequence of stored blocks. Blocks are expliticly **not**
     returned in any defined order; it is assumed that the store will enumerate
-    them in the most efficient order available.
-
-    If `marker` is nil, all blocks should be returned in the sequence.
-    Otherwise, it is up to the implementation to resume the enumeration at the
-    marked block.
-
-    The returned blocks should have attached metadata giving a _marker_ for the
-    stream under the key `:block/marker`. This value is implementation-dependent,
-    and can be used to resume the stream from a particular position."))
+    them in the most efficient order available."))
