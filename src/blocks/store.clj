@@ -60,9 +60,12 @@
     multihashes. Returns a collection of multihashes for the deleted blocks."))
 
 
-; TODO:
-; Protocol which returns a lazy sequence of every block in the store, along with
-; an opaque marker which can be used to resume the stream in the same position.
-; Blocks are explicitly **not** returned in any defined order; it is assumed the
-; store will enumerate them in the most efficient order available. For example,
-; a file store could iterate them in on-disk order.
+(defprotocol BlockEnumerator
+  "An enumerator provides a way to efficiently iterate over all the stored
+  blocks."
+
+  (enumerate
+    [store]
+    "Returns a lazy sequence of stored blocks. Blocks are expliticly **not**
+    returned in any defined order; it is assumed that the store will enumerate
+    them in the most efficient order available."))

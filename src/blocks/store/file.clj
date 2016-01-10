@@ -194,7 +194,16 @@
     [this id]
     (when-block id
       (locking this
-        (.delete file)))))
+        (.delete file))))
+
+
+  store/BlockEnumerator
+
+  (enumerate
+    [this]
+    (->> (.listFiles root)
+         (mapcat #(.listFiles %))
+         (map #(file->block (file->id root %) %)))))
 
 
 (defn erase!
