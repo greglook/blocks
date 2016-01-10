@@ -12,6 +12,31 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.5.0] - 2015-11-14
 
 ### Added
+- Add logical 'replica' and 'buffer' stores.
+  [#2](//github.com/greglook/blocks/issues/2)
+- Add a second arity to `block/open` to read a sub-range of the content in a
+  block by specifying starting and ending bytes.
+  [#3](//github.com/greglook/blocks/issues/3)
+- Add protocol for batch block operations.
+  [#5](//github.com/greglook/blocks/issues/5)
+- Add protocol for efficient block enumeration.
+  [#8](//github.com/greglook/blocks/issues/8)
+
+### Changed
+- Remove extra 'Block' from many store record names, for example
+  `FileBlockStore` to `FileStore`.
+- Change file store to match IPFS file repo behavior by restricting it to a
+  single intermediate directory level.
+- Move block store protocols to `blocks.store` namespace, with wrappers in
+  `blocks.core`.
+
+### Fixed
+- `validate!` now checks the size of lazy blocks by using a counting input
+  stream wrapper.
+
+## [0.5.0] - 2015-11-14
+
+### Added
 - `blocks.store.cache` namespace with logical caching block store
   implementation.
 

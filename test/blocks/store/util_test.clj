@@ -1,6 +1,7 @@
-(ns blocks.util-test
+(ns blocks.store.util-test
   (:require
-    [blocks.util :as util]
+    [blocks.core :as block]
+    [blocks.store.util :as util]
     [clojure.test :refer :all]
     [multihash.core :as multihash]))
 
@@ -44,6 +45,18 @@
           "should return valid hex"))))
 
 
+(deftest block-preference
+  (is (nil? (util/preferred-copy nil))
+      "returns nil with no block arguments")
+  (let [literal (block/read! "foo")
+        lazy-a (block/from-file "project.clj")
+        lazy-b (block/from-file "README.md")]
+    (is (= literal (util/preferred-copy lazy-a literal lazy-b))
+        "returns literal block if present")
+    (is (= lazy-a (util/preferred-copy lazy-a lazy-b))
+        "returns first block if all lazy")))
+
+
 (deftest stat-selection
   (let [a (multihash/create :sha1 "37b51d194a7513e45b56f6524f2d51f200000000")
         b (multihash/create :sha1 "73fcffa4b7f6bb68e44cf984c85f6e888843d7f9")
@@ -58,3 +71,20 @@
          [f]        {:algorithm :sha2-256}
          [c d e f]  {:after "111473fd2"}
          [a b c]    {:limit 3})))
+
+
+(deftest stat-list-merging
+  (let [list-a (list {:id "aaa", :foo :bar}
+                     {:id "abb", :baz :qux}
+                     {:id "abc", :key :val})
+        list-b (list {:id "aab", :xyz 123}
+                     {:id "abc", :ack :bar})
+        list-c (list {:id "aaa", :foo 123}
+                     {:id "xyz", :wqr :axo})]
+    (is (= [{:id "aaa", :foo :bar}
+            {:id "aab", :xyz 123}
+            {:id "abb", :baz :qux}
+            {:id "abc", :key :val}
+            {:id "xyz", :wqr :axo}]
+           (util/merge-block-lists
+             list-a list-b list-c)))))

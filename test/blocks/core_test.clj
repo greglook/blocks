@@ -2,6 +2,7 @@
   (:require
     [blocks.core :as block]
     [blocks.data :as data]
+    [blocks.store :as store]
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
@@ -16,18 +17,30 @@
 ;; ## IO Tests
 
 (deftest block-input-stream
+  (testing "ranged open validation"
+    (let [block (block/read! "abcdefg")]
+      (is (thrown? IllegalArgumentException (block/open block nil 4)))
+      (is (thrown? IllegalArgumentException (block/open block -1 4)))
+      (is (thrown? IllegalArgumentException (block/open block 0 nil)))
+      (is (thrown? IllegalArgumentException (block/open block 0 -1)))
+      (is (thrown? IllegalArgumentException (block/open block 3 1)))
+      (is (thrown? IllegalArgumentException (block/open block 0 10)))))
   (testing "empty block"
     (let [block (empty (block/read! "abc"))]
-      (is (thrown? IOException (block/open block)))))
+      (is (thrown? IOException (block/open block))
+          "full open should throw exception")
+      (is (thrown? IOException (block/open block 0 3))
+          "ranged open should throw exception")))
   (testing "literal block"
-    (let [block (block/read! "the old dog jumped")
-          stream (block/open block)]
-      (is (instance? InputStream stream))
-      (is (= "the old dog jumped" (slurp stream)))))
+    (let [block (block/read! "the old dog jumped")]
+      (is (= "the old dog jumped" (slurp (block/open block))))
+      (is (= "old dog" (slurp (block/open block 4 11))))))
   (testing "lazy block"
-    (let [block (block/from-file "README.md")]
+    (let [block (block/from-file "README.md")
+          readme (slurp (block/open block))]
       (is (not (realized? block)) "file blocks should be lazy")
-      (is (string? (slurp (block/open block)))))))
+      (is (string? readme))
+      (is (= (subs readme 10 20) (slurp (block/open block 10 20)))))))
 
 
 (deftest block-reading
@@ -87,7 +100,7 @@
 ;; ## Storage Tests
 
 (deftest list-wrapper
-  (let [store (reify block/BlockStore (-list [_ opts] opts))]
+  (let [store (reify store/BlockStore (-list [_ opts] opts))]
     (testing "opts-map conversion"
       (is (nil? (block/list store))
           "no arguments should return nil options map")
@@ -122,20 +135,20 @@
   (testing "non-multihash id"
     (is (thrown? IllegalArgumentException (block/get {} "foo"))))
   (testing "no block result"
-    (let [store (reify block/BlockStore (-get [_ id] nil))]
+    (let [store (reify store/BlockStore (-get [_ id] nil))]
       (is (nil? (block/get store (multihash/sha1 "foo bar"))))))
   (testing "invalid block result"
-    (let [store (reify block/BlockStore (-get [_ id] (block/read! "foo")))
+    (let [store (reify store/BlockStore (-get [_ id] (block/read! "foo")))
           other-id (multihash/sha1 "baz")]
       (is (thrown? RuntimeException (block/get store other-id)))))
   (testing "valid block result"
     (let [block (block/read! "foo")
-          store (reify block/BlockStore (-get [_ id] block))]
+          store (reify store/BlockStore (-get [_ id] block))]
       (is (= block (block/get store (:id block)))))))
 
 
 (deftest store-wrapper
-  (let [store (reify block/BlockStore (put! [_ block] block))]
+  (let [store (reify store/BlockStore (-put! [_ block] block))]
     (testing "file source"
       (let [block (block/store! store (io/file "README.md"))]
         (is (not (realized? block))
@@ -144,6 +157,99 @@
       (let [block (block/store! store "foo bar baz")]
         (is (realized? block)
             "should be read into memory")))))
+
+
+(deftest batch-operations
+  (let [a (block/read! "foo")
+        b (block/read! "bar")
+        c (block/read! "baz")
+        test-blocks {(:id a) a
+                     (:id b) b
+                     (:id c) c}]
+    (testing "get-batch"
+      (testing "validation"
+        (is (thrown? IllegalArgumentException
+                     (block/get-batch nil :foo))
+            "with non-collection throws error")
+        (is (thrown? IllegalArgumentException
+                     (block/get-batch nil [(multihash/sha1 "foo") :foo]))
+            "with non-multihash entry throws error"))
+      (let [store (reify
+                    store/BlockStore
+                    (-get
+                      [_ id]
+                      [:get id])
+                    store/BatchingStore
+                    (-get-batch
+                      [_ ids]
+                      [:batch ids]))
+            ids [(:id a) (:id b) (:id c)]]
+        (is (= [:batch ids] (block/get-batch store ids))
+            "should use optimized method where available"))
+      (let [store (reify
+                    store/BlockStore
+                    (-get
+                      [_ id]
+                      (get test-blocks id)))
+            ids [(:id a) (:id b) (:id c) (multihash/sha1 "frobble")]]
+        (is (= [a b c] (block/get-batch store ids))
+            "should fall back to normal get method")))
+    (testing "put-batch!"
+      (testing "validation"
+        (is (thrown? IllegalArgumentException
+                     (block/put-batch! nil :foo))
+            "with non-collection throws error")
+        (is (thrown? IllegalArgumentException
+                     (block/put-batch! nil [(block/read! "foo") :foo]))
+            "with non-block entry throws error"))
+      (let [store (reify
+                    store/BlockStore
+                    (-put!
+                      [_ block]
+                      [:put block])
+                    store/BatchingStore
+                    (-put-batch!
+                      [_ blocks]
+                      [:batch blocks]))]
+        (is (= [:batch [a b c]]
+               (block/put-batch! store [a b c]))
+            "should use optimized method where available"))
+      (let [store (reify
+                    store/BlockStore
+                    (-put!
+                      [_ block]
+                      [:put block]))]
+        (is (= [[:put a] [:put b] [:put c]]
+               (block/put-batch! store [a b c]))
+            "should fall back to normal put method")))
+    (testing "delete-batch!"
+      (testing "validation"
+        (is (thrown? IllegalArgumentException
+                     (block/delete-batch! nil :foo))
+            "with non-collection throws error")
+        (is (thrown? IllegalArgumentException
+                     (block/delete-batch! nil [(multihash/sha1 "foo") :foo]))
+            "with non-multihash entry throws error"))
+      (let [store (reify
+                    store/BlockStore
+                    (-delete!
+                      [_ id]
+                      (contains? test-blocks id))
+                    store/BatchingStore
+                    (-delete-batch!
+                      [_ ids]
+                      (filter test-blocks ids)))]
+        (is (= (set (map :id [a b c]))
+               (block/delete-batch! store (map :id [a b c])))
+            "should use optimized method where available"))
+      (let [store (reify
+                    store/BlockStore
+                    (-delete!
+                      [_ id]
+                      (contains? test-blocks id)))]
+        (is (= #{(:id a) (:id b)}
+               (block/delete-batch! store [(:id a) (multihash/sha1 "qux") (:id b)]))
+            "should fall back to normal delete method")))))
 
 
 

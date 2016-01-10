@@ -1,6 +1,6 @@
 (ns blocks.core
-  "Block storage protocol and utilities. Functions which may cause IO to occur
-  are marked with bangs.
+  "Block storage API. Functions which may cause IO to occur are marked with
+  bangs.
 
   For example `(read! \"foo\")` doesn't have side-effects, but `(read!
   some-input-stream)` will consume bytes from the stream.
@@ -15,17 +15,24 @@
   (:require
     [blocks.data :as data]
     [blocks.data.conversions]
+    [blocks.store :as store]
     [byte-streams :as bytes]
     [clojure.java.io :as io]
     [clojure.set :as set]
     [clojure.string :as str]
     [multihash.core :as multihash])
   (:import
-    blocks.data.Block
-    blocks.data.PersistentBytes
-    java.io.File
-    java.io.IOException
-    multihash.core.Multihash))
+    (blocks.data
+      Block
+      PersistentBytes)
+    (java.io
+      File
+      IOException
+      InputStream)
+    multihash.core.Multihash
+    (org.apache.commons.io.input
+      BoundedInputStream
+      CountingInputStream)))
 
 
 (def default-algorithm
@@ -34,7 +41,29 @@
 
 
 
+;; ## Stat Metadata
+
+(defn with-stats
+  "Returns the given block with updated stat metadata."
+  [block stats]
+  (vary-meta block assoc :block/stats stats))
+
+
+(defn meta-stats
+  "Returns stat information from a block's metadata, if present."
+  [block]
+  (:block/stats (meta block)))
+
+
+
 ;; ## Block IO
+
+(defn- bounded-input-stream
+  ^java.io.InputStream
+  [^InputStream input start end]
+  (.skip input start)
+  (BoundedInputStream. input (- end start)))
+
 
 (defn from-file
   "Creates a lazy block from a local file. The file is read once to calculate
@@ -49,19 +78,37 @@
      (data/lazy-block id (.length file) reader))))
 
 
-; TODO: support opening a byte range
 (defn open
-  "Opens an input stream to read the content of the block. Throws an IO
-  exception on empty blocks."
-  ^java.io.InputStream
-  [^Block block]
-  (let [content ^PersistentBytes (.content block)
-        reader (.reader block)]
-    (cond
-      content (.open content)
-      reader  (reader)
-      :else   (throw (IOException.
-                        (str "Cannot open empty block " (:id block)))))))
+  "Opens an input stream to read the contents of the block. If `start` and
+  `end` are given, the input stream will only return bytes in that range.
+  Throws an IO exception on empty blocks."
+  (^java.io.InputStream
+   [^Block block]
+   (let [content ^PersistentBytes (.content block)
+         reader (.reader block)]
+     (cond
+       content (.open content)
+       reader  (reader)
+       :else   (throw (IOException.
+                         (str "Cannot open empty block " (:id block)))))))
+  (^java.io.InputStream
+   [^Block block start end]
+   (when-not (and (number? start) (number? end)
+                  (<= 0 start end (:size block)))
+     (throw (IllegalArgumentException.
+              (str "Range bounds must be within block bounds: ["
+                   (pr-str start) ", " (pr-str end) "]"))))
+   (let [content ^PersistentBytes (.content block)
+         reader (.reader block)]
+     (cond
+       content (bounded-input-stream (.open content) start end)
+       reader  (try
+                 (reader start end)
+                 (catch clojure.lang.ArityException e
+                   ; Native ranged open not supported, use naive approach.
+                   (bounded-input-stream (reader) start end)))
+       :else   (throw (IOException.
+                         (str "Cannot open empty block " (:id block))))))))
 
 
 (defn read!
@@ -113,63 +160,33 @@
     (when (neg? size)
       (throw (IllegalStateException.
                (str "Block " id " has negative size: " size))))
-    ; TODO: check size correctness later with a counting-input-stream?
-    (when (realized? block)
-      (let [actual-size (count @block)]
-        (when (not= size actual-size)
-          (throw (IllegalStateException.
-                   (str "Block " id " reports size " size
-                        " but has actual size " actual-size))))))
-    (with-open [stream (open block)]
+    (with-open [stream (CountingInputStream. (open block))]
       (when-not (multihash/test id stream)
         (throw (IllegalStateException.
-                 (str "Block " id " has mismatched content")))))))
+                 (str "Block " id " has mismatched content"))))
+      (when (not= size (.getByteCount stream))
+        (throw (IllegalStateException.
+                 (str "Block " id " reports size " size " but has actual size "
+                      (.getByteCount stream))))))))
 
 
 
-;; ## Storage Interface
+;; ## Storage API
 
-(defprotocol BlockStore
-  "Protocol for content-addressable storage keyed by multihash identifiers."
-
-  (stat
-    [store id]
-    "Returns a map with an `:id` and `:size` but no content. The returned map
-    may contain additional data like the date stored. Returns nil if the store
-    does not contain the identified block.")
-
-  (-list
-    [store opts]
-    "Lists the blocks contained in the store. Returns a lazy sequence of stat
-    metadata about each block. See `list` for the supported options.")
-
-  (-get
-    [store id]
-    "Returns the identified block if it is stored, otherwise nil. The block
-    should include stat metadata. Typically clients should use `get` instead,
-    which validates arguments and the returned block record.")
-
-  (put!
-    [store block]
-    "Saves a block into the store. Returns the block record, updated with stat
-    metadata.")
-
-  (delete!
-    [store id]
-    "Removes a block from the store. Returns true if the block was stored."))
-
-
-; TODO: BlockEnumerator
-; Protocol which returns a lazy sequence of every block in the store, along with
-; an opaque marker which can be used to resume the stream in the same position.
-; Blocks are explicitly **not** returned in any defined order; it is assumed the
-; store will enumerate them in the most efficient order available.
+(defn stat
+  "Returns a map with an `:id` and `:size` but no content. The returned map
+  may contain additional data like the date stored. Returns nil if the store
+  does not contain the identified block."
+  [store id]
+  (when id
+    ; TODO: verify that id is a Multihash?
+    (store/-stat store id)))
 
 
 (defn list
-  "Enumerates the stored blocks, returning a lazy sequence of block stats.
-  Iterating over the list may result in additional operations to read from the
-  backing data store.
+  "Enumerates the stored blocks, returning a lazy sequence of block stats sorted
+  by id. Iterating over the list may result in additional operations to read
+  from the backing data store.
 
   - `:algorithm`  only return blocks using this hash algorithm
   - `:after`      list blocks whose id (in hex) lexically follows this string
@@ -201,22 +218,33 @@
          (throw (IllegalArgumentException.
                   (str "Option :limit is not a positive integer: "
                        (pr-str limit))))))
-     (-list store opts-map))))
+     (store/-list store opts-map))))
 
 
 (defn get
   "Loads content for a multihash and returns a block record. Returns nil if no
-  block is stored. The returned block is checked to make sure the id matches the
-  requested hash."
+  block is stored for that id.
+
+  The returned block is checked to make sure the id matches the requested
+  multihash."
   [store id]
   (when-not (instance? Multihash id)
     (throw (IllegalArgumentException.
              (str "Id value must be a multihash, got: " (pr-str id)))))
-  (when-let [block (-get store id)]
+  (when-let [block (store/-get store id)]
     (when-not (= id (:id block))
       (throw (RuntimeException.
                (str "Asked for block " id " but got " (:id block)))))
     block))
+
+
+(defn put!
+  "Saves a block into the store. Returns the block record, updated with stat
+  metadata."
+  [store block]
+  ; TODO: verify that block is a Block?
+  (when block
+    (store/-put! store block)))
 
 
 (defn store!
@@ -228,21 +256,64 @@
   ([store source]
    (store! store source default-algorithm))
   ([store source algorithm]
-   (put! store (if (instance? File source)
-                 (from-file source algorithm)
-                 (read! source algorithm)))))
+   (store/-put!
+     store
+     (if (instance? File source)
+       (from-file source algorithm)
+       (read! source algorithm)))))
+
+
+(defn delete!
+  "Removes a block from the store. Returns true if the block was found and
+  removed."
+  [store id]
+  (when id
+    (store/-delete! store id)))
 
 
 
-;; ## Utility Functions
+;; ## Batch API
 
-(defn with-stats
-  "Adds stat information to a block's metadata."
-  [block stats]
-  (vary-meta block assoc :block/stats stats))
+(defn- validate-collection-of
+  "Validates that the given argument is a collection of a certain class of
+  entries."
+  [cls xs]
+  (when-not (coll? xs)
+    (throw (IllegalArgumentException.
+             (str "Argument must be a collection: " (pr-str xs)))))
+  (when-let [bad-entries (seq (filter (complement (partial instance? cls)) xs))]
+    (throw (IllegalArgumentException.
+             (str "Collection entries must be " cls " values: "
+                  (pr-str bad-entries))))))
 
 
-(defn meta-stats
-  "Returns stat information from a block's metadata, if present."
-  [block]
-  (:block/stats (meta block)))
+(defn get-batch
+  "Retrieves a batch of blocks identified by a collection of multihashes.
+  Returns a sequence of the requested blocks in no particular order. Any blocks
+  which were not found in the store are omitted from the result."
+  [store ids]
+  (validate-collection-of Multihash ids)
+  (if (satisfies? store/BatchingStore store)
+    (remove nil? (store/-get-batch store ids))
+    (doall (keep (partial get store) ids))))
+
+
+(defn put-batch!
+  "Saves a collection of blocks into the store. Returns a sequence of the
+  stored blocks, in no particular order."
+  [store blocks]
+  (validate-collection-of Block blocks)
+  (if (satisfies? store/BatchingStore store)
+    (seq (store/-put-batch! store blocks))
+    (doall (map (partial put! store) blocks))))
+
+
+(defn delete-batch!
+  "Removes a batch of blocks from the store, identified by a collection of
+  multihashes. Returns a set of ids for the blocks which were found and
+  deleted."
+  [store ids]
+  (validate-collection-of Multihash ids)
+  (if (satisfies? store/BatchingStore store)
+    (set (store/-delete-batch! store ids))
+    (set (filter (partial delete! store) ids))))

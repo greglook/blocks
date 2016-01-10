@@ -127,11 +127,11 @@ Clojure records.
 ;   blocks.data.Block (data.clj:151)
 
 ; If you're paranoid, you can validate blocks by rehashing the content:
-=> (validate! hello)
+=> (block/validate! hello)
 nil
 
 ; But if the README file backing the second block is changed:
-=> (validate! readme)
+=> (block/validate! readme)
 ; IllegalStateException Block hash:sha2-256:515c169aa0d95... has mismatched content
 ;   blocks.core/validate! (core.clj:115)
 
@@ -171,7 +171,7 @@ The block storage protocol is comprised of five methods:
 #'user/store
 
 => store
-#blocks.store.memory.MemoryBlockStore {:memory #<Atom@2573332e {}>}
+#blocks.store.memory.MemoryStore {:memory #<Atom@2573332e {}>}
 
 ; Initially, the store is empty:
 => (block/list store)
@@ -239,8 +239,10 @@ This library comes with a few block store implementations built in:
   block storage.
 - `blocks.store.file` provides a simple one-file-per-block store in a local
   directory.
+- `blocks.store.cache` manages two backing stores to provide an LRU cache that
+  will stay under a certain size limit.
 
-Other storage types are provided by separate libraries:
+Other storage backends are provided by separate libraries:
 
 - [blocks-s3](//github.com/greglook/blocks-s3) provides storage backed by a
   bucket in Amazon S3.

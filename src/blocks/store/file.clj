@@ -2,29 +2,29 @@
   "Block storage backed by files in nested directories. Each block is stored in
   a separate file.
 
-  In many filesystems, directories are limited to 4,096 entries. In order to
-  avoid this limit (and make navigating the blocks a bit more efficient), block
-  content is stored in nested directories three levels deep. All path elements
-  are lower-case hex-encoded bytes from the multihash.
+  In many filesystems, performance degrades as the number of files in a
+  directory grows. In order to reduce this impact and make navigating the
+  blocks a bit more efficient, block files are stored in directories under the
+  store root. All path elements are lower-case hex-encoded bytes from the
+  multihash.
 
-  The first level is the two-byte multihash prefix, which designates the
-  algorithm and digest length. There will usually only be one or two of these
-  directories. The second and third levels are formed by the first two bytes of
-  the hash digest. Finally, the block is stored in a file containing the rest of
-  the digest.
+  The directories under the root consist of the first four bytes of the
+  multihashes of the blocks stored in them. Within each directory, blocks are
+  stored in files whose names consist of the rest of their digests.
 
   Thus, a block containing the content `foobar` would have the sha1 digest
   `97df3501149...` and be stored under the root directory at:
 
-  `root/1114/97/df/35011497df3588b5a3...`
+  `root/111497df/35011497df3588b5a3...`
 
-  Using this scheme, leaf directories should start approaching the limit once the
-  user has 2^28 entries, or about 268 million blocks."
+  This implementation tries to match the IPFS fs-repo behavior so that the
+  on-disk representations remain compatible."
   (:require
     (blocks
       [core :as block]
       [data :as data]
-      [util :as util])
+      [store :as store])
+    [blocks.store.util :as util]
     [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
@@ -78,6 +78,11 @@
 
 ;; ## File Block Functions
 
+(def ^:private dir-prefix-length
+  "Number of characters to use as a prefix for top-level directory names."
+  8)
+
+
 (defn- file-stats
   "Calculates storage stats for a block file."
   [^File file]
@@ -101,10 +106,8 @@
   (let [hex (multihash/hex id)]
     (io/file
       root
-      (subs hex 0 4)
-      (subs hex 4 6)
-      (subs hex 6 8)
-      (subs hex 8))))
+      (subs hex 0 dir-prefix-length)
+      (subs hex dir-prefix-length))))
 
 
 (defn- file->id
@@ -148,12 +151,12 @@
 
 ;; Block content is stored as files in a multi-level hierarchy under the given
 ;; root directory.
-(defrecord FileBlockStore
+(defrecord FileStore
   [^File root]
 
-  block/BlockStore
+  store/BlockStore
 
-  (stat
+  (-stat
     [this id]
     (when-block id
       (block-stats id file)))
@@ -172,7 +175,7 @@
       (file->block id file)))
 
 
-  (put!
+  (-put!
     [this block]
     (let [id (:id block)
           file (id->file root id)]
@@ -187,11 +190,20 @@
         (file->block id file))))
 
 
-  (delete!
+  (-delete!
     [this id]
     (when-block id
       (locking this
-        (.delete file)))))
+        (.delete file))))
+
+
+  store/BlockEnumerator
+
+  (enumerate
+    [this]
+    (->> (.listFiles root)
+         (mapcat #(.listFiles %))
+         (map #(file->block (file->id root %) %)))))
 
 
 (defn erase!
@@ -205,9 +217,9 @@
 (defn file-store
   "Creates a new local file-based block store."
   [root]
-  (FileBlockStore. (io/file root)))
+  (FileStore. (io/file root)))
 
 
 ;; Remove automatic constructor functions.
-(ns-unmap *ns* '->FileBlockStore)
-(ns-unmap *ns* 'map->FileBlockStore)
+(ns-unmap *ns* '->FileStore)
+(ns-unmap *ns* 'map->FileStore)

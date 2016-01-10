@@ -7,9 +7,17 @@
   back to the primary store when not available."
   (:require
     [blocks.core :as block]
+    [blocks.store :as store]
+    [blocks.store.util :as util]
     [clojure.data.priority-map :refer [priority-map]]
     [clojure.tools.logging :as log]
     [com.stuartsierra.component :as component]))
+
+; TODO: use a generic sorted-kv interface to persist state.
+; keys would look like:
+; [:priorities tick size] -> block id
+; [:total-size] -> size
+; [:tick] -> tick counter
 
 
 (defn- scan-state
@@ -75,14 +83,15 @@
       ; Store the block and update cache state.
       (when-let [cached (block/put! cache block)]
         (swap! (:state store)
-               (fn [{:keys [priorities total-size tick]}]
+               (fn update-state
+                 [{:keys [priorities total-size tick]}]
                  {:priorities (assoc priorities (:id cached) [tick (:size cached)])
                   :total-size (+ total-size (:size cached))
                   :tick (inc tick)}))
         cached))))
 
 
-(defrecord CachingBlockStore
+(defrecord CachingStore
   [size-limit max-block-size primary cache state]
 
   component/Lifecycle
@@ -90,7 +99,7 @@
   (start
     [this]
     (if @state
-      (do (log/info "CachingBlockStore is already initialized")
+      (do (log/info "CachingStore is already initialized")
           this)
       (do
         (when-not primary
@@ -113,47 +122,49 @@
     this)
 
 
-  block/BlockStore
+  store/BlockStore
 
-  (stat
+  (-stat
     [this id]
     (ensure-initialized! this)
-    (or (block/stat cache   id)
-        (block/stat primary id)))
+    (or (store/-stat cache   id)
+        (store/-stat primary id)))
 
 
   (-list
     [this opts]
     (ensure-initialized! this)
-    (block/-list primary opts))
+    (util/select-stats
+      opts
+      (util/merge-block-lists
+        (store/-list cache   opts)
+        (store/-list primary opts))))
 
 
   (-get
     [this id]
     (ensure-initialized! this)
-    (or (block/-get cache id)
-        (when-let [block (block/-get primary id)]
+    (or (store/-get cache id)
+        (when-let [block (store/-get primary id)]
           (or (maybe-cache! this block)
               block))))
 
 
-  (put!
+  (-put!
     [this block]
     (ensure-initialized! this)
     (when-let [id (:id block)]
       (let [cached (maybe-cache! this block)
-            preferred (if (or (realized? block) (nil? cached))
-                        block
-                        cached)
-            stored (block/put! primary preferred)]
+            preferred (util/preferred-copy cached block)
+            stored (store/-put! primary preferred)]
         (or cached stored))))
 
 
-  (delete!
+  (-delete!
     [this id]
     (ensure-initialized! this)
-    (block/delete! cache id)
-    (block/delete! primary id)))
+    (store/-delete! cache   id)
+    (store/-delete! primary id)))
 
 
 (defn cache-store
@@ -177,7 +188,7 @@
       (throw (IllegalArgumentException.
                (str "Cache store max-block-size must be a positive integer if set: "
                     (pr-str mbs))))))
-  (CachingBlockStore.
+  (CachingStore.
     size-limit
     (:max-block-size opts)
     (:primary opts)
@@ -186,5 +197,5 @@
 
 
 ;; Remove automatic constructor functions.
-(ns-unmap *ns* '->CachingBlockStore)
-(ns-unmap *ns* 'map->CachingBlockStore)
+(ns-unmap *ns* '->CachingStore)
+(ns-unmap *ns* 'map->CachingStore)

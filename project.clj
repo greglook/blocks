@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "0.5.0"
+(defproject mvxcvi/blocks "0.6.0"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -9,7 +9,8 @@
 
   :dependencies
   [[byte-streams "0.2.0"]
-   [com.stuartsierra/component "0.3.0"]
+   [com.stuartsierra/component "0.3.1"]
+   [commons-io "2.4"]
    [mvxcvi/multihash "1.1.0"]
    [org.clojure/clojure "1.7.0"]
    [org.clojure/data.priority-map "0.0.7"]
@@ -24,9 +25,10 @@
                    :integration :integration}
 
   :hiera
-  {:cluster-depth 1
-   :show-external true
-   :ignore-ns #{clojure user}}
+  {:cluster-depth 2
+   :vertical false
+   :show-external false
+   :ignore-ns #{blocks.data.conversions blocks.store.tests}}
 
   :codox
   {:metadata {:doc/format :markdown}
@@ -39,7 +41,8 @@
                'blocks.data.Block {'blocks.data.Block (partial into {})}}}
 
   :profiles
-  {:test {:dependencies [[commons-logging "1.2"]]
+  {:repl {:source-paths ["dev"]}
+   :test {:dependencies [[commons-logging "1.2"]]
           :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
    :coverage {:plugins [[lein-cloverage "1.0.6"]]
               :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
