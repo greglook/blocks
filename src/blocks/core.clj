@@ -79,9 +79,12 @@
 
 
 (defn open
-  "Opens an input stream to read the contents of the block. If `start` and
-  `end` are given, the input stream will only return bytes in that range.
-  Throws an IO exception on empty blocks."
+  "Opens an input stream to read the contents of the block.
+
+  If `start` and `end` are given, the input stream will only return content
+  from the starting index byte to the byte before the end index. For example,
+  opening a block with size _n_ with `(open block 0 n)` would return the full
+  block contents."
   (^java.io.InputStream
    [^Block block]
    (let [content ^PersistentBytes (.content block)
@@ -93,11 +96,11 @@
                          (str "Cannot open empty block " (:id block)))))))
   (^java.io.InputStream
    [^Block block start end]
-   (when-not (and (number? start) (number? end)
+   (when-not (and (integer? start) (integer? end)
                   (<= 0 start end (:size block)))
      (throw (IllegalArgumentException.
-              (str "Range bounds must be within block bounds: ["
-                   (pr-str start) ", " (pr-str end) "]"))))
+              (str "Range bounds must be integers within block bounds: ["
+                   (pr-str start) ", " (pr-str end) ")"))))
    (let [content ^PersistentBytes (.content block)
          reader (.reader block)]
      (cond
