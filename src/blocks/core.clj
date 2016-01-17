@@ -259,11 +259,11 @@
   ([store source]
    (store! store source default-algorithm))
   ([store source algorithm]
-   (store/-put!
-     store
-     (if (instance? File source)
-       (from-file source algorithm)
-       (read! source algorithm)))))
+   (let [block (if (instance? File source)
+                 (from-file source algorithm)
+                 (read! source algorithm))]
+     (when (pos? (:size block))
+       (store/-put! store block)))))
 
 
 (defn delete!
