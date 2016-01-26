@@ -88,11 +88,16 @@ public class PersistentBytes implements IHashEq, Indexed, Iterable, Seqable, Seq
 
 
     @Override
-    public boolean equals(Object obj) {
-        if ( this == obj ) return true;
-        if ( obj instanceof PersistentBytes ) {
-            PersistentBytes other = (PersistentBytes)obj;
-            return toBuffer().equals(other.toBuffer());
+    public boolean equals(Object x) {
+        if ( this == x ) return true;
+        if ( x instanceof PersistentBytes ) {
+            PersistentBytes bytes = (PersistentBytes)x;
+            return toBuffer().equals(bytes.toBuffer());
+        } else if ( x instanceof ByteBuffer ) {
+            return toBuffer().equals(x);
+        } else if ( x instanceof byte[] ) {
+            byte[] bytes = (byte[])x;
+            return Arrays.equals(_data, bytes);
         }
         return false;
     }
