@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Expand `PersistentBytes` equality to include primitive byte arrays and
+  `ByteBuffer` objects which have identical content.
+
+### Fixed
+- `block/store!` will no longer try to store empty files.
+
 ## [0.6.0] - 2016-01-10
 
 ### Added
