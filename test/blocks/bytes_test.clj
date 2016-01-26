@@ -27,7 +27,12 @@
   (let [pb1 (PersistentBytes/wrap (.getBytes "foo"))
         pb2 (PersistentBytes/wrap (.getBytes "foo"))
         pb3 (PersistentBytes/wrap (.getBytes "bar"))]
-    (is (= pb1 pb2))
+    (is (= pb1 (.getBytes "foo"))
+        "should be equal to raw bytes")
+    (is (= pb1 (.toBuffer pb1))
+        "should be equal to byte buffer")
+    (is (= pb1 pb2)
+        "should be equal to persistent bytes with equal content")
     (is (not= pb1 pb3))
     (is (= (hash pb1) (hash pb2)))
     (is (not= (hash pb1) (hash pb3)))
