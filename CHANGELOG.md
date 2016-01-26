@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.1] - 2016-01-25
+
 ### Added
 - Expand `PersistentBytes` equality to include primitive byte arrays and
   `ByteBuffer` objects which have identical content.
@@ -92,7 +94,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.6.1...HEAD
+[0.6.1]: https://github.com/greglook/blocks/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/greglook/blocks/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/greglook/blocks/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/greglook/blocks/compare/0.4.1...0.4.2
