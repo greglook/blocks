@@ -19,7 +19,8 @@
   similar to records."
   (:require
     [byte-streams :as bytes]
-    [multihash.core :as multihash])
+    [multihash.core :as multihash]
+    [multihash.digest :as digest])
   (:import
     blocks.data.PersistentBytes
     multihash.core.Multihash))
@@ -182,6 +183,15 @@
 
 ;; ## Utility Functions
 
+(defn- collect-bytes
+  "Collects bytes from a data source into a `PersistentBytes` object. If the
+  source is already persistent, it will be reused directly."
+  [source]
+  (if (instance? PersistentBytes source)
+    source
+    (PersistentBytes/wrap (bytes/to-byte-array source))))
+
+
 (defn- resolve-hasher
   "Resolves an algorithm designator to a hash function. Throws an exception on
   invalid names or error."
@@ -192,7 +202,7 @@
                "Cannot find hash function without algorithm name"))
 
     (keyword? algorithm)
-      (if-let [hf (clojure.core/get multihash/functions algorithm)]
+      (if-let [hf (clojure.core/get digest/functions algorithm)]
         hf
         (throw (IllegalArgumentException.
                  (str "Cannot map algorithm name " algorithm
@@ -243,11 +253,9 @@
   directly, without being checked."
   ^blocks.data.Block
   [id source]
-  (let [content (bytes/to-byte-array source)]
-    (Block. id
-            (count content)
-            (PersistentBytes/wrap content)
-            nil nil nil)))
+  (let [content (collect-bytes source)]
+    (when (pos? (count content))
+      (Block. id (count content) content nil nil nil))))
 
 
 (defn read-block
@@ -256,11 +264,9 @@
   ^blocks.data.Block
   [algorithm source]
   (let [hash-fn (checked-hasher algorithm)
-        content (bytes/to-byte-array source)]
-    (Block. (hash-fn content)
-            (count content)
-            (PersistentBytes/wrap content)
-            nil nil nil)))
+        content (collect-bytes source)]
+    (when (pos? (count content))
+      (Block. (hash-fn (.open content)) (count content) content nil nil nil))))
 
 
 (defn merge-blocks

@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Upgrade `mvxcvi/multihash` to 2.0.0.
+- Small efficiency improvements to block construction.
+
+### Fixed
+- Reading an empty content source returns `nil` instead of an empty block.
+
 ## [0.6.1] - 2016-01-25
 
 ### Added

@@ -8,10 +8,10 @@
   :java-source-paths ["src"]
 
   :dependencies
-  [[byte-streams "0.2.0"]
+  [[byte-streams "0.2.2"]
    [com.stuartsierra/component "0.3.1"]
-   [commons-io "2.4"]
-   [mvxcvi/multihash "1.1.0"]
+   [commons-io "2.5"]
+   [mvxcvi/multihash "2.0.0"]
    [org.clojure/clojure "1.7.0"]
    [org.clojure/data.priority-map "0.0.7"]
    [org.clojure/tools.logging "0.3.1"]]

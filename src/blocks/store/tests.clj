@@ -7,7 +7,8 @@
     [clojure.java.io :as io]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]
-    [multihash.core :as multihash])
+    [multihash.core :as multihash]
+    [multihash.digest :as digest])
   (:import
     blocks.data.PersistentBytes))
 
@@ -111,12 +112,12 @@
         (is (= (count blocks) (count block-batch)))
         (is (every? (set (map :id block-batch)) (map :id blocks)))))
     (testing "get-batch"
-      (let [block-batch (block/get-batch store (cons (multihash/sha1 "foo")
+      (let [block-batch (block/get-batch store (cons (digest/sha1 "foo")
                                                      (map :id blocks)))]
         (is (= (count blocks) (count block-batch)))
         (is (every? (set (map :id block-batch)) (map :id blocks)))))
     (testing "delete-batch!"
-      (let [deleted-ids (block/delete-batch! store (cons (multihash/sha1 "foo")
+      (let [deleted-ids (block/delete-batch! store (cons (digest/sha1 "foo")
                                                          (map :id blocks)))]
         (is (= (count blocks) (count deleted-ids)))
         (is (every? (set deleted-ids) (map :id blocks)))))))
@@ -147,8 +148,8 @@
                  (str "Cannot run integration test on " (pr-str store)
                       " as it already contains blocks!"))))
       (test-section "querying non-existent block"
-        (is (nil? (block/stat store (multihash/sha1 "foo"))))
-        (is (nil? (block/get store (multihash/sha1 "bar")))))
+        (is (nil? (block/stat store (digest/sha1 "foo"))))
+        (is (nil? (block/get store (digest/sha1 "bar")))))
       (test-section "ranged open"
         (let [block (block/store! store "012 345 678")]
           (is (= "345" (with-open [subrange (block/open block 4 7)]
