@@ -183,6 +183,15 @@
 
 ;; ## Utility Functions
 
+(defn- collect-bytes
+  "Collects bytes from a data source into a `PersistentBytes` object. If the
+  source is already persistent, it will be reused directly."
+  [source]
+  (if (instance? PersistentBytes source)
+    source
+    (PersistentBytes/wrap (bytes/to-byte-array source))))
+
+
 (defn- resolve-hasher
   "Resolves an algorithm designator to a hash function. Throws an exception on
   invalid names or error."
@@ -244,11 +253,8 @@
   directly, without being checked."
   ^blocks.data.Block
   [id source]
-  (let [content (bytes/to-byte-array source)]
-    (Block. id
-            (count content)
-            (PersistentBytes/wrap content)
-            nil nil nil)))
+  (let [content (collect-bytes source)]
+    (Block. id (count content) content nil nil nil)))
 
 
 (defn read-block
@@ -257,11 +263,8 @@
   ^blocks.data.Block
   [algorithm source]
   (let [hash-fn (checked-hasher algorithm)
-        content (bytes/to-byte-array source)]
-    (Block. (hash-fn content)
-            (count content)
-            (PersistentBytes/wrap content)
-            nil nil nil)))
+        content (collect-bytes source)]
+    (Block. (hash-fn (.open content)) (count content) content nil nil nil)))
 
 
 (defn merge-blocks
