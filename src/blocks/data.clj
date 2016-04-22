@@ -254,7 +254,8 @@
   ^blocks.data.Block
   [id source]
   (let [content (collect-bytes source)]
-    (Block. id (count content) content nil nil nil)))
+    (when (pos? (count content))
+      (Block. id (count content) content nil nil nil))))
 
 
 (defn read-block
@@ -264,7 +265,8 @@
   [algorithm source]
   (let [hash-fn (checked-hasher algorithm)
         content (collect-bytes source)]
-    (Block. (hash-fn (.open content)) (count content) content nil nil nil)))
+    (when (pos? (count content))
+      (Block. (hash-fn (.open content)) (count content) content nil nil nil))))
 
 
 (defn merge-blocks

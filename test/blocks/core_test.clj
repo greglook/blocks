@@ -46,8 +46,8 @@
 
 (deftest block-reading
   (testing "block construction"
-    (is (empty? @(block/read! (byte-array 0)))
-        "empty content reads into empty content")))
+    (is (nil? (block/read! (byte-array 0)))
+        "empty content reads into nil block")))
 
 
 (deftest block-writing
