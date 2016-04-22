@@ -19,7 +19,8 @@
   similar to records."
   (:require
     [byte-streams :as bytes]
-    [multihash.core :as multihash])
+    [multihash.core :as multihash]
+    [multihash.digest :as digest])
   (:import
     blocks.data.PersistentBytes
     multihash.core.Multihash))
@@ -192,7 +193,7 @@
                "Cannot find hash function without algorithm name"))
 
     (keyword? algorithm)
-      (if-let [hf (clojure.core/get multihash/functions algorithm)]
+      (if-let [hf (clojure.core/get digest/functions algorithm)]
         hf
         (throw (IllegalArgumentException.
                  (str "Cannot map algorithm name " algorithm

@@ -20,7 +20,8 @@
     [clojure.java.io :as io]
     [clojure.set :as set]
     [clojure.string :as str]
-    [multihash.core :as multihash])
+    [multihash.core :as multihash]
+    [multihash.digest :as digest])
   (:import
     (blocks.data
       Block
@@ -164,7 +165,7 @@
       (throw (IllegalStateException.
                (str "Block " id " has negative size: " size))))
     (with-open [stream (CountingInputStream. (open block))]
-      (when-not (multihash/test id stream)
+      (when-not (digest/test id stream)
         (throw (IllegalStateException.
                  (str "Block " id " has mismatched content"))))
       (when (not= size (.getByteCount stream))

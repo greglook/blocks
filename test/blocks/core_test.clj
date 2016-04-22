@@ -6,7 +6,8 @@
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
-    [multihash.core :as multihash])
+    [multihash.core :as multihash]
+    [multihash.digest :as digest])
   (:import
     blocks.data.Block
     java.io.ByteArrayOutputStream
@@ -88,7 +89,7 @@
                    (block/validate! (fix base :size 123)))))
     (testing "incorrect identifier"
       (is (thrown? IllegalStateException
-                   (block/validate! (fix base :id (multihash/sha1 "qux"))))))
+                   (block/validate! (fix base :id (digest/sha1 "qux"))))))
     (testing "empty block"
       (is (thrown? IOException
                    (block/validate! (empty base)))))
@@ -136,10 +137,10 @@
     (is (thrown? IllegalArgumentException (block/get {} "foo"))))
   (testing "no block result"
     (let [store (reify store/BlockStore (-get [_ id] nil))]
-      (is (nil? (block/get store (multihash/sha1 "foo bar"))))))
+      (is (nil? (block/get store (digest/sha1 "foo bar"))))))
   (testing "invalid block result"
     (let [store (reify store/BlockStore (-get [_ id] (block/read! "foo")))
-          other-id (multihash/sha1 "baz")]
+          other-id (digest/sha1 "baz")]
       (is (thrown? RuntimeException (block/get store other-id)))))
   (testing "valid block result"
     (let [block (block/read! "foo")
@@ -172,7 +173,7 @@
                      (block/get-batch nil :foo))
             "with non-collection throws error")
         (is (thrown? IllegalArgumentException
-                     (block/get-batch nil [(multihash/sha1 "foo") :foo]))
+                     (block/get-batch nil [(digest/sha1 "foo") :foo]))
             "with non-multihash entry throws error"))
       (let [store (reify
                     store/BlockStore
@@ -191,7 +192,7 @@
                     (-get
                       [_ id]
                       (get test-blocks id)))
-            ids [(:id a) (:id b) (:id c) (multihash/sha1 "frobble")]]
+            ids [(:id a) (:id b) (:id c) (digest/sha1 "frobble")]]
         (is (= [a b c] (block/get-batch store ids))
             "should fall back to normal get method")))
     (testing "put-batch!"
@@ -228,7 +229,7 @@
                      (block/delete-batch! nil :foo))
             "with non-collection throws error")
         (is (thrown? IllegalArgumentException
-                     (block/delete-batch! nil [(multihash/sha1 "foo") :foo]))
+                     (block/delete-batch! nil [(digest/sha1 "foo") :foo]))
             "with non-multihash entry throws error"))
       (let [store (reify
                     store/BlockStore
@@ -248,7 +249,7 @@
                       [_ id]
                       (contains? test-blocks id)))]
         (is (= #{(:id a) (:id b)}
-               (block/delete-batch! store [(:id a) (multihash/sha1 "qux") (:id b)]))
+               (block/delete-batch! store [(:id a) (digest/sha1 "qux") (:id b)]))
             "should fall back to normal delete method")))))
 
 
