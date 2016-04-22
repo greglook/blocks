@@ -202,7 +202,7 @@
   (enumerate
     [this]
     (->> (.listFiles root)
-         (mapcat #(.listFiles %))
+         (mapcat #(.listFiles ^File %))
          (map #(file->block (file->id root %) %)))))
 
 
