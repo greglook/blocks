@@ -42,8 +42,10 @@
 
   :profiles
   {:repl {:source-paths ["dev"]}
-   :test {:dependencies [[commons-logging "1.2"]]
-          :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
+   :test {:plugins [[test2junit "1.1.2"]]
+          :dependencies [[commons-logging "1.2"]]
+          :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]
+          :test2junit-output-dir ~(or (System/getenv "CIRCLE_TEST_REPORTS") "target/test2junit")}
    :coverage {:plugins [[lein-cloverage "1.0.6"]]
               :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                          "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
