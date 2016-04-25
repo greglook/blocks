@@ -1,4 +1,0 @@
----
-test:
-  override:
-    - lein with-profile +test test2junit
