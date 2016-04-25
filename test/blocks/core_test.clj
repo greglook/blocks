@@ -54,7 +54,7 @@
   (let [block (block/read! "frobblenitz")
         baos (ByteArrayOutputStream.)]
     (block/write! block baos)
-    (is (bytes= "frobblenitz" (.toByteArray baos)))))
+    (is (bytes= (.getBytes "frobblenitz") (.toByteArray baos)))))
 
 
 (deftest block-loading
