@@ -13,6 +13,7 @@
    [commons-io "2.5"]
    [mvxcvi/multihash "2.0.0"]
    [org.clojure/clojure "1.7.0"]
+   [org.clojure/test.check "0.9.0"]
    [org.clojure/data.priority-map "0.0.7"]
    [org.clojure/tools.logging "0.3.1"]]
 

@@ -1,4 +1,4 @@
-(ns ^:no-doc blocks.store.tests
+(ns blocks.store.tests
   "Suite of tests to verify that a given block store implementation conforms to
   the spec."
   (:require
@@ -6,6 +6,9 @@
     [blocks.store.util :as util]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
+    [clojure.test.check :as check]
+    [clojure.test.check.generators :as gen]
+    [clojure.test.check.properties :as prop]
     [com.stuartsierra.component :as component]
     [multihash.core :as multihash]
     [multihash.digest :as digest])
