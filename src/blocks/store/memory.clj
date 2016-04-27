@@ -50,10 +50,10 @@
     [this block]
     (when-let [id (:id block)]
       (if-let [extant (get @memory id)]
-        (data/merge-blocks block extant)
-        (let [block' (block/with-stats
-                       (block/load! block)
-                       {:stored-at (Date.)})]
+        extant
+        (let [block' (-> (block/load! block)
+                         (data/clean-block)
+                         (block/with-stats {:stored-at (Date.)}))]
           (swap! memory assoc id block')
           block'))))
 

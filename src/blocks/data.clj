@@ -270,6 +270,17 @@
       (Block. (hash-fn (.open content)) (count content) content nil nil nil))))
 
 
+(defn clean-block
+  "Creates a version of the given block without extra attributes or metadata."
+  [block]
+  (Block. (.id block)
+          (.size block)
+          (.content block)
+          (.reader block)
+          nil
+          nil))
+
+
 (defn merge-blocks
   "Creates a new block by merging together two blocks representing the same
   content. Block ids and sizes must match. The new block's content or reader

@@ -186,9 +186,7 @@
           (with-open [content (block/open block)]
             (io/copy content file))
           (.setWritable file false false)))
-      (data/merge-blocks
-        block
-        (file->block id file))))
+      (file->block id file)))
 
 
   (-delete!

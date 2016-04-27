@@ -245,9 +245,11 @@
   "Saves a block into the store. Returns the block record, updated with stat
   metadata."
   [store block]
-  ; TODO: verify that block is a Block?
   (when block
-    (store/-put! store block)))
+    (when-not (instance? Block block)
+      (throw (IllegalArgumentException.
+               (str "Argument must be a block, got: " (pr-str block)))))
+    (data/merge-blocks block (store/-put! store block))))
 
 
 (defn store!
