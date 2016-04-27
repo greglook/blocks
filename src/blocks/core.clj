@@ -14,7 +14,6 @@
   (:refer-clojure :exclude [get list])
   (:require
     [blocks.data :as data]
-    [blocks.data.conversions]
     [blocks.store :as store]
     [byte-streams :as bytes]
     [clojure.java.io :as io]
