@@ -193,9 +193,10 @@
 
   (-delete!
     [this id]
-    (when-block id
-      (locking this
-        (.delete file))))
+    (or (when-block id
+          (locking this
+            (.delete file)))
+        false))
 
 
   store/BlockEnumerator
