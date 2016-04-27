@@ -2,7 +2,8 @@
   "Suite of tests to verify that a given block store implementation conforms to
   the spec."
   (:require
-    [alphabase.core :as abc]
+    [alphabase.bytes :as bytes]
+    [alphabase.hex :as hex]
     [blocks.core :as block]
     [blocks.store.util :as util]
     [clojure.java.io :as io]
@@ -15,6 +16,33 @@
     [multihash.digest :as digest])
   (:import
     blocks.data.PersistentBytes))
+
+
+(defn random-block
+  "Creates a new block with random content at most `max-size` bytes long."
+  [max-size]
+  (block/read!
+    (bytes/random-bytes (inc (rand-int max-size)))
+    (rand-nth (keys digest/functions))))
+
+
+(defn generate-blocks!
+  "Generates some test blocks and returns a map of the ids to the blocks."
+  [n max-size]
+  (->> (repeatedly #(random-block max-size))
+       (take n)
+       (map (juxt :id identity))
+       (into (sorted-map))))
+
+
+(defn populate-blocks!
+  "Generates random blocks and puts them into the given store. Returns a map
+  of multihash ids to blocks."
+  [store & {:keys [n max-size], :or {n 10, max-size 1024}}]
+  (let [blocks (generate-blocks! n max-size)]
+    (block/put-batch! store (vals blocks))
+    blocks))
+
 
 
 ;; ## Generators
@@ -42,7 +70,7 @@
   "The put! method in a store should return a block with an updated content or
   reader, but keep the same id, extra attributes, and any non-stat metadata."
   [store]
-  (let [original (-> (block/read! (abc/random-bytes 512))
+  (let [original (-> (random-block 512)
                      (assoc :foo "bar")
                      (vary-meta assoc ::thing :baz))
         stored (block/put! store original)]
@@ -100,7 +128,7 @@
   [store ids n]
   (let [prefix (-> (block/list store :limit 1) first :id multihash/hex (subs 0 4))]
     (dotimes [i n]
-      (let [after (str prefix (hex/encode (abc/random-bytes 6)))
+      (let [after (str prefix (hex/encode (bytes/random-bytes 6)))
             limit (inc (rand-int 100))
             stats (block/list store :after after :limit limit)
             expected (->> ids
@@ -115,7 +143,7 @@
 (defn test-batch-ops
   "Tests the batch functionality of a store."
   [store]
-  (let [blocks (take 10 (random-blocks 512))]
+  (let [blocks (vals (generate-blocks! 10 512))]
     (testing "put-batch!"
       (let [block-batch (block/put-batch! store blocks)]
         (is (= (count blocks) (count block-batch)))
