@@ -2,7 +2,7 @@
   (:require
     (blocks.store
       [file :as file :refer [file-store]]
-      [tests :refer [test-block-store]])
+      [tests :as tests])
     [clojure.java.io :as io]
     [clojure.test :refer :all]))
 
@@ -21,10 +21,7 @@
 (deftest ^:integration test-file-store
   (let [tmpdir (io/file "target" "test" "tmp"
                         (str "file-block-store."
-                          (System/currentTimeMillis)))
-        store (file-store tmpdir)]
-    (test-block-store
-      "file-store" store
-      :eraser file/erase!
-      :max-size 1024
-      :blocks 10)))
+                          (System/currentTimeMillis)))]
+    (tests/check-store!
+      #(file-store tmpdir)
+      :eraser file/erase!)))

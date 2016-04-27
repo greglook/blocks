@@ -47,23 +47,195 @@
 
 ;; ## Generators
 
-(defn random-blocks
-  "Returns a lazy sequence of blocks with random content up to max-size bytes."
-  [max-size]
-  (map block/read! (repeatedly #(abc/random-bytes (inc (rand-int max-size))))))
+(def gen-block
+  "Generator which constructs blocks with random content and one of the
+  available hashing functions."
+  (gen/fmap
+    (partial apply block/read!)
+    (gen/tuple
+      (gen/not-empty (gen/scale (partial * 10) gen/bytes))
+      (gen/elements (keys digest/functions)))))
+
+
+(defn- gen-list-opts
+  "Generator for options maps to pass into a block/list call."
+  [blocks]
+  ; TODO: how to test permutations of these better?
+  (let [gen-limit (gen/large-integer* {:min 1, :max (inc (count blocks))})]
+    (gen/one-of
+      [(gen/hash-map
+         :algorithm (gen/elements (keys digest/functions))
+         :limit gen-limit)
+       (gen/hash-map
+         :after (gen/fmap hex/encode (gen/not-empty gen/bytes))
+         :limit gen-limit)])))
+
+
+(defn- gen-store-op
+  "Test generator which creates a single operation against the store."
+  [blocks]
+  (let [gen-op (fn [op-key gen-args] (gen/tuple (gen/return op-key) gen-args))
+        gen-block-key (gen/elements (keys blocks))
+        gen-block-val (gen/elements (vals blocks))]
+    (gen/one-of
+      [(gen-op :stat          gen-block-key)
+       (gen-op :list          (gen-list-opts blocks))
+       (gen-op :get           gen-block-key)
+       (gen-op :put!          gen-block-val)
+       (gen-op :delete!       gen-block-key)
+       (gen-op :get-batch     (gen/not-empty (gen/set gen-block-key)))
+       (gen-op :put-batch!    (gen/not-empty (gen/set gen-block-val)))
+       (gen-op :delete-batch! (gen/not-empty (gen/set gen-block-key)))])))
 
 
 
 ;; ## Testing
 
-(defn populate-blocks!
-  "Stores some test blocks in the given block store and returns a map of the
-  ids to the original content values."
-  [store n max-size]
-  (->> (random-blocks max-size)
-       (take n)
-       (map (juxt (comp :id (partial block/put! store)) deref))
-       (into (sorted-map))))
+(defn- apply-op!
+  "Applies an operation to the store by using the op keyword to resolve a method
+  in the `blocks.core` namespace. Returns the result of calling the method."
+  [store [op-key args]]
+  (let [var-name (symbol (name op-key))
+        method (ns-resolve 'blocks.core var-name)
+        form-str (pr-str (list (symbol "blocks" (str var-name)) 'store args))]
+    ;(println ">>" form-str)
+    (testing form-str
+      (method store args))))
+
+
+(defn- check-stat-result
+  [block result]
+  (if block
+    (testing "stored block"
+      (is (map? result))
+      (is (= (:id block) (:id result)))
+      (is (= (:size block) (:size result)))
+      (is (some? (:stored-at result))))
+    (testing "missing block"
+      (is (nil? result)))))
+
+
+(defn- check-op
+  "Checks that the result of an operation matches the model of the store's
+  contents. Returns true if the operation and model match."
+  [model [op-key args] result]
+  (case op-key
+    :stat
+      (check-stat-result (get model args) result)
+
+    :list
+      (let [{:keys [algorithm after limit]} args
+            expected-ids
+              (cond->> (keys model)
+                after
+                  (filter #(pos? (compare (multihash/hex %) after)))
+                algorithm
+                  (filter #(= algorithm (:algorithm %)))
+                true
+                  (sort)
+                limit
+                  (take limit))]
+        (is (sequential? result))
+        (is (= (count result) (count expected-ids)))
+        (is (every?
+               (fn [[id act]] (check-stat-result (get model id) act))
+               (map vector expected-ids result))
+            "all stat results are rturned"))
+
+    :get
+      (if-let [block (get model args)]
+        (is (= block result))
+        (is (nil? result)))
+
+    :put!
+      (do (is (= (:id result) (:id args)))
+          (is (= (:size result) (:size args))))
+
+    :delete!
+      (if (contains? model args)
+        (testing "stored block"
+          (is (true? result)))
+        (testing "missing block"
+          (is (false? result))))
+
+    :get-batch
+      (let [expected-blocks (keep model args)]
+        (is (coll? result))
+        (is (= (set expected-blocks) (set result))))
+
+    :put-batch!
+      (is (= (set args) (set result)))
+
+    :delete-batch!
+      (let [contained-ids (keep (set args) (keys model))]
+        (is (= (set contained-ids) result)))))
+
+
+(defn- update-model
+  [model [op-key args]]
+  (case op-key
+    :put! (assoc model (:id args) args)
+    :delete! (dissoc model args)
+    :put-batch! (into model (map (juxt :id identity) args))
+    :delete-batch! (apply dissoc model args)
+    model))
+
+
+(defn- valid-op-seq?
+  "Determines whether the given sequence of operations produces valid results
+  when applied to the store."
+  [store ops]
+  (loop [model {}
+         ops ops]
+    (if (seq ops)
+      (let [op (first ops)
+            result (apply-op! store op)]
+        (if (check-op model op result)
+          (recur (update-model model op)
+                 (rest ops))
+          (do (println "ERROR: Illegal operation result:"
+                       (pr-str op) "->" (pr-str result))
+              false)))
+      true)))
+
+
+(defn check-store!
+  [constructor & {:keys [blocks max-size iterations eraser]
+                  :or {blocks 20, max-size 1024, iterations 100}}]
+  {:pre [(some? constructor)]}
+  (let [test-blocks (generate-blocks! blocks max-size)]
+    (check/quick-check iterations
+      (prop/for-all [ops (gen/list (gen-store-op test-blocks))]
+        (let [store (constructor)]
+          (component/start store)
+          (try
+            (when-not (empty? (block/list store))
+              (throw (IllegalStateException.
+                       (str "Cannot run integration test on " (pr-str store)
+                            " as it already contains blocks!"))))
+            (let [result (valid-op-seq? store ops)]
+              (if eraser
+                (eraser store)
+                (block/delete-batch! store (set (keys test-blocks))))
+              (is (empty? (block/list store)) "ends empty")
+              result)
+            (finally
+              (try
+                (component/stop store)
+                (catch Exception ex
+                  (println "Error stopping store:" ex))))))))))
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 (defn test-put-attributes
