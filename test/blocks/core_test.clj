@@ -54,7 +54,7 @@
   (let [block (block/read! "frobblenitz")
         baos (ByteArrayOutputStream.)]
     (block/write! block baos)
-    (is (bytes= (.getBytes "frobblenitz") (.toByteArray baos)))))
+    (is (bytes= "frobblenitz" (.toByteArray baos)))))
 
 
 (deftest block-loading
@@ -206,7 +206,7 @@
                     store/BlockStore
                     (-put!
                       [_ block]
-                      [:put block])
+                      (assoc block :put? true))
                     store/BatchingStore
                     (-put-batch!
                       [_ blocks]
@@ -218,9 +218,8 @@
                     store/BlockStore
                     (-put!
                       [_ block]
-                      [:put block]))]
-        (is (= [[:put a] [:put b] [:put c]]
-               (block/put-batch! store [a b c]))
+                      (assoc block :put? true)))]
+        (is (every? :put? (block/put-batch! store [a b c]))
             "should fall back to normal put method")))
     (testing "delete-batch!"
       (testing "validation"
