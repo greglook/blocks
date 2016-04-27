@@ -11,6 +11,7 @@
   [[byte-streams "0.2.2"]
    [com.stuartsierra/component "0.3.1"]
    [commons-io "2.5"]
+   [mvxcvi/alphabase "0.2.0"]
    [mvxcvi/multihash "2.0.0"]
    [org.clojure/clojure "1.7.0"]
    [org.clojure/test.check "0.9.0"]

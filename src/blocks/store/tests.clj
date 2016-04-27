@@ -2,6 +2,7 @@
   "Suite of tests to verify that a given block store implementation conforms to
   the spec."
   (:require
+    [alphabase.core :as abc]
     [blocks.core :as block]
     [blocks.store.util :as util]
     [clojure.java.io :as io]
@@ -16,11 +17,16 @@
     blocks.data.PersistentBytes))
 
 
+;; ## Generators
+
 (defn random-blocks
   "Returns a lazy sequence of blocks with random content up to max-size bytes."
   [max-size]
-  (map block/read! (repeatedly #(util/random-bytes (inc (rand-int max-size))))))
+  (map block/read! (repeatedly #(abc/random-bytes (inc (rand-int max-size))))))
 
+
+
+;; ## Testing
 
 (defn populate-blocks!
   "Stores some test blocks in the given block store and returns a map of the
@@ -36,7 +42,7 @@
   "The put! method in a store should return a block with an updated content or
   reader, but keep the same id, extra attributes, and any non-stat metadata."
   [store]
-  (let [original (-> (block/read! (util/random-bytes 512))
+  (let [original (-> (block/read! (abc/random-bytes 512))
                      (assoc :foo "bar")
                      (vary-meta assoc ::thing :baz))
         stored (block/put! store original)]
@@ -94,7 +100,7 @@
   [store ids n]
   (let [prefix (-> (block/list store :limit 1) first :id multihash/hex (subs 0 4))]
     (dotimes [i n]
-      (let [after (str prefix (util/random-hex 6))
+      (let [after (str prefix (hex/encode (abc/random-bytes 6)))
             limit (inc (rand-int 100))
             stats (block/list store :after after :limit limit)
             expected (->> ids
