@@ -238,6 +238,7 @@
 
 
 
+#_
 (defn test-put-attributes
   "The put! method in a store should return a block with an updated content or
   reader, but keep the same id, extra attributes, and any non-stat metadata."
@@ -259,6 +260,7 @@
     (is (true? (block/delete! store (:id stored))))))
 
 
+#_
 (defn test-block
   "Determines whether the store contains the content for the given identifier."
   [store id content]
@@ -283,55 +285,7 @@
           "block only contains id and size"))))
 
 
-(defn test-restore-block
-  "Tests re-storing an existing block."
-  [store id content]
-  (let [status     (block/stat store id)
-        new-block  (block/store! store content)
-        new-status (block/stat store id)]
-    (is (= id (:id new-block)))
-    #_ ; breaks cache test...
-    (is (= (:stored-at status)
-           (:stored-at new-status)))))
-
-
-(defn test-list-stats
-  "Tests the functionality of list's marker option."
-  [store ids n]
-  (let [prefix (-> (block/list store :limit 1) first :id multihash/hex (subs 0 4))]
-    (dotimes [i n]
-      (let [after (str prefix (hex/encode (bytes/random-bytes 6)))
-            limit (inc (rand-int 100))
-            stats (block/list store :after after :limit limit)
-            expected (->> ids
-                          (filter #(pos? (compare (multihash/hex %) after)))
-                          (sort)
-                          (take limit))]
-        (is (= expected (map :id stats))
-            (str "list should return the expected ids in sorted order for: "
-                 (pr-str {:after after, :limit limit})))))))
-
-
-(defn test-batch-ops
-  "Tests the batch functionality of a store."
-  [store]
-  (let [blocks (vals (generate-blocks! 10 512))]
-    (testing "put-batch!"
-      (let [block-batch (block/put-batch! store blocks)]
-        (is (= (count blocks) (count block-batch)))
-        (is (every? (set (map :id block-batch)) (map :id blocks)))))
-    (testing "get-batch"
-      (let [block-batch (block/get-batch store (cons (digest/sha1 "foo")
-                                                     (map :id blocks)))]
-        (is (= (count blocks) (count block-batch)))
-        (is (every? (set (map :id block-batch)) (map :id blocks)))))
-    (testing "delete-batch!"
-      (let [deleted-ids (block/delete-batch! store (cons (digest/sha1 "foo")
-                                                         (map :id blocks)))]
-        (is (= (count blocks) (count deleted-ids)))
-        (is (every? (set deleted-ids) (map :id blocks)))))))
-
-
+#_
 (defmacro ^:private test-section
   [title & body]
   `(do (printf "    * %s\n" ~title)
@@ -343,6 +297,7 @@
          result#)))
 
 
+#_
 (defn test-block-store
   "Tests a block store implementation."
   [label store & {:keys [blocks max-size eraser]
