@@ -186,6 +186,7 @@
 (defn- collect-bytes
   "Collects bytes from a data source into a `PersistentBytes` object. If the
   source is already persistent, it will be reused directly."
+  ^PersistentBytes
   [source]
   (if (instance? PersistentBytes source)
     source
