@@ -2,10 +2,11 @@
   "Suite of tests to verify that a given block store implementation conforms to
   the spec."
   (:require
-    [alphabase.bytes :as bytes]
+    [alphabase.bytes :refer [random-bytes]]
     [alphabase.hex :as hex]
     [blocks.core :as block]
     [blocks.store.util :as util]
+    [byte-streams :as bytes :refer [bytes=]]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
     [clojure.test.check :as check]
@@ -22,7 +23,7 @@
   "Creates a new block with random content at most `max-size` bytes long."
   [max-size]
   (block/read!
-    (bytes/random-bytes (inc (rand-int max-size)))
+    (random-bytes (inc (rand-int max-size)))
     (rand-nth (keys digest/functions))))
 
 
@@ -78,14 +79,23 @@
         gen-block-key (gen/elements (keys blocks))
         gen-block-val (gen/elements (vals blocks))]
     (gen/one-of
-      [(gen-op :stat          gen-block-key)
-       (gen-op :list          (gen-list-opts blocks))
-       (gen-op :get           gen-block-key)
-       (gen-op :put!          gen-block-val)
-       (gen-op :delete!       gen-block-key)
-       (gen-op :get-batch     (gen/not-empty (gen/set gen-block-key)))
-       (gen-op :put-batch!    (gen/not-empty (gen/set gen-block-val)))
-       (gen-op :delete-batch! (gen/not-empty (gen/set gen-block-key)))])))
+      [(gen-op :stat             gen-block-key)
+       (gen-op :list             (gen-list-opts blocks))
+       (gen-op :get              gen-block-key)
+       (gen-op :put!             gen-block-val)
+       (gen-op :delete!          gen-block-key)
+       (gen-op :get-batch        (gen/not-empty (gen/set gen-block-key)))
+       (gen-op :put-batch!       (gen/not-empty (gen/set gen-block-val)))
+       (gen-op :delete-batch!    (gen/not-empty (gen/set gen-block-key)))
+       (gen-op :open-block       gen-block-key)
+       (gen-op :open-block-range (gen/fmap
+                                   (fn [[id a b]]
+                                     (if (< a b)
+                                       [id a b]
+                                       [id b a]))
+                                   (gen/tuple gen-block-key
+                                              gen/nat
+                                              gen/nat)))])))
 
 
 
@@ -95,11 +105,16 @@
   "Applies an operation to the store by using the op keyword to resolve a method
   in the `blocks.core` namespace. Returns the result of calling the method."
   [store [op-key args]]
-  (let [var-name (symbol (name op-key))
-        method (ns-resolve 'blocks.core var-name)
-        form-str (pr-str (list (symbol "blocks" (str var-name)) 'store args))]
-    ;(println ">>" form-str)
-    (testing form-str
+  ;(println ">>" op-key (pr-str args))
+  (case op-key
+    :open-block
+      (block/get store args)
+
+    :open-block-range
+      (block/get store (first args))
+
+    (let [var-name (symbol (name op-key))
+          method (ns-resolve 'blocks.core var-name)]
       (method store args))))
 
 
@@ -168,7 +183,22 @@
 
     :delete-batch!
       (let [contained-ids (keep (set args) (keys model))]
-        (is (= (set contained-ids) result)))))
+        (is (= (set contained-ids) result)))
+
+    :open-block
+      (if-let [block (get model args)]
+        (is (bytes= (.open (.content block)) (block/open result)))
+        (is (nil? result)))
+
+    :open-block-range
+      (let [[id start end] args]
+        (if-let [block (get model id)]
+          (is (bytes= (@#'blocks.core/bounded-input-stream
+                        (.open (.content block)) start end)
+                      (block/open result
+                                  (min start (:size block))
+                                  (min end   (:size block)))))
+          (is (nil? result))))))
 
 
 (defn- update-model
