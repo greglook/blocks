@@ -20,6 +20,7 @@
   This implementation tries to match the IPFS fs-repo behavior so that the
   on-disk representations remain compatible."
   (:require
+    [alphabase.hex :as hex]
     (blocks
       [core :as block]
       [data :as data]
@@ -121,7 +122,7 @@
         (log/warnf "File %s is not a child of root directory %s" file root))
       (subs (inc (count root)))
       (str/replace "/" "")
-      (util/check util/hex?
+      (util/check hex/valid?
         (log/warnf "File %s did not form valid hex entry: %s" file value))
       (multihash/decode))))
 
@@ -185,16 +186,15 @@
           (with-open [content (block/open block)]
             (io/copy content file))
           (.setWritable file false false)))
-      (data/merge-blocks
-        block
-        (file->block id file))))
+      (file->block id file)))
 
 
   (-delete!
     [this id]
-    (when-block id
-      (locking this
-        (.delete file))))
+    (or (when-block id
+          (locking this
+            (.delete file)))
+        false))
 
 
   store/BlockEnumerator
@@ -202,7 +202,7 @@
   (enumerate
     [this]
     (->> (.listFiles root)
-         (mapcat #(.listFiles %))
+         (mapcat #(.listFiles ^File %))
          (map #(file->block (file->id root %) %)))))
 
 

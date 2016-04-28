@@ -21,30 +21,6 @@
       (is (= [[:> :foo]] @effects) "should cause side effects"))))
 
 
-(deftest hex-validation
-  (is (false? (util/hex? nil)) "nil is not valid hex")
-  (is (false? (util/hex? "")) "empty string is not valid hex")
-  (is (false? (util/hex? "012")) "odd length string is not hex")
-  (is (false? (util/hex? "12xx")) "invalid characters are not hex")
-  (is (true?  (util/hex? "00")) "single zero byte is valid hex")
-  (is (true?  (util/hex? "fedcba9876543210")) "full hex alphabet is valid"))
-
-
-(deftest random-generators
-  (testing "random-bytes"
-    (dotimes [i 20]
-      (is (= (class (byte-array 0)) (class (util/random-bytes 10)))
-          "should return a byte array")
-      (is (pos? (count (util/random-bytes 10)))
-          "should return non-empty arrays")
-      (is (>= 10 (count (util/random-bytes 10)))
-          "should return arrays at most a certain length")))
-  (testing "random-hex"
-    (dotimes [i 20]
-      (is (util/hex? (util/random-hex 10))
-          "should return valid hex"))))
-
-
 (deftest block-preference
   (is (nil? (util/preferred-copy nil))
       "returns nil with no block arguments")

@@ -19,30 +19,6 @@
          nil))))
 
 
-(defn hex?
-  "Predcate which checks whether a string is valid hexadecimal encoding."
-  [string]
-  (boolean (and (string? string)
-                (even? (count string))
-                (re-matches #"^[0-9a-f]+$" string))))
-
-
-(defn random-bytes
-  "Returns a byte array `size` bytes long with random content."
-  [size]
-  (let [data (byte-array size)]
-    (.nextBytes (java.security.SecureRandom.) data)
-    data))
-
-
-(defn random-hex
-  "Returns a random hex string `size` bytes long."
-  [size]
-  (->> (repeatedly #(rand-nth "0123456789abcdef"))
-       (take (* 2 size))
-       (apply str)))
-
-
 (defn preferred-copy
   "Chooses among multiple blocks to determine the optimal one to use for
   copying into a new store. Returns the first realized block, if any are

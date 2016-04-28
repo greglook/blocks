@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "0.6.1"
+(defproject mvxcvi/blocks "0.7.0"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -8,12 +8,14 @@
   :java-source-paths ["src"]
 
   :dependencies
-  [[byte-streams "0.2.0"]
+  [[byte-streams "0.2.2"]
    [com.stuartsierra/component "0.3.1"]
-   [commons-io "2.4"]
-   [mvxcvi/multihash "1.1.0"]
+   [commons-io "2.5"]
+   [mvxcvi/alphabase "0.2.0"]
+   [mvxcvi/multihash "2.0.0"]
    [org.clojure/clojure "1.7.0"]
    [org.clojure/data.priority-map "0.0.7"]
+   [org.clojure/test.check "0.9.0"]
    [org.clojure/tools.logging "0.3.1"]]
 
   :aliases {"doc-lit" ["marg" "--dir" "doc/marginalia"]

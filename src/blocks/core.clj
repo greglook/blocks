@@ -14,13 +14,13 @@
   (:refer-clojure :exclude [get list])
   (:require
     [blocks.data :as data]
-    [blocks.data.conversions]
     [blocks.store :as store]
     [byte-streams :as bytes]
     [clojure.java.io :as io]
     [clojure.set :as set]
     [clojure.string :as str]
-    [multihash.core :as multihash])
+    [multihash.core :as multihash]
+    [multihash.digest :as digest])
   (:import
     (blocks.data
       Block
@@ -164,7 +164,7 @@
       (throw (IllegalStateException.
                (str "Block " id " has negative size: " size))))
     (with-open [stream (CountingInputStream. (open block))]
-      (when-not (multihash/test id stream)
+      (when-not (digest/test id stream)
         (throw (IllegalStateException.
                  (str "Block " id " has mismatched content"))))
       (when (not= size (.getByteCount stream))
@@ -245,9 +245,11 @@
   "Saves a block into the store. Returns the block record, updated with stat
   metadata."
   [store block]
-  ; TODO: verify that block is a Block?
   (when block
-    (store/-put! store block)))
+    (when-not (instance? Block block)
+      (throw (IllegalArgumentException.
+               (str "Argument must be a block, got: " (pr-str block)))))
+    (data/merge-blocks block (store/-put! store block))))
 
 
 (defn store!

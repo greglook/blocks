@@ -4,7 +4,7 @@
     (blocks.store
       [memory :refer [memory-store]]
       [replica :refer [replica-store]]
-      [tests :refer [test-block-store]])
+      [tests :as tests])
     [clojure.test :refer :all]))
 
 
@@ -34,8 +34,4 @@
 
 
 (deftest ^:integration test-replica-store
-  (let [store (replica-store [(memory-store) (memory-store)])]
-    (test-block-store
-      "replica-store" store
-      :max-size 1024
-      :blocks 25)))
+  (tests/check-store! #(replica-store [(memory-store) (memory-store)])))
