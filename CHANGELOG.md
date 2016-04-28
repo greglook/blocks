@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+## [0.7.0] - 2016-04-27
+
 ### Changed
 - Upgrade `mvxcvi/multihash` to 2.0.0.
 - Small efficiency improvements to block construction.
@@ -108,7 +112,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.6.1...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/greglook/blocks/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/greglook/blocks/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/greglook/blocks/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/greglook/blocks/compare/0.4.2...0.5.0
