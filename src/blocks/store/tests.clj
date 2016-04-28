@@ -229,7 +229,7 @@
       true)))
 
 
-(defn check-store!
+(defn check-store
   [constructor & {:keys [blocks max-size iterations eraser]
                   :or {blocks 20, max-size 1024, iterations 100}}]
   {:pre [(some? constructor)]}
@@ -255,6 +255,22 @@
                 (catch Exception ex
                   (println "Error stopping store:" ex))))))))))
 
+
+(defn check-store!
+  "Interprets test results from `check-store!` for a `clojure.test` result."
+  [& args]
+  (let [info (apply check-store args)]
+    (cond
+      (true? (:result info))
+        true
+
+      (instance? Throwable (:result info))
+        (throw (ex-info (str "Tests failed after " (:num-tests info) " iterations")
+                        info
+                        (:result info)))
+
+      :else
+        (throw (ex-info "Unknown info format" info)))))
 
 
 
