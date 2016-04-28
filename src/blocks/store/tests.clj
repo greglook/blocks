@@ -70,6 +70,17 @@
          :limit gen-limit)])))
 
 
+(defn- gen-block-range
+  [blocks]
+  (gen/bind
+    (gen/elements (vals blocks))
+    (fn [block]
+      (gen/fmap
+        (fn [positions]
+          (vec (cons (:id block) (sort positions))))
+        (gen/vector (gen/large-integer* {:min 0, :max (:size block)}) 2)))))
+
+
 (defn- gen-store-op
   "Test generator which creates a single operation against the store."
   [blocks]
@@ -86,14 +97,7 @@
        (gen-op :put-batch!       (gen/not-empty (gen/set gen-block-val)))
        (gen-op :delete-batch!    (gen/not-empty (gen/set gen-block-key)))
        (gen-op :open-block       gen-block-key)
-       (gen-op :open-block-range (gen/fmap
-                                   (fn [[id a b]]
-                                     (if (< a b)
-                                       [id a b]
-                                       [id b a]))
-                                   (gen/tuple gen-block-key
-                                              gen/nat
-                                              gen/nat)))])))
+       (gen-op :open-block-range (gen-block-range blocks))])))
 
 
 
@@ -193,9 +197,7 @@
         (if-let [block (get model id)]
           (is (bytes= (@#'blocks.core/bounded-input-stream
                         (.open (.content block)) start end)
-                      (block/open result
-                                  (min start (:size block))
-                                  (min end   (:size block)))))
+                      (block/open result start end)))
           (is (nil? result))))))
 
 
@@ -225,6 +227,9 @@
                           {:op op, :result result}))))
       true)))
 
+
+
+;; ## Store Tests
 
 (defn check-store
   [constructor & {:keys [blocks max-size iterations eraser]
