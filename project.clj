@@ -14,8 +14,8 @@
    [mvxcvi/alphabase "0.2.0"]
    [mvxcvi/multihash "2.0.0"]
    [org.clojure/clojure "1.7.0"]
-   [org.clojure/test.check "0.9.0"]
    [org.clojure/data.priority-map "0.0.7"]
+   [org.clojure/test.check "0.9.0"]
    [org.clojure/tools.logging "0.3.1"]]
 
   :aliases {"doc-lit" ["marg" "--dir" "doc/marginalia"]
