@@ -10,9 +10,16 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Upgrade `mvxcvi/multihash` to 2.0.0.
 - Small efficiency improvements to block construction.
+- Memory stores strip metadata and extra attributes from blocks `put!` in them.
+- Integration tests in `blocks.store.tests` now build generative sequences of
+  operations and apply them to the store under test.
 
 ### Fixed
 - Reading an empty content source returns `nil` instead of an empty block.
+- Check that the argument to `block/put!` is actually a block.
+- Handle block merging in `block/put!` instead of requiring stores to do it.
+- File stores correctly return `false` when deleting a block which is not
+  contained in the store.
 
 ## [0.6.1] - 2016-01-25
 
