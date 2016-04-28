@@ -5,9 +5,7 @@
     [alphabase.bytes :refer [random-bytes]]
     [alphabase.hex :as hex]
     [blocks.core :as block]
-    [blocks.store.util :as util]
     [byte-streams :as bytes :refer [bytes=]]
-    [clojure.java.io :as io]
     [clojure.test :refer :all]
     [clojure.test.check :as check]
     [clojure.test.check.generators :as gen]
@@ -223,9 +221,8 @@
         (if (check-op model op result)
           (recur (update-model model op)
                  (rest ops))
-          (do (println "ERROR: Illegal operation result:"
-                       (pr-str op) "->" (pr-str result))
-              false)))
+          (throw (ex-info "Illegal operation result:"
+                          {:op op, :result result}))))
       true)))
 
 
@@ -271,126 +268,3 @@
 
       :else
         (throw (ex-info "Unknown info format" info)))))
-
-
-
-
-
-
-
-
-
-
-
-
-
-#_
-(defn test-put-attributes
-  "The put! method in a store should return a block with an updated content or
-  reader, but keep the same id, extra attributes, and any non-stat metadata."
-  [store]
-  (let [original (-> (random-block 512)
-                     (assoc :foo "bar")
-                     (vary-meta assoc ::thing :baz))
-        stored (block/put! store original)]
-    (is (= (:id original) (:id stored))
-        "Stored block id should match original")
-    (is (= (:size original) (:size stored))
-        "Stored block size should match original")
-    (is (= "bar" (:foo stored))
-        "Stored block should retain extra attributes")
-    (is (= :baz (::thing (meta stored)))
-        "Stored block should retain extra metadata")
-    (is (= original stored)
-        "Stored block should test equal to original")
-    (is (true? (block/delete! store (:id stored))))))
-
-
-#_
-(defn test-block
-  "Determines whether the store contains the content for the given identifier."
-  [store id content]
-  (testing "block stats"
-    (let [status (block/stat store id)]
-      (is (= id (:id status))
-          "should return the same multihash id")
-      (is (= (count content) (:size status))
-          "should return the content size")))
-  (testing "block retrieval"
-    (let [block (block/get store id)]
-      (is (= id (:id block))
-          "stored block has same id")
-      (is (= (count content) (:size block))
-          "block contains size info")
-      (let [baos (java.io.ByteArrayOutputStream.)]
-        (with-open [stream (block/open block)]
-          (io/copy stream baos))
-        (is (= (seq content) (seq (.toByteArray baos)))
-            "stored content should match"))
-      (is (= [:id :size] (keys block))
-          "block only contains id and size"))))
-
-
-#_
-(defmacro ^:private test-section
-  [title & body]
-  `(do (printf "    * %s\n" ~title)
-       (let [start# (System/nanoTime)
-             result# (testing ~title
-                       ~@body)]
-         (printf "        %.3f ms\n"
-                 (/ (double (- (System/nanoTime) start#)) 1000000.0))
-         result#)))
-
-
-#_
-(defn test-block-store
-  "Tests a block store implementation."
-  [label store & {:keys [blocks max-size eraser]
-                  :or {blocks 10, max-size 1024}}]
-  (printf "  Beginning %s integration tests...\n" label)
-  (testing (.getSimpleName (class store))
-    (let [start-nano (System/nanoTime)
-          store (test-section "starting store"
-                  (component/start store))]
-      (when-not (empty? (block/list store))
-        (throw (IllegalStateException.
-                 (str "Cannot run integration test on " (pr-str store)
-                      " as it already contains blocks!"))))
-      (test-section "querying non-existent block"
-        (is (nil? (block/stat store (digest/sha1 "foo"))))
-        (is (nil? (block/get store (digest/sha1 "bar")))))
-      (test-section "ranged open"
-        (let [block (block/store! store "012 345 678")]
-          (is (= "345" (with-open [subrange (block/open block 4 7)]
-                         (slurp subrange)))
-              "subrange should return correct bytes")
-          (is (true? (block/delete! store (:id block))))))
-      (test-section "put attributes"
-        (test-put-attributes store))
-      (test-section "batch operations"
-        (test-batch-ops store))
-      (let [stored-content (test-section (str "populating " blocks " blocks")
-                             (populate-blocks! store blocks max-size))]
-        (test-section "list stats"
-          (let [stats (block/list store)]
-            (is (= (keys stored-content) (map :id stats))
-                "enumerates all ids in sorted order")
-            (is (every? #(= (:size %) (count (get stored-content (:id %)))) stats)
-                "returns correct size for all blocks"))
-          (test-list-stats store (keys stored-content) 10))
-        (test-section "stored blocks"
-          (doseq [[id content] stored-content]
-            (test-block store id content)))
-        (test-section "re-storing block"
-          (let [[id content] (first (seq stored-content))]
-            (test-restore-block store id content)))
-        (test-section "erasing store"
-          (if eraser
-            (eraser store)
-            (doseq [id (keys stored-content)]
-              (is (true? (block/delete! store id)))))
-          (is (empty? (block/list store)) "ends empty")))
-      (printf "  Total time: %.3f ms\n"
-              (/ (double (- (System/nanoTime) start-nano)) 1000000.0))
-      (component/stop store))))

@@ -147,6 +147,28 @@
       (is (= block (block/get store (:id block)))))))
 
 
+(deftest put-wrapper
+  (let [store (reify store/BlockStore (-put! [_ block] (data/clean-block block)))]
+    (testing "with non-block arg"
+      (is (thrown? IllegalArgumentException
+            (block/put! store :foo))))
+    (testing "block attributes"
+      (let [original (-> (block/read! "a block with some extras")
+                         (assoc :foo "bar")
+                         (vary-meta assoc ::thing :baz))
+            stored (block/put! store original)]
+        (is (= (:id original) (:id stored))
+            "Stored block id should match original")
+        (is (= (:size original) (:size stored))
+            "Stored block size should match original")
+        (is (= "bar" (:foo stored))
+            "Stored block should retain extra attributes")
+        (is (= :baz (::thing (meta stored)))
+            "Stored block should retain extra metadata")
+        (is (= original stored)
+            "Stored block should test equal to original")))))
+
+
 (deftest store-wrapper
   (let [store (reify store/BlockStore (-put! [_ block] block))]
     (testing "file source"
