@@ -143,99 +143,99 @@
      :get
      {:args choose-id
       :check
-        (fn check-get
-          [model id result]
-          (if-let [block (get model id)]
-            (is (= block result)
-                "returned block should be equivalent to model")
-            (is (nil? result)
-                "missing block should return nil")))}
+      (fn check-get
+        [model id result]
+        (if-let [block (get model id)]
+          (is (= block result)
+              "returned block should be equivalent to model")
+          (is (nil? result)
+              "missing block should return nil")))}
 
      :put!
      {:args choose-block
       :check
-        (fn check-put
-          [model block result]
-          (is (= (:id block) (:id result)))
-          (is (= (:size block) (:size result)))
-          (is (= block result)))
+      (fn check-put
+        [model block result]
+        (is (= (:id block) (:id result)))
+        (is (= (:size block) (:size result)))
+        (is (= block result)))
       :update
-        (fn update-put
-          [model block]
-          (assoc model (:id block) block))}
+      (fn update-put
+        [model block]
+        (assoc model (:id block) block))}
 
      :delete!
      {:args choose-id
       :check
-        (fn check-delete
-          [model id result]
-          (if (contains? model id)
-            (is (true? result)
-                "deleting a stored block should return true")
-            (is (false? result)
-                "deleting a missing block should return false")))
+      (fn check-delete
+        [model id result]
+        (if (contains? model id)
+          (is (true? result)
+              "deleting a stored block should return true")
+          (is (false? result)
+              "deleting a missing block should return false")))
       :update
-        (fn update-delete
-          [model id]
-          (dissoc model id))}
+      (fn update-delete
+        [model id]
+        (dissoc model id))}
 
      :get-batch
      {:args (comp gen/not-empty gen/set choose-id)
       :check
-        (fn check-get-batch
-          [model ids result]
-          (let [expected-blocks (keep model (set ids))]
-            (is (coll? result))
-            (is (= (set expected-blocks) (set result)))))}
+      (fn check-get-batch
+        [model ids result]
+        (let [expected-blocks (keep model (set ids))]
+          (is (coll? result))
+          (is (= (set expected-blocks) (set result)))))}
 
      :put-batch!
      {:args (comp gen/not-empty gen/set choose-block)
       :check
-        (fn check-put-batch
-          [model blocks result]
-          (is (= (set blocks) (set result))))
+      (fn check-put-batch
+        [model blocks result]
+        (is (= (set blocks) (set result))))
       :update
-        (fn update-put-batch
-          [model blocks]
-          (into model (map (juxt :id identity) blocks)))}
+      (fn update-put-batch
+        [model blocks]
+        (into model (map (juxt :id identity) blocks)))}
 
      :delete-batch!
      {:args (comp gen/not-empty gen/set choose-id)
       :check
-        (fn check-delete-batch
-          [model ids result]
-          (let [contained-ids (keep (set ids) (keys model))]
-            (is (set? result))
-            (is (= (set contained-ids) result))))
+      (fn check-delete-batch
+        [model ids result]
+        (let [contained-ids (keep (set ids) (keys model))]
+          (is (set? result))
+          (is (= (set contained-ids) result))))
       :update
-        (fn update-delete-batch
-          [model ids]
-          (apply dissoc model ids))}
+      (fn update-delete-batch
+        [model ids]
+        (apply dissoc model ids))}
 
      :open-block
      {:args choose-id
       :apply block/get
       :check
-        (fn check-open-block
-          [model id result]
-          (if-let [block (get model id)]
-            (is (bytes= (.open ^PersistentBytes (.content ^Block block)) (block/open result)))
-            (is (nil? result))))}
+      (fn check-open-block
+        [model id result]
+        (if-let [block (get model id)]
+          (is (bytes= (.open ^PersistentBytes (.content ^Block block)) (block/open result)))
+          (is (nil? result))))}
 
      :open-block-range
      {:args gen-block-range
       :apply
-        (fn apply-block-range
-          [store args]
-          (block/get store (first args)))
+      (fn apply-block-range
+        [store args]
+        (block/get store (first args)))
       :check
-        (fn check-open-block-range
-          [model [id start end] result]
-          (if-let [block (get model id)]
-            (is (bytes= (@#'blocks.core/bounded-input-stream
-                          (.open ^PersistentBytes (.content ^Block block)) start end)
-                        (block/open result start end)))
-            (is (nil? result))))}}))
+      (fn check-open-block-range
+        [model [id start end] result]
+        (if-let [block (get model id)]
+          (is (bytes= (@#'blocks.core/bounded-input-stream
+                        (.open ^PersistentBytes (.content ^Block block)) start end)
+                      (block/open result start end)))
+          (is (nil? result))))}}))
 
 
 (defn- gen-store-op
