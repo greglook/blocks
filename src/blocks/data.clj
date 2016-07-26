@@ -272,7 +272,7 @@
 
 (defn clean-block
   "Creates a version of the given block without extra attributes or metadata."
-  [block]
+  [^Block block]
   (Block. (.id block)
           (.size block)
           (.content block)

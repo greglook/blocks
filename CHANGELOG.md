@@ -7,6 +7,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+## [0.7.1] - 2016-07-25
+
+### Fixed
+- Small number of reflection warnings in `blocks.data/clean-block`.
+- Improved generative store tests.
+
 ## [0.7.0] - 2016-04-27
 
 ### Changed
@@ -110,12 +118,9 @@ interface.
 
 Initial project release.
 
-<<<<<<< HEAD
-[Unreleased]: https://github.com/greglook/blocks/compare/0.6.1...HEAD
-=======
-[Unreleased]: https://github.com/greglook/blocks/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.7.1...HEAD
+[0.7.1]: https://github.com/greglook/blocks/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/greglook/blocks/compare/0.6.1...0.7.0
->>>>>>> release-0.7.0
 [0.6.1]: https://github.com/greglook/blocks/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/greglook/blocks/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/greglook/blocks/compare/0.4.2...0.5.0
