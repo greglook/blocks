@@ -6,25 +6,28 @@
 
   :deploy-branches ["master"]
   :java-source-paths ["src"]
+  :pedantic? :abort
 
   :dependencies
-  [[byte-streams "0.2.2"]
-   [com.stuartsierra/component "0.3.1"]
-   [commons-io "2.5"]
-   [mvxcvi/alphabase "0.2.0"]
-   [mvxcvi/multihash "2.0.0"]
-   [org.clojure/clojure "1.7.0"]
+  [[org.clojure/clojure "1.8.0"]
    [org.clojure/data.priority-map "0.0.7"]
    [org.clojure/test.check "0.9.0"]
-   [org.clojure/tools.logging "0.3.1"]]
+   [org.clojure/tools.logging "0.3.1"]
+   [byte-streams "0.2.2"]
+   [com.stuartsierra/component "0.3.1"]
+   [commons-io "2.5"]
+   [mvxcvi/alphabase "0.2.1"]
+   [mvxcvi/multihash "2.0.0"]]
 
-  :aliases {"doc-lit" ["marg" "--dir" "doc/marginalia"]
-            "coverage" ["with-profile" "+test,+coverage" "cloverage"
-                        "--ns-exclude-regex" "blocks.data.conversions"
-                        "--ns-exclude-regex" "blocks.store.tests"]}
+  :aliases
+  {"doc-lit" ["marg" "--dir" "doc/marginalia"]
+   "coverage" ["with-profile" "+test,+coverage" "cloverage"
+               "--ns-exclude-regex" "blocks.data.conversions"
+               "--ns-exclude-regex" "blocks.store.tests"]}
 
-  :test-selectors {:unit (complement :integration)
-                   :integration :integration}
+  :test-selectors
+  {:unit (complement :integration)
+   :integration :integration}
 
   :hiera
   {:cluster-depth 2
@@ -43,9 +46,14 @@
                'blocks.data.Block {'blocks.data.Block (partial into {})}}}
 
   :profiles
-  {:repl {:source-paths ["dev"]}
-   :test {:dependencies [[commons-logging "1.2"]]
-          :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
-   :coverage {:plugins [[lein-cloverage "1.0.6"]]
-              :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
-                         "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
+  {:repl
+   {:source-paths ["dev"]}
+
+   :test
+   {:dependencies [[commons-logging "1.2"]]
+    :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
+
+   :coverage
+   {:plugins [[rfkm/lein-cloverage "1.0.8"]]
+    :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
+               "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
