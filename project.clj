@@ -17,7 +17,7 @@
    [com.stuartsierra/component "0.3.1"]
    [commons-io "2.5"]
    [mvxcvi/alphabase "0.2.1"]
-   [mvxcvi/multihash "2.0.0"]]
+   [mvxcvi/multihash "2.0.1"]]
 
   :aliases
   {"doc-lit" ["marg" "--dir" "doc/marginalia"]
