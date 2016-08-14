@@ -13,6 +13,7 @@
     [clojure.tools.logging :as log]
     [com.stuartsierra.component :as component]))
 
+
 ; TODO: use a generic sorted-kv interface to persist state.
 ; keys would look like:
 ; [:priorities tick size] -> block id
@@ -91,7 +92,7 @@
         cached))))
 
 
-(defrecord CachingStore
+(defrecord CachingBlockStore
   [size-limit max-block-size primary cache state]
 
   component/Lifecycle
@@ -167,7 +168,10 @@
     (store/-delete! primary id)))
 
 
-(defn cache-store
+
+;; ## Constructors
+
+(defn caching-block-store
   "Creates a new logical block store which will use one block store to cache
   up to a certain size of content for another block store. The store should
   have a `:primary` and a `:cache` associated with it for backing block
@@ -188,14 +192,12 @@
       (throw (IllegalArgumentException.
                (str "Cache store max-block-size must be a positive integer if set: "
                     (pr-str mbs))))))
-  (CachingStore.
-    size-limit
-    (:max-block-size opts)
-    (:primary opts)
-    (:cache opts)
-    (atom nil)))
+  (map->CachingBlockStore
+    (assoc opts
+           :size-limit size-limit
+           :state (atom nil))))
 
 
 ;; Remove automatic constructor functions.
-(ns-unmap *ns* '->CachingStore)
-(ns-unmap *ns* 'map->CachingStore)
+(ns-unmap *ns* '->CachingBlockStore)
+(ns-unmap *ns* 'map->CachingBlockStore)

@@ -5,11 +5,10 @@
   (:require
     [blocks.core :as block]
     [blocks.store :as store]
-    [blocks.store.memory :refer [memory-store]]
     [blocks.store.util :as util]))
 
 
-(defrecord BufferStore
+(defrecord BufferBlockStore
   [store buffer]
 
   store/BlockStore
@@ -60,15 +59,16 @@
        (doall)))
 
 
-(defn buffer-store
+
+;; ## Constructors
+
+(defn buffer-block-store
   "Creates a new buffering block store. If no buffer store is given, defaults to
   an in-memory store."
-  ([store]
-   (buffer-store store (memory-store)))
-  ([store buffer]
-   (BufferStore. store buffer)))
+  [& {:as opts}]
+  (map->BufferBlockStore opts))
 
 
 ;; Remove automatic constructor functions.
-(ns-unmap *ns* '->BufferStore)
-(ns-unmap *ns* 'map->BufferStore)
+(ns-unmap *ns* '->BufferBlockStore)
+(ns-unmap *ns* 'map->BufferBlockStore)
