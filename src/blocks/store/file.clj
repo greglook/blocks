@@ -226,7 +226,11 @@
 
 (defmethod store/initialize "file"
   [location]
-  (file-block-store (:path (util/parse-uri location))))
+  (let [uri (util/parse-uri location)]
+    (file-block-store
+      (if (:authority uri)
+        (io/file (:authority uri) (subs (:path uri) 1))
+        (io/file (:path uri))))))
 
 
 ;; Remove automatic constructor functions.

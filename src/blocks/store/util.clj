@@ -67,6 +67,7 @@
   (let [uri (java.net.URI. location)]
     (->>
       {:scheme (.getScheme uri)
+       :authority (.getAuthority uri)
        :user-info (.getUserInfo uri)
        :host (.getHost uri)
        :port (.getPort uri)
