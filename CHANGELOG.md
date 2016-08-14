@@ -7,7 +7,19 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-...
+### Changed
+- All block stores were renamed to consistently end with `BlockStore`.
+- All block store constructors are similarly renamed, e.g. `file-block-store`.
+- Store constructors all follow a component pattern with variadic options.
+
+### Added
+- Multimethod `blocks.store/initialize` for constructing block stores from a
+  URI string. The method is dispatched by URI scheme.
+
+### Removed
+- Problematic namespace `blocks.data.conversions`, which defined conversion
+  paths for the `byte-streams` library.
+
 
 ## [0.7.1] - 2016-07-25
 
