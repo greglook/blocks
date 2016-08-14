@@ -109,12 +109,14 @@
         (when-not cache
           (throw (IllegalStateException.
                    "Cannot start caching store without backing cache store")))
-        (log/info "Scanning cache store to build state...")
-        (let [initial-state (scan-state cache)]
+        (log/debug "Scanning cache store to build state...")
+        (let [initial-state (scan-state cache)
+              cached-bytes (:total-size initial-state)]
           (reset! state initial-state)
-          (log/infof "Cache has %d bytes in %d blocks"
-                     (:total-size initial-state)
-                     (count (:priorities initial-state)))
+          (when (and cached-bytes (pos? cached-bytes))
+            (log/infof "Cache has %d bytes in %d blocks"
+                       (:total-size initial-state)
+                       (count (:priorities initial-state))))
           this))))
 
 
