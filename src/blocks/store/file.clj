@@ -224,6 +224,11 @@
     (assoc opts :root (io/file root))))
 
 
+(defmethod store/initialize "file"
+  [location]
+  (file-block-store (:path (util/parse-uri location))))
+
+
 ;; Remove automatic constructor functions.
 (ns-unmap *ns* '->FileBlockStore)
 (ns-unmap *ns* 'map->FileBlockStore)

@@ -75,6 +75,11 @@
     (assoc opts :memory (atom (sorted-map) :validator map?))))
 
 
+(defmethod store/initialize "mem"
+  [location]
+  (memory-block-store))
+
+
 ;; Remove automatic constructor functions.
 (ns-unmap *ns* '->MemoryBlockStore)
 (ns-unmap *ns* 'map->MemoryBlockStore)

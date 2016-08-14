@@ -59,3 +59,19 @@
                         (rest %)
                         %)
                      lists)))))))
+
+
+(defn parse-uri
+  "Parse a URI string into a map of keywords to URI parts."
+  [location]
+  (let [uri (java.net.URI. location)]
+    (->>
+      {:scheme (.getScheme uri)
+       :user-info (.getUserInfo uri)
+       :host (.getHost uri)
+       :port (.getPort uri)
+       :path (.getPath uri)
+       :query (.getQuery uri)
+       :fragment (.getFragment uri)}
+      (filter val)
+      (into {}))))
