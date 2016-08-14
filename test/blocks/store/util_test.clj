@@ -64,3 +64,18 @@
             {:id "xyz", :wqr :axo}]
            (util/merge-block-lists
              list-a list-b list-c)))))
+
+
+(deftest uri-parsing
+  (is (= {:scheme "mem", :name "-"} (util/parse-uri "mem:-")))
+  (is (= {:scheme "file", :path "/foo/bar"} (util/parse-uri "file:///foo/bar")))
+  (is (= {:scheme "file", :host "foo" :path "/bar"} (util/parse-uri "file://foo/bar")))
+  (is (= {:scheme "https"
+          :user-info {:id "user"
+                      :secret "password"}
+          :host "example.com"
+          :port 443
+          :path "/path/to/thing"
+          :query {:foo "alpha"
+                  :bar "123"}}
+         (util/parse-uri "https://user:password@example.com:443/path/to/thing?foo=alpha&bar=123"))))
