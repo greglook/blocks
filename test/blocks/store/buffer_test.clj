@@ -2,15 +2,17 @@
   (:require
     [blocks.core :as block]
     (blocks.store
-      [memory :refer [memory-store]]
-      [buffer :refer [buffer-store]]
+      [memory :refer [memory-block-store]]
+      [buffer :refer [buffer-block-store]]
       [tests :as tests])
     [clojure.test :refer :all]))
 
 
 (deftest buffer-behavior
-  (let [backer (memory-store)
-        store (buffer-store backer)
+  (let [backer (memory-block-store)
+        store (buffer-block-store
+                :store backer
+                :buffer (memory-block-store))
         buffer (:buffer store)
         a (block/read! "foo bar baz")
         b (block/read! "abracadabra")
@@ -31,4 +33,6 @@
 
 
 (deftest ^:integration test-buffer-store
-  (tests/check-store! #(buffer-store (memory-store))))
+  (tests/check-store! #(buffer-block-store
+                         :store (memory-block-store)
+                         :buffer (memory-block-store))))

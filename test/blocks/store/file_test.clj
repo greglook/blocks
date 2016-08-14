@@ -1,7 +1,7 @@
 (ns blocks.store.file-test
   (:require
     (blocks.store
-      [file :as file :refer [file-store]]
+      [file :as file :refer [file-block-store]]
       [tests :as tests])
     [clojure.java.io :as io]
     [clojure.test :refer :all]))
@@ -23,5 +23,5 @@
                         (str "file-block-store."
                           (System/currentTimeMillis)))]
     (tests/check-store!
-      #(file-store tmpdir)
+      #(file-block-store tmpdir)
       :eraser file/erase!)))
