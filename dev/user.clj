@@ -6,8 +6,8 @@
       [core :as block]
       [data :as data])
     (blocks.store
-      [memory :refer [memory-store]]
-      [file :refer [file-store]]
+      [memory :refer [memory-block-store]]
+      [file :refer [file-block-store]]
       [tests :as tests])
     [clojure.java.io :as io]
     [clojure.repl :refer :all]
@@ -32,4 +32,4 @@
 
 (def tbs
   "Temporary block store in target."
-  (file-store "target/blocks"))
+  (file-block-store "target/blocks"))
