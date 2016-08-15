@@ -7,10 +7,16 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+## [0.8.0] - 2016-08-14
+
 ### Changed
 - All block stores were renamed to consistently end with `BlockStore`.
 - All block store constructors are similarly renamed, e.g. `file-block-store`.
 - Store constructors all follow a component pattern with variadic options.
+- Blocks no longer implement `IPending`, because it is not appropriate to treat
+  immutable values as asynchronous references.
 
 ### Added
 - Multimethod `blocks.store/initialize` for constructing block stores from a
@@ -130,7 +136,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.7.1...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/greglook/blocks/compare/0.7.1...0.8.0
 [0.7.1]: https://github.com/greglook/blocks/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/greglook/blocks/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/greglook/blocks/compare/0.6.0...0.6.1
