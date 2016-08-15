@@ -67,9 +67,6 @@
         literal (data/read-block :sha1 original)
         lazy (data/lazy-block (:id literal) (:size literal)
                               #(bytes/to-input-stream (.getBytes original)))]
-    (testing "pending logic"
-      (is (realized? literal))
-      (is (not (realized? lazy))))
     (testing "deref logic"
       (is (some? @literal)
           "deref literal block should return content")

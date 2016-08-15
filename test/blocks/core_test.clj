@@ -39,7 +39,7 @@
   (testing "lazy block"
     (let [block (block/from-file "README.md")
           readme (slurp (block/open block))]
-      (is (not (realized? block)) "file blocks should be lazy")
+      (is (nil? @block) "file blocks should be lazy")
       (is (string? readme))
       (is (= (subs readme 10 20) (slurp (block/open block 10 20)))))))
 
@@ -60,7 +60,7 @@
 (deftest block-loading
   (let [lazy-readme (block/from-file "README.md")
         literal-readme (block/load! lazy-readme)]
-    (is (realized? literal-readme)
+    (is @literal-readme
         "load returns literal block for lazy block")
     (is (identical? literal-readme (block/load! literal-readme))
         "load returns literal block unchanged")
@@ -173,11 +173,11 @@
   (let [store (reify store/BlockStore (-put! [_ block] block))]
     (testing "file source"
       (let [block (block/store! store (io/file "README.md"))]
-        (is (not (realized? block))
+        (is (nil? @block)
             "should create lazy block from file")))
     (testing "other source"
       (let [block (block/store! store "foo bar baz")]
-        (is (realized? block)
+        (is @block
             "should be read into memory")))))
 
 
