@@ -1,6 +1,7 @@
 (ns ^:no-doc blocks.store.util
   "Various utility functions for handling and testing blocks."
   (:require
+    [clojure.string :as str]
     [multihash.core :as multihash]))
 
 
@@ -21,11 +22,11 @@
 
 (defn preferred-copy
   "Chooses among multiple blocks to determine the optimal one to use for
-  copying into a new store. Returns the first realized block, if any are
+  copying into a new store. Returns the first literal block, if any are
   keeping in-memory content. If none are, returns the first block."
   [& blocks]
   (when-let [blocks (seq (remove nil? blocks))]
-    (or (first (filter realized? blocks))
+    (or (first (filter deref blocks))
         (first blocks))))
 
 
@@ -59,3 +60,28 @@
                         (rest %)
                         %)
                      lists)))))))
+
+
+(defn parse-uri
+  "Parse a URI string into a map of keywords to URI parts."
+  [location]
+  (let [uri (java.net.URI. location)]
+    (->>
+      {:scheme (.getScheme uri)
+       :name (and (nil? (.getAuthority uri))
+                  (nil? (.getPath uri))
+                  (.getSchemeSpecificPart uri))
+       :user-info (when-let [info (.getUserInfo uri)]
+                    (zipmap [:id :secret] (str/split info #":" 2)))
+       :host (.getHost uri)
+       :port (when (not= (.getPort uri) -1)
+               (.getPort uri))
+       :path (.getPath uri)
+       :query (when-let [query (.getQuery uri)]
+                (->> (str/split query #"&")
+                     (map #(let [[k v] (str/split % #"=")]
+                             [(keyword k) v]))
+                     (into {})))
+       :fragment (.getFragment uri)}
+      (filter val)
+      (into {}))))

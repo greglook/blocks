@@ -8,10 +8,9 @@
   Internally, blocks either have in-memory content holding the data, or a
   reader function which returns new input streams for the block data. This is
   reflected in the way Blocks are treated as pending values: a block with
-  in-memory content is considered a _literal block_ for which `realized?`
-  returns true. By contrast, a block with a reader function is a _lazy block_
-  and `realized?` will return false. Dereferencing a realized block returns its
-  content, while lazy blocks will give `nil`.
+  in-memory content is a _literal block_, while a block with a reader function
+  is a _lazy block_. Dereferencing a literal block returns its content, while
+  lazy blocks contain `nil`.
 
   A block's id, size, content, and reader cannot be changed after construction,
   so clients can be relatively certain that the block's id is valid. Blocks
@@ -165,14 +164,7 @@
 
   (deref
     [this]
-    content)
-
-
-  clojure.lang.IPending
-
-  (isRealized
-    [this]
-    (some? content)))
+    content))
 
 
 (defmethod print-method Block
@@ -260,8 +252,7 @@
 
 
 (defn read-block
-  "Creates a block by reading the source into memory and hashing it. This
-  creates a realized block."
+  "Creates a block by reading the source into memory and hashing it."
   ^blocks.data.Block
   [algorithm source]
   (let [hash-fn (checked-hasher algorithm)

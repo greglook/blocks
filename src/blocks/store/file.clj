@@ -152,7 +152,7 @@
 
 ;; Block content is stored as files in a multi-level hierarchy under the given
 ;; root directory.
-(defrecord FileStore
+(defrecord FileBlockStore
   [^File root]
 
   store/BlockStore
@@ -214,12 +214,25 @@
     (rm-r (:root store))))
 
 
-(defn file-store
+
+;; ## Constructors
+
+(defn file-block-store
   "Creates a new local file-based block store."
-  [root]
-  (FileStore. (io/file root)))
+  [root & {:as opts}]
+  (map->FileBlockStore
+    (assoc opts :root (io/file root))))
+
+
+(defmethod store/initialize "file"
+  [location]
+  (let [uri (util/parse-uri location)]
+    (file-block-store
+      (if (:host uri)
+        (io/file (:host uri) (subs (:path uri) 1))
+        (io/file (:path uri))))))
 
 
 ;; Remove automatic constructor functions.
-(ns-unmap *ns* '->FileStore)
-(ns-unmap *ns* 'map->FileStore)
+(ns-unmap *ns* '->FileBlockStore)
+(ns-unmap *ns* 'map->FileBlockStore)

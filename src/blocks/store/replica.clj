@@ -6,7 +6,7 @@
     [blocks.store.util :as util]))
 
 
-(defrecord ReplicaStore
+(defrecord ReplicaBlockStore
   [stores]
 
   store/BlockStore
@@ -47,12 +47,16 @@
       stores)))
 
 
-(defn replica-store
+
+;; ## Constructors
+
+(defn replica-block-store
   "Creates a new replica block store."
-  [stores]
-  (ReplicaStore. (vec stores)))
+  [stores & {:as opts}]
+  (map->ReplicaBlockStore
+    (assoc opts :stores (vec stores))))
 
 
 ;; Remove automatic constructor functions.
-(ns-unmap *ns* '->ReplicaStore)
-(ns-unmap *ns* 'map->ReplicaStore)
+(ns-unmap *ns* '->ReplicaBlockStore)
+(ns-unmap *ns* 'map->ReplicaBlockStore)

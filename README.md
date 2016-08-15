@@ -67,27 +67,19 @@ number of bytes in the block content.
 
 Internally, blocks either have a buffer holding the data in memory, or a reader
 function which can be invoked to create new input streams for the block content.
-Blocks can be treated as pending values; a block with in-memory content is
-considered a _literal block_ for which `realized?` returns true, while a block
-with a reader function is a _lazy block_ and `realized?` will return false.
-Dereferencing a realized block returns its content, while lazy blocks will give
+Blocks can be treated as pending values; a block with in-memory content is a
+_literal block_ while a block with a reader function is a _lazy block_.
+Dereferencing a literal block returns its content, while lazy blocks contain
 `nil`.
 
 ```clojure
-; hello is a literal block:
-=> (realized? hello)
-true
-
-; Content is an immutable byte sequence:
+; hello is a literal block, whose content is an immutable byte sequence:
 => @hello
 #<blocks.data.PersistentBytes@7dde3f9b PersistentBytes[size=14]>
 
 ; Create a lazy block from a local file:
 => (def readme (block/from-file "README.md"))
 #'user/readme
-
-=> (realized? readme)
-false
 
 => @readme
 nil

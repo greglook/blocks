@@ -3,8 +3,8 @@
     [blocks.core :as block]
     [blocks.store :as store]
     (blocks.store
-      [cache :as cache :refer [cache-store]]
-      [memory :refer [memory-store]]
+      [cache :as cache :refer [caching-block-store]]
+      [memory :refer [memory-block-store]]
       [tests :as tests])
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]))
@@ -14,17 +14,18 @@
   "Helper function to construct a fresh cache store backed by empty memory
   stores."
   [size-limit]
-  (cache-store size-limit
-    :primary (memory-store)
-    :cache (memory-store)))
+  (caching-block-store
+    size-limit
+    :primary (memory-block-store)
+    :cache (memory-block-store)))
 
 
 (deftest store-construction
-  (is (thrown? IllegalArgumentException (cache-store nil)))
-  (is (thrown? IllegalArgumentException (cache-store 0)))
-  (is (thrown? IllegalArgumentException (cache-store 512 :max-block-size "foo")))
-  (is (thrown? IllegalArgumentException (cache-store 512 :max-block-size 0)))
-  (is (satisfies? store/BlockStore (cache-store 512 :max-block-size 128))))
+  (is (thrown? IllegalArgumentException (caching-block-store nil)))
+  (is (thrown? IllegalArgumentException (caching-block-store 0)))
+  (is (thrown? IllegalArgumentException (caching-block-store 512 :max-block-size "foo")))
+  (is (thrown? IllegalArgumentException (caching-block-store 512 :max-block-size 0)))
+  (is (satisfies? store/BlockStore (caching-block-store 512 :max-block-size 128))))
 
 
 (deftest store-lifecycle
@@ -79,11 +80,11 @@
     (is (nil? (block/stat (:cache store) (:id block))) "cache should not store block")))
 
 
-(deftest ^:integration test-cache-store
+(deftest ^:integration test-caching-store
   (tests/check-store!
-    #(cache-store (* 16 1024)
+    #(caching-block-store (* 16 1024)
        :max-block-size 1024
-       :primary (memory-store)
-       :cache (memory-store))
+       :primary (memory-block-store)
+       :cache (memory-block-store))
     :blocks 50
     :max-size 4096))

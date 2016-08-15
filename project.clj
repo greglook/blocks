@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "0.7.1"
+(defproject mvxcvi/blocks "0.8.0"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -17,12 +17,11 @@
    [com.stuartsierra/component "0.3.1"]
    [commons-io "2.5"]
    [mvxcvi/alphabase "0.2.1"]
-   [mvxcvi/multihash "2.0.0"]]
+   [mvxcvi/multihash "2.0.1"]]
 
   :aliases
   {"doc-lit" ["marg" "--dir" "doc/marginalia"]
    "coverage" ["with-profile" "+test,+coverage" "cloverage"
-               "--ns-exclude-regex" "blocks.data.conversions"
                "--ns-exclude-regex" "blocks.store.tests"]}
 
   :test-selectors
@@ -33,7 +32,7 @@
   {:cluster-depth 2
    :vertical false
    :show-external false
-   :ignore-ns #{blocks.data.conversions blocks.store.tests}}
+   :ignore-ns #{blocks.store.tests}}
 
   :codox
   {:metadata {:doc/format :markdown}

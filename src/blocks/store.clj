@@ -69,3 +69,20 @@
     "Returns a lazy sequence of stored blocks. Blocks are expliticly **not**
     returned in any defined order; it is assumed that the store will enumerate
     them in the most efficient order available."))
+
+
+
+;; ## Store Construction
+
+(defmulti initialize
+  "Constructs a new block store from a URI by dispatching on the scheme. The
+  store will be returned in an initialized but not started state."
+  (fn dispatch
+    [uri]
+    (.getScheme (java.net.URI. uri))))
+
+
+(defmethod initialize :default
+  [uri]
+  (throw (IllegalArgumentException.
+           (str "Unsupported block-store URI scheme: " (pr-str uri)))))

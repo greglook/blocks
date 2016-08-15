@@ -131,14 +131,14 @@
 
 
 (defn load!
-  "Returns a literal block corresponding to the block given. If the block is
-  lazy, the stream is read into memory and returned as a new literal block. If
-  the block is already realized, it is returned unchanged.
+  "Returns a literal version of the given block. If the block is lazy, the
+  stream is read into memory and returned as a new literal block. If the block
+  is already loaded, it is returned unchanged.
 
   The returned block will have the same extra attributes and metadata as the one
   given."
   [^Block block]
-  (if (realized? block)
+  (if @block
     block
     (let [content (with-open [stream (open block)]
                     (bytes/to-byte-array stream))]
