@@ -6,6 +6,7 @@ test:
   override:
     - lein check
     - lein test
-    - lein coverage
+    - lein coverage --codecov
   post:
     - cp -r target/coverage/ $CIRCLE_ARTIFACTS/
+    - bash <(curl -s https://codecov.io/bash) -f target/coverage/codecov.json

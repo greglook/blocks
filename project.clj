@@ -4,6 +4,11 @@
   :license {:name "Public Domain"
             :url "http://unlicense.org/"}
 
+  :aliases
+  {"doc-lit" ["marg" "--dir" "doc/marginalia"]
+   "coverage" ["with-profile" "+test,+coverage" "cloverage"
+               "--ns-exclude-regex" "blocks.store.tests"]}
+
   :deploy-branches ["master"]
   :java-source-paths ["src"]
   :pedantic? :abort
@@ -17,11 +22,6 @@
    [com.stuartsierra/component "0.3.2"]
    [commons-io "2.5"]
    [mvxcvi/multihash "2.0.1"]]
-
-  :aliases
-  {"doc-lit" ["marg" "--dir" "doc/marginalia"]
-   "coverage" ["with-profile" "+test,+coverage" "cloverage"
-               "--ns-exclude-regex" "blocks.store.tests"]}
 
   :test-selectors
   {:unit (complement :integration)
@@ -52,6 +52,6 @@
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
 
    :coverage
-   {:plugins [[rfkm/lein-cloverage "1.0.8"]]
+   {:plugins [[lein-cloverage "1.0.9"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
