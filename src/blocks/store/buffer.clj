@@ -62,13 +62,11 @@
 
 ;; ## Constructors
 
+(util/privatize-constructors! BufferBlockStore)
+
+
 (defn buffer-block-store
   "Creates a new buffering block store. If no buffer store is given, defaults to
   an in-memory store."
   [& {:as opts}]
   (map->BufferBlockStore opts))
-
-
-;; Remove automatic constructor functions.
-(ns-unmap *ns* '->BufferBlockStore)
-(ns-unmap *ns* 'map->BufferBlockStore)

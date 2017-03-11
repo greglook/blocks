@@ -5,6 +5,21 @@
     [multihash.core :as multihash]))
 
 
+(defmacro privatize!
+  "Alters the metadatata on the given var symbol to change the visibility to
+  private."
+  [var-sym]
+  `(alter-meta! #'~var-sym assoc :private true))
+
+
+(defmacro privatize-constructors!
+  "Alters the metadata on the automatic record constructor functions to set
+  their visibility to private."
+  [record-name]
+  `(do (privatize! ~(symbol (str "->" record-name)))
+       (privatize! ~(symbol (str "map->" record-name)))))
+
+
 (defmacro check
   "Utility macro for validating values in a threading fashion. The predicate
   `pred?` will be called with the current value; if the result is truthy, the

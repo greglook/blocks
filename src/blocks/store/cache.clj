@@ -173,6 +173,9 @@
 
 ;; ## Constructors
 
+(util/privatize-constructors! CachingBlockStore)
+
+
 (defn caching-block-store
   "Creates a new logical block store which will use one block store to cache
   up to a certain size of content for another block store. The store should
@@ -198,8 +201,3 @@
     (assoc opts
            :size-limit size-limit
            :state (atom nil))))
-
-
-;; Remove automatic constructor functions.
-(ns-unmap *ns* '->CachingBlockStore)
-(ns-unmap *ns* 'map->CachingBlockStore)

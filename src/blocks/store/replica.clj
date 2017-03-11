@@ -50,13 +50,11 @@
 
 ;; ## Constructors
 
+(util/privatize-constructors! ReplicaBlockStore)
+
+
 (defn replica-block-store
   "Creates a new replica block store."
   [stores & {:as opts}]
   (map->ReplicaBlockStore
     (assoc opts :stores (vec stores))))
-
-
-;; Remove automatic constructor functions.
-(ns-unmap *ns* '->ReplicaBlockStore)
-(ns-unmap *ns* 'map->ReplicaBlockStore)

@@ -68,6 +68,9 @@
 
 ;; ## Constructors
 
+(util/privatize-constructors! MemoryBlockStore)
+
+
 (defn memory-block-store
   "Creates a new in-memory block store."
   [& {:as opts}]
@@ -78,8 +81,3 @@
 (defmethod store/initialize "mem"
   [location]
   (memory-block-store))
-
-
-;; Remove automatic constructor functions.
-(ns-unmap *ns* '->MemoryBlockStore)
-(ns-unmap *ns* 'map->MemoryBlockStore)

@@ -217,6 +217,9 @@
 
 ;; ## Constructors
 
+(util/privatize-constructors! FileBlockStore)
+
+
 (defn file-block-store
   "Creates a new local file-based block store."
   [root & {:as opts}]
@@ -231,8 +234,3 @@
       (if (:host uri)
         (io/file (:host uri) (subs (:path uri) 1))
         (io/file (:path uri))))))
-
-
-;; Remove automatic constructor functions.
-(ns-unmap *ns* '->FileBlockStore)
-(ns-unmap *ns* 'map->FileBlockStore)
