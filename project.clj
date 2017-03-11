@@ -5,8 +5,7 @@
             :url "http://unlicense.org/"}
 
   :aliases
-  {"doc-lit" ["marg" "--dir" "doc/marginalia"]
-   "coverage" ["with-profile" "+test,+coverage" "cloverage"
+  {"coverage" ["with-profile" "+test,+coverage" "cloverage"
                "--ns-exclude-regex" "blocks.store.tests"]}
 
   :deploy-branches ["master"]
@@ -36,8 +35,7 @@
   :codox
   {:metadata {:doc/format :markdown}
    :source-uri "https://github.com/greglook/blocks/blob/master/{filepath}#L{line}"
-   :doc-paths [""]
-   :output-path "doc/api"}
+   :output-path "target/doc/api"}
 
   :whidbey
   {:tag-types {'multihash.core.Multihash {'data/hash 'multihash.core/base58}
