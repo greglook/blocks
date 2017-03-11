@@ -229,7 +229,7 @@
 ;; ## Constructors
 
 ;; Remove automatic constructor function.
-(ns-unmap *ns* '->Block)
+(alter-meta! #'->Block assoc :private true)
 
 
 (defn lazy-block
@@ -238,7 +238,7 @@
   given the id and size directly, without being checked."
   ^blocks.data.Block
   [id size reader]
-  (Block. id size nil reader nil nil))
+  (->Block id size nil reader nil nil))
 
 
 (defn literal-block
@@ -248,7 +248,7 @@
   [id source]
   (let [content (collect-bytes source)]
     (when (pos? (count content))
-      (Block. id (count content) content nil nil nil))))
+      (->Block id (count content) content nil nil nil))))
 
 
 (defn read-block
@@ -258,18 +258,18 @@
   (let [hash-fn (checked-hasher algorithm)
         content (collect-bytes source)]
     (when (pos? (count content))
-      (Block. (hash-fn (.open content)) (count content) content nil nil nil))))
+      (->Block (hash-fn (.open content)) (count content) content nil nil nil))))
 
 
 (defn clean-block
   "Creates a version of the given block without extra attributes or metadata."
   [^Block block]
-  (Block. (.id block)
-          (.size block)
-          (.content block)
-          (.reader block)
-          nil
-          nil))
+  (->Block (.id block)
+           (.size block)
+           (.content block)
+           (.reader block)
+           nil
+           nil))
 
 
 (defn merge-blocks
@@ -282,9 +282,9 @@
     (throw (IllegalArgumentException.
              (str "Cannot merge blocks with differing ids " (.id a)
                   " and " (.id b)))))
-  (Block. (.id b)
-          (.size b)
-          (.content b)
-          (.reader b)
-          (not-empty (merge (._attrs a) (._attrs b)))
-          (not-empty (merge (._meta  a) (._meta  b)))))
+  (->Block (.id b)
+           (.size b)
+           (.content b)
+           (.reader b)
+           (not-empty (merge (._attrs a) (._attrs b)))
+           (not-empty (merge (._meta  a) (._meta  b)))))
