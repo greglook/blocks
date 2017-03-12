@@ -4,7 +4,8 @@
     [byte-streams :as bytes :refer [bytes=]]
     (blocks
       [core :as block]
-      [data :as data])
+      [data :as data]
+      [store :as store])
     (blocks.store
       [memory :refer [memory-block-store]]
       [file :refer [file-block-store]]
@@ -15,7 +16,8 @@
     [clojure.test.check :as check]
     [clojure.test.check.generators :as gen]
     [clojure.test.check.properties :as prop]
-    [multihash.core :as multihash])
+    [multihash.core :as multihash]
+    [multihash.digest :as digest])
   (:import
     blocks.data.Block
     multihash.core.Multihash))
