@@ -199,7 +199,7 @@
 
   store/BlockEnumerator
 
-  (enumerate
+  (-enumerate
     [this]
     (->> (.listFiles root)
          (mapcat #(.listFiles ^File %))
