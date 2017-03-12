@@ -5,6 +5,7 @@
     [alphabase.bytes :refer [random-bytes]]
     [alphabase.hex :as hex]
     [blocks.core :as block]
+    [blocks.store :as store]
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.test :refer :all]
     [clojure.test.check :as check]
@@ -212,6 +213,18 @@
         [model ids]
         (apply dissoc model ids))}
 
+     :scan
+     {:args (constantly (gen/return (constantly true)))
+      :check
+      (fn check-scan
+        [model p result]
+        (is (= (count model) (:count result)))
+        (is (= (reduce + (map :size (vals model))) (:size result)))
+        (is (map? (:sizes result)))
+        (is (every? integer? (keys (:sizes result))))
+        (is (= (count model) (reduce + (vals (:sizes result)))))
+        (is (every? (partial store/probably-contains? result) (map :id (vals model)))))}
+
      :open-block
      {:args choose-id
       :apply block/get
@@ -328,6 +341,7 @@
               (throw (IllegalStateException.
                        (str "Cannot run integration test on " (pr-str store)
                             " as it already contains blocks!"))))
+            (is (zero? (:count (block/scan store))))
             (let [result (valid-op-seq? store ops)]
               (if eraser
                 (eraser store)
