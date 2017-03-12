@@ -114,8 +114,8 @@
 (defn bucket->range
   "Returns a vector with the boundaries which a given size bucket covers."
   [n]
-  [(bit-shift-left 1 n)
-   (bit-shift-left 1 (inc n))])
+  [(bit-shift-left 1 (dec n))
+   (bit-shift-left 1 n)])
 
 
 (defn update-summary
