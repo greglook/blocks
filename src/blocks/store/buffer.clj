@@ -48,18 +48,30 @@
       (boolean (or buffered? stored?)))))
 
 
-(defn flush!
-  "Flushes the store, writing all buffered blocks to the backing store. Returns
-  a sequence of the flushed block ids."
+(defn clear!
+  "Removes all blocks from the buffer. Returns a summary of the deleted blocks."
   [store]
   (->> (block/list (:buffer store))
-       (map (fn copy [stats]
-              (->> (:id stats)
-                   (block/get (:buffer store))
-                   (block/put! (:store store)))
+       (map (fn [stats]
               (block/delete! (:buffer store) (:id stats))
-              (:id stats)))
-       (doall)))
+              stats))
+       (reduce store/update-summary (store/init-summary))))
+
+
+(defn flush!
+  "Flushes the store, writing all buffered blocks to the backing store. Returns
+  a summary of the flushed blocks."
+  ([store]
+   (flush! store (map :id (block/list (:buffer store)))))
+  ([store block-ids]
+   (->> block-ids
+        (keep (fn copy
+                [id]
+                (when-let [block (block/get (:buffer store) id)]
+                  (block/put! (:store store) block)
+                  (block/delete! (:buffer store) id)
+                  block)))
+        (reduce store/update-summary (store/init-summary)))))
 
 
 

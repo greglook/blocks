@@ -26,7 +26,12 @@
                 (map :id (block/list store))))
     (is (= (:id c) (:id (block/put! store c))))
     (is (= 2 (count (block/list buffer))))
-    (blocks.store.buffer/flush! store)
+    (let [flush-summary (buffer/flush! store)]
+      (is (= 2 (:count flush-summary)))
+      (is (= 22 (:size flush-summary))))
+    (is (zero? (:count (buffer/clear! store))))
+    (block/put! store (block/read! "XYZ"))
+    (is (= 1 (:count (buffer/clear! store))))
     (is (empty? (block/list buffer)))
     (is (= 3 (count (block/list backer))))
     (block/delete! store (:id c))
