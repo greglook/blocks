@@ -6,7 +6,6 @@ Block Storage
 [![Coverage Status](https://coveralls.io/repos/greglook/blocks/badge.svg?branch=develop&service=github)](https://coveralls.io/github/greglook/blocks?branch=develop)
 [![API codox](https://img.shields.io/badge/doc-API-blue.svg)](https://greglook.github.io/blocks/api/)
 [![marginalia docs](https://img.shields.io/badge/doc-marginalia-blue.svg)](https://greglook.github.io/blocks/marginalia/uberdoc.html)
-[![Join the chat at https://gitter.im/greglook/blocks](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/greglook/blocks)
 
 This library implements [content-addressable storage](https://en.wikipedia.org/wiki/Content-addressable_storage)
 types and protocols for Clojure. Content-addressable storage has several useful properties:
