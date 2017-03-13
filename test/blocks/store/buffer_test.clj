@@ -3,7 +3,7 @@
     [blocks.core :as block]
     (blocks.store
       [memory :refer [memory-block-store]]
-      [buffer :refer [buffer-block-store]]
+      [buffer :refer [buffer-block-store] :as buffer]
       [tests :as tests])
     [clojure.test :refer :all]))
 
@@ -31,6 +31,25 @@
     (is (= 3 (count (block/list backer))))
     (block/delete! store (:id c))
     (is (= 2 (count (block/list store))))))
+
+
+(deftest buffer-size-limits
+  (let [backer (memory-block-store)
+        buffer (memory-block-store)
+        store (buffer-block-store
+                :store backer
+                :buffer buffer
+                :max-block-size 8)
+        a (block/read! "foo")
+        b (block/read! "bar")
+        c (block/read! "abcdefghijklmnopqrstuvwxyz")]
+    (block/put! store a)
+    (block/put! store b)
+    (block/put! store c)
+    (is (= 3 (count (block/list store))))
+    (is (= 2 (count (block/list buffer))))
+    (is (= 1 (count (block/list backer))))
+    (is (= (:id c) (:id (first (block/list backer)))))))
 
 
 (deftest ^:integration test-buffer-store

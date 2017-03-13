@@ -9,7 +9,7 @@
 
 
 (defrecord BufferBlockStore
-  [store buffer]
+  [max-block-size store buffer]
 
   store/BlockStore
 
@@ -35,7 +35,10 @@
   (-put!
     [this block]
     (or (store/-get store (:id block))
-        (store/-put! buffer block)))
+        (if (or (nil? max-block-size)
+                (<= (:size block) max-block-size))
+          (store/-put! buffer block)
+          (store/-put! store block))))
 
 
   (-delete!
