@@ -3,6 +3,7 @@
   API wrapper functions in `blocks.core` instead of using these methods
   directly."
   (:require
+    [bigml.sketchy.bloom :as bloom]
     [multihash.core :as multihash]))
 
 
@@ -96,8 +97,7 @@
   {:count 0
    :size 0
    :sizes {}  ; increment n for each block, where 2^n <= size < 2^(n+1)
-   ; TODO: bloom filter
-   :membership #{}})
+   :membership (bloom/create 100000 0.01)})
 
 
 (defn size->bucket
@@ -125,8 +125,7 @@
       (update :count inc)
       (update :size + (:size block))
       (update :sizes update (size->bucket (:size block)) (fnil inc 0))
-      ; TODO: bloom filter
-      (update :membership conj (:id block))))
+      (update :membership bloom/insert (:id block))))
 
 
 (defn merge-summaries
@@ -136,8 +135,7 @@
       (update :count + (:count b))
       (update :size + (:size b))
       (update :sizes (partial merge-with +) (:sizes b))
-      ; TODO: bloom filter
-      (update :membership into (:membership b))
+      (update :membership bloom/merge (:membership b))
       (merge (dissoc b :count :size :sizes :membership))))
 
 
@@ -146,5 +144,4 @@
   given block identifier. False positives may be possible, but false negatives
   are not."
   [summary id]
-  ; TODO: bloom filter
-  (contains? (:membership summary) id))
+  (bloom/contains? (:membership summary) id))
