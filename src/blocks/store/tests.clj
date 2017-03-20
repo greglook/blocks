@@ -81,7 +81,7 @@
         "result should match the number of blocks expected")
     (is (every? (partial apply check-stat model)
                 (map vector expected-ids result))
-        "all stat results are rturned")))
+        "all stat results are returned")))
 
 
 
@@ -216,7 +216,7 @@
      :scan
      {:args (constantly (gen/return (constantly true)))
       :check
-      (fn check-scan
+      (fn check-summary
         [model p result]
         (is (= (count model) (:count result)))
         (is (= (reduce + (map :size (vals model))) (:size result)))

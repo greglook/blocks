@@ -344,8 +344,8 @@
   given, the predicate function will be called with each block in the store.
   By default, all blocks are scanned."
   ([store]
-   (scan store (constantly true)))
+   (scan store nil))
   ([store p]
-   (->> (enumerate store)
-        (filter p)
-        (reduce store/update-summary (store/init-summary)))))
+   (-> (enumerate store)
+       (cond->> p (filter p))
+       (->> (reduce store/update-summary (store/init-summary))))))

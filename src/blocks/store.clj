@@ -97,7 +97,7 @@
   {:count 0
    :size 0
    :sizes {}  ; increment n for each block, where 2^n <= size < 2^(n+1)
-   :membership (bloom/create 100000 0.01)})
+   :membership (bloom/create 10000 0.01)})
 
 
 (defn size->bucket
