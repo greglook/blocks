@@ -11,7 +11,7 @@
   - `:source`      resource location for the block content
   - `:stored-at`   time block was added to the store
   "
-  (:refer-clojure :exclude [get list])
+  (:refer-clojure :exclude [get list sync])
   (:require
     [blocks.data :as data]
     [blocks.store :as store]
@@ -349,3 +349,52 @@
    (-> (enumerate store)
        (cond->> p (filter p))
        (->> (reduce store/update-summary (store/init-summary))))))
+
+
+(defn ^:no-doc missing-blocks
+  "Returns a lazy sequence of stats for the blocks in the list of stats from
+  `source` which are not in `dest` list."
+  [source-blocks dest-blocks]
+  (let [s (first source-blocks)
+        d (first dest-blocks)]
+    (cond
+      ; Source store exhausted; terminate sequence.
+      (empty? source-blocks)
+        nil
+
+      ; Destination store exhausted; return remaining blocks in source.
+      (empty? dest-blocks)
+        source-blocks
+
+      ; Block is already in both source and dest.
+      (= (:id s) (:id d))
+        (recur (next source-blocks)
+               (next dest-blocks))
+
+      :else
+        (if (neg? (compare (:id s) (:id d)))
+          ; Source has a block not in dest.
+          (cons s (lazy-seq (missing-blocks (next source-blocks) dest-blocks)))
+          ; Next source block comes after some dest blocks; skip forward.
+          (recur source-blocks (next dest-blocks))))))
+
+
+(defn sync
+  "Synchronize blocks from the `source` store to the `dest` store. Returns a
+  summary of the copied blocks. Options may include:
+
+  - `:filter` a function to run on every block stats before it is copied to the
+    `dest` store. If the function returns a falsey value, the block will not be
+    copied."
+  [source dest & {:as opts}]
+  (-> (missing-blocks
+        (store/-list source nil)
+        (store/-list dest nil))
+      (cond->>
+        (:filter opts) (filter (:filter opts)))
+      (->> (reduce
+             (fn copy-block
+               [summary stat]
+               (put! dest (get source (:id stat)))
+               (store/update-summary summary stat))
+             (store/init-summary)))))

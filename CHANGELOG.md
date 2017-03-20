@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Store `scan` function to produce a summary of the contained blocks.
 - Summary data functions which provide a count, total size, size histogram, and
   bloom filter for block id membership.
+- Store `sync` function to copy blocks between stores.
 
 ### Changed
 - Storage protocol changed to wrap `enumerate` with block listing utility.
