@@ -49,7 +49,7 @@
             dest (memory-block-store)]
         (is (= 3 (count (block/list source))))
         (is (empty? (block/list dest)))
-        (let [sync-summary (block/sync source dest)]
+        (let [sync-summary (block/sync! source dest)]
           (is (= 3 (:count sync-summary)))
           (is (= 9 (:size sync-summary))))
         (is (= 3 (count (block/list source))))
@@ -62,7 +62,7 @@
                    (block/put! block-a)
                    (block/put! block-b)
                    (block/put! block-c))
-            summary (block/sync source dest)]
+            summary (block/sync! source dest)]
         (is (zero? (:count summary)))
         (is (zero? (:size summary)))
         (is (= 2 (count (block/list source))))
@@ -74,7 +74,7 @@
             dest (doto (memory-block-store)
                    (block/put! block-b)
                    (block/put! block-d))
-            summary (block/sync source dest)]
+            summary (block/sync! source dest)]
         (is (= 2 (:count summary)))
         (is (= 6 (:size summary)))
         (is (= 2 (count (block/list source))))
@@ -86,7 +86,7 @@
             dest (doto (memory-block-store)
                    (block/put! block-b)
                    (block/put! block-d))
-            summary (block/sync source dest :filter (comp #{(:id block-c)} :id))]
+            summary (block/sync! source dest :filter (comp #{(:id block-c)} :id))]
         (is (= 1 (:count summary)))
         (is (= 3 (:size summary)))
         (is (= 2 (count (block/list source))))

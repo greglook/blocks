@@ -379,7 +379,7 @@
           (recur source-blocks (next dest-blocks))))))
 
 
-(defn sync
+(defn sync!
   "Synchronize blocks from the `source` store to the `dest` store. Returns a
   summary of the copied blocks. Options may include:
 
