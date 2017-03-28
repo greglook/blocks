@@ -21,7 +21,7 @@
 
   (-list
     [this opts]
-    (util/merge-block-lists
+    (store/merge-block-lists
       (store/-list buffer opts)
       (store/-list store  opts)))
 
@@ -55,7 +55,7 @@
        (map (fn [stats]
               (block/delete! (:buffer store) (:id stats))
               stats))
-       (reduce summary/update-summary (summary/init))))
+       (reduce summary/update (summary/init))))
 
 
 (defn flush!
@@ -71,13 +71,13 @@
                   (block/put! (:store store) block)
                   (block/delete! (:buffer store) id)
                   block)))
-        (reduce summary/update-summary (summary/init)))))
+        (reduce summary/update (summary/init)))))
 
 
 
 ;; ## Constructors
 
-(util/privatize-constructors! BufferBlockStore)
+(store/privatize-constructors! BufferBlockStore)
 
 
 (defn buffer-block-store

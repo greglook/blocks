@@ -25,7 +25,6 @@
       [core :as block]
       [data :as data]
       [store :as store])
-    [blocks.store.util :as util]
     [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
@@ -118,11 +117,11 @@
     (some->
       file
       (.getPath)
-      (util/check #(.startsWith ^String % root)
+      (store/check #(.startsWith ^String % root)
         (log/warnf "File %s is not a child of root directory %s" file root))
       (subs (inc (count root)))
       (str/replace "/" "")
-      (util/check hex/valid?
+      (store/check hex/valid?
         (log/warnf "File %s did not form valid hex entry: %s" file value))
       (multihash/decode))))
 
@@ -167,7 +166,7 @@
     [this opts]
     (->> (find-files root (:after opts))
          (keep #(block-stats (file->id root %) %))
-         (util/select-stats opts)))
+         (store/select-stats opts)))
 
 
   (-get
@@ -217,7 +216,7 @@
 
 ;; ## Constructors
 
-(util/privatize-constructors! FileBlockStore)
+(store/privatize-constructors! FileBlockStore)
 
 
 (defn file-block-store
@@ -229,7 +228,7 @@
 
 (defmethod store/initialize "file"
   [location]
-  (let [uri (util/parse-uri location)]
+  (let [uri (store/parse-uri location)]
     (file-block-store
       (if (:host uri)
         (io/file (:host uri) (subs (:path uri) 1))

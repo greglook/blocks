@@ -5,7 +5,7 @@
     [alphabase.bytes :refer [random-bytes]]
     [alphabase.hex :as hex]
     [blocks.core :as block]
-    [blocks.store :as store]
+    [blocks.summary :as summary]
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.test :refer :all]
     [clojure.test.check :as check]

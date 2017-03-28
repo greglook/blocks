@@ -2,8 +2,7 @@
   "Logical block storage which writes to multiple backing stores to ensure
   durability. Lookups will try the backing stores in order to find blocks."
   (:require
-    [blocks.store :as store]
-    [blocks.store.util :as util]))
+    [blocks.store :as store]))
 
 
 (defrecord ReplicaBlockStore
@@ -21,7 +20,7 @@
     (->> stores
          (map #(store/-list % opts))
          (doall)
-         (apply util/merge-block-lists)))
+         (apply store/merge-block-lists)))
 
 
   (-get
@@ -32,7 +31,7 @@
   (-put!
     [this block]
     (let [stored-block (store/-put! (first stores) block)
-          copy-block (util/preferred-copy block stored-block)]
+          copy-block (store/preferred-copy block stored-block)]
       (dorun (map #(store/-put! % copy-block) (rest stores)))
       stored-block))
 
@@ -50,7 +49,7 @@
 
 ;; ## Constructors
 
-(util/privatize-constructors! ReplicaBlockStore)
+(store/privatize-constructors! ReplicaBlockStore)
 
 
 (defn replica-block-store

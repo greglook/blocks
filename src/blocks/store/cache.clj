@@ -8,7 +8,6 @@
   (:require
     [blocks.core :as block]
     [blocks.store :as store]
-    [blocks.store.util :as util]
     [clojure.data.priority-map :refer [priority-map]]
     [clojure.tools.logging :as log]
     [com.stuartsierra.component :as component]))
@@ -137,9 +136,9 @@
   (-list
     [this opts]
     (ensure-initialized! this)
-    (util/select-stats
+    (store/select-stats
       opts
-      (util/merge-block-lists
+      (store/merge-block-lists
         (store/-list cache   opts)
         (store/-list primary opts))))
 
@@ -158,7 +157,7 @@
     (ensure-initialized! this)
     (when-let [id (:id block)]
       (let [cached (maybe-cache! this block)
-            preferred (util/preferred-copy cached block)
+            preferred (store/preferred-copy cached block)
             stored (store/-put! primary preferred)]
         (or cached stored))))
 
@@ -173,7 +172,7 @@
 
 ;; ## Constructors
 
-(util/privatize-constructors! CachingBlockStore)
+(store/privatize-constructors! CachingBlockStore)
 
 
 (defn caching-block-store

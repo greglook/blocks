@@ -8,8 +8,7 @@
     (blocks
       [core :as block]
       [data :as data]
-      [store :as store])
-    [blocks.store.util :as util])
+      [store :as store]))
   (:import
     java.util.Date))
 
@@ -38,7 +37,7 @@
     [this opts]
     (->> @memory
          (map (comp block-stats val))
-         (util/select-stats opts)))
+         (store/select-stats opts)))
 
 
   (-get
@@ -68,7 +67,7 @@
 
 ;; ## Constructors
 
-(util/privatize-constructors! MemoryBlockStore)
+(store/privatize-constructors! MemoryBlockStore)
 
 
 (defn memory-block-store
