@@ -223,7 +223,7 @@
         (is (map? (:sizes result)))
         (is (every? integer? (keys (:sizes result))))
         (is (= (count model) (reduce + (vals (:sizes result)))))
-        (is (every? (partial store/probably-contains? result) (map :id (vals model)))))}
+        (is (every? (partial summary/probably-contains? result) (map :id (vals model)))))}
 
      :open-block
      {:args choose-id
