@@ -62,7 +62,7 @@ public class PersistentBytes implements IHashEq, Indexed, Iterable, Seqable, Seq
 
 
     /**
-     * Constructs a new PersistentBytes object with a copy o the given binary
+     * Constructs a new PersistentBytes object with a copy of the given binary
      * data.
      *
      * @return new persistent byte sequence, or null if data is null or empty
