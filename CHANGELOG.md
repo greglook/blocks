@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - Storage protocol changed to wrap `enumerate` with block listing utility.
+- Rename `BlockEnumerator` protocol to `EnumerableStore` for consistency.
 
 ## [0.8.0] - 2016-08-14
 

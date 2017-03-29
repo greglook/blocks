@@ -196,7 +196,7 @@
         false))
 
 
-  store/BlockEnumerator
+  store/EnumerableStore
 
   (-enumerate
     [this]

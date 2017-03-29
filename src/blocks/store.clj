@@ -61,7 +61,7 @@
     multihashes. Returns a collection of multihashes for the deleted blocks."))
 
 
-(defprotocol BlockEnumerator
+(defprotocol EnumerableStore
   "An enumerator provides a way to efficiently iterate over all the stored
   blocks."
 

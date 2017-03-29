@@ -335,7 +335,7 @@
   returned in any defined order; it is assumed that the store will enumerate
   them in the most efficient order available."
   [store]
-  (if (satisfies? store/BlockEnumerator store)
+  (if (satisfies? store/EnumerableStore store)
     (store/-enumerate store)
     (map #(store/-get store (:id %)) (store/-list store nil))))
 
