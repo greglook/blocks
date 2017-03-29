@@ -12,6 +12,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Summary data functions which provide a count, total size, size histogram, and
   bloom filter for block id membership.
 - Store `sync!` function to copy blocks between stores.
+- `ErasableStore` protocol for block stores which support efficient or atomic
+  data removal. There's a matching `blocks.core/erase!!` function using it,
+  which falls back to deleting the blocks in the store individually.
 
 ### Changed
 - Storage protocol changed to wrap `enumerate` with block listing utility.

@@ -325,7 +325,6 @@
   - `blocks`      generate this many random blocks to test the store with
   - `max-size`    maximum block size to generate, in bytes
   - `iterations`  number of generative tests to perform
-  - `eraser`      optional custom function to completely remove the store
 
   Returns the results of the generative tests."
   [constructor & {:keys [blocks max-size iterations eraser]
@@ -343,9 +342,7 @@
                             " as it already contains blocks!"))))
             (is (zero? (:count (block/scan store))))
             (let [result (valid-op-seq? store ops)]
-              (if eraser
-                (eraser store)
-                (block/delete-batch! store (set (keys test-blocks))))
+              (block/erase!! store)
               (is (empty? (block/list store)) "ends empty")
               result)
             (finally

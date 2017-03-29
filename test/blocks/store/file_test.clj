@@ -42,6 +42,4 @@
 
 (deftest ^:integration test-file-store
   (let [tmpdir (mk-tmpdir!)]
-    (tests/check-store!
-      #(file-block-store tmpdir)
-      :eraser file/erase!)))
+    (tests/check-store! #(file-block-store tmpdir))))

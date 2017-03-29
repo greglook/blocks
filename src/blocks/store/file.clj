@@ -190,10 +190,9 @@
 
   (-delete!
     [this id]
-    (or (when-block id
-          (locking this
-            (.delete file)))
-        false))
+    (boolean (when-block id
+               (locking this
+                 (.delete file)))))
 
 
   store/EnumerableStore
@@ -202,15 +201,15 @@
     [this]
     (->> (.listFiles root)
          (mapcat #(.listFiles ^File %))
-         (map #(file->block (file->id root %) %)))))
+         (map #(file->block (file->id root %) %))))
 
 
-(defn erase!
-  "Clears all contents of the file store by recursively deleting the root
-  directory."
-  [store]
-  (locking store
-    (rm-r (:root store))))
+  store/ErasableStore
+
+  (-erase!
+    [this]
+    (locking this
+      (rm-r root))))
 
 
 

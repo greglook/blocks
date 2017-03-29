@@ -330,6 +330,16 @@
 
 ;; ## Storage Utilities
 
+(defn erase!!
+  "Completely removes any data associated with the store. After this call, the
+  store should be empty."
+  [store]
+  (if (satisfies? store/ErasableStore store)
+    (store/-erase! store)
+    (run! (comp (partial delete! store) :id)
+          (store/-list store nil))))
+
+
 (defn enumerate
   "Returns a lazy sequence of stored blocks. Blocks are expliticly **not**
   returned in any defined order; it is assumed that the store will enumerate

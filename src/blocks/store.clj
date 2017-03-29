@@ -72,6 +72,16 @@
     them in the most efficient order available."))
 
 
+(defprotocol ErasableStore
+  "An eraseable store has some notion of being removed in its entirety, usually
+  also atomically. One example would be a file system unlinking the root
+  directory rather than deleting each individual file."
+
+  (-erase!
+    [store]
+    "Completely removes any data associated with the store."))
+
+
 
 ;; ## Store Construction
 
