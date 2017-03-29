@@ -2,92 +2,80 @@
   (:require
     [blocks.core :as block]
     [blocks.store :as store]
-    [blocks.store.memory :refer [memory-block-store]]
-    [clojure.test :refer :all]))
+    [clojure.test :refer :all]
+    [multihash.core :as multihash]))
 
 
-(deftest bucket-histogram
-  (let [in-range (fn [s] (let [[a b] (store/bucket->range (store/size->bucket s))]
-                           (and (<= a s) (< s b))))]
-    (dotimes [i 16]
-      (is (in-range i)))))
+(deftest check-macro
+  (testing "check with true predicate"
+    (let [effects (atom [])]
+      (is (= :foo (store/check :foo some?
+                    (swap! effects conj [:> value])))
+          "should return value")
+      (is (empty? @effects) "should not cause side effects")))
+  (testing "check with false predicate"
+    (let [effects (atom [])]
+      (is (nil? (store/check :foo (constantly false)
+                  (swap! effects conj [:> value])))
+          "should return nil")
+      (is (= [[:> :foo]] @effects) "should cause side effects"))))
 
 
-(deftest storage-summaries
-  (let [block-a (block/read! "foo")
-        block-b (block/read! "bar")
-        block-c (block/read! "baz")
-        summary-a (store/update-summary (store/init-summary) block-a)
-        summary-ab (store/update-summary summary-a block-b)
-        summary-c (store/update-summary (store/init-summary) block-c)]
-    (is (= 0 (:count (store/init-summary))))
-    (is (= 0 (:size (store/init-summary))))
-    (is (empty? (:sizes (store/init-summary))))
-    (is (= 1 (:count summary-a)))
-    (is (= (:size block-a) (:size summary-a)))
-    (is (= 2 (:count summary-ab)))
-    (is (= (+ (:size block-a) (:size block-b)) (:size summary-ab)))
-    (is (not (empty? (:sizes summary-ab))))
-    (is (= (store/merge-summaries summary-ab summary-c)
-           (store/update-summary summary-ab block-c)))
-    (is (store/probably-contains? summary-ab (:id block-a)))
-    (is (store/probably-contains? summary-ab (:id block-b)))
-    (is (not (store/probably-contains? summary-ab (:id block-c))))))
+(deftest block-preference
+  (is (nil? (store/preferred-copy nil))
+      "returns nil with no block arguments")
+  (let [literal (block/read! "foo")
+        lazy-a (block/from-file "project.clj")
+        lazy-b (block/from-file "README.md")]
+    (is (= literal (store/preferred-copy lazy-a literal lazy-b))
+        "returns literal block if present")
+    (is (= lazy-a (store/preferred-copy lazy-a lazy-b))
+        "returns first block if all lazy")))
 
 
+(deftest stat-selection
+  (let [a (multihash/create :sha1 "37b51d194a7513e45b56f6524f2d51f200000000")
+        b (multihash/create :sha1 "73fcffa4b7f6bb68e44cf984c85f6e888843d7f9")
+        c (multihash/create :sha1 "73fe285cedef654fccc4a4d818db4cc225932878")
+        d (multihash/create :sha1 "acbd18db4cc2f856211de9ecedef654fccc4a4d8")
+        e (multihash/create :sha1 "c3c23db5285662ef717963ff4ce2373df0003206")
+        f (multihash/create :sha2-256 "285c3c23d662b5ef7172373df0963ff4ce003206")
+        ids [a b c d e f]
+        stats (map #(hash-map :id % :size 1) ids)]
+    (are [result opts] (= result (map :id (store/select-stats opts stats)))
+         ids        {}
+         [f]        {:algorithm :sha2-256}
+         [c d e f]  {:after "111473fd2"}
+         [a b c]    {:limit 3})))
 
-(deftest block-syncing
-  (let [block-a (block/read! "789")  ; 35a9
-        block-b (block/read! "123")  ; a665
-        block-c (block/read! "456")  ; b3a8
-        block-d (block/read! "ABC")] ; b5d4
-    (testing "empty dest"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-b)
-                     (block/put! block-c))
-            dest (memory-block-store)]
-        (is (= 3 (count (block/list source))))
-        (is (empty? (block/list dest)))
-        (let [sync-summary (block/sync! source dest)]
-          (is (= 3 (:count sync-summary)))
-          (is (= 9 (:size sync-summary))))
-        (is (= 3 (count (block/list source))))
-        (is (= 3 (count (block/list dest))))))
-    (testing "subset source"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-c))
-            dest (doto (memory-block-store)
-                   (block/put! block-a)
-                   (block/put! block-b)
-                   (block/put! block-c))
-            summary (block/sync! source dest)]
-        (is (zero? (:count summary)))
-        (is (zero? (:size summary)))
-        (is (= 2 (count (block/list source))))
-        (is (= 3 (count (block/list dest))))))
-    (testing "mixed blocks"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-c))
-            dest (doto (memory-block-store)
-                   (block/put! block-b)
-                   (block/put! block-d))
-            summary (block/sync! source dest)]
-        (is (= 2 (:count summary)))
-        (is (= 6 (:size summary)))
-        (is (= 2 (count (block/list source))))
-        (is (= 4 (count (block/list dest))))))
-    (testing "filter logic"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-c))
-            dest (doto (memory-block-store)
-                   (block/put! block-b)
-                   (block/put! block-d))
-            summary (block/sync! source dest :filter (comp #{(:id block-c)} :id))]
-        (is (= 1 (:count summary)))
-        (is (= 3 (:size summary)))
-        (is (= 2 (count (block/list source))))
-        (is (= 3 (count (block/list dest))))))))
+
+(deftest stat-list-merging
+  (let [list-a (list {:id "aaa", :foo :bar}
+                     {:id "abb", :baz :qux}
+                     {:id "abc", :key :val})
+        list-b (list {:id "aab", :xyz 123}
+                     {:id "abc", :ack :bar})
+        list-c (list {:id "aaa", :foo 123}
+                     {:id "xyz", :wqr :axo})]
+    (is (= [{:id "aaa", :foo :bar}
+            {:id "aab", :xyz 123}
+            {:id "abb", :baz :qux}
+            {:id "abc", :key :val}
+            {:id "xyz", :wqr :axo}]
+           (store/merge-block-lists
+             list-a list-b list-c)))))
+
+
+(deftest uri-parsing
+  (is (= {:scheme "mem", :name "-"} (store/parse-uri "mem:-")))
+  (is (= {:scheme "file", :path "/foo/bar"} (store/parse-uri "file:///foo/bar")))
+  (is (= {:scheme "file", :host "foo" :path "/bar"} (store/parse-uri "file://foo/bar")))
+  (is (= {:scheme "https"
+          :user-info {:id "user"
+                      :secret "password"}
+          :host "example.com"
+          :port 443
+          :path "/path/to/thing"
+          :query {:foo "alpha"
+                  :bar "123"}}
+         (store/parse-uri "https://user:password@example.com:443/path/to/thing?foo=alpha&bar=123"))))

@@ -3,6 +3,7 @@
     [blocks.core :as block]
     [blocks.data :as data]
     [blocks.store :as store]
+    [blocks.store.memory :refer [memory-block-store]]
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
@@ -285,3 +286,60 @@
     (testing "meta-stats"
       (is (= {:stored-at 123} (block/meta-stats block'))
           "should return the stored stats"))))
+
+
+(deftest block-syncing
+  (let [block-a (block/read! "789")  ; 35a9
+        block-b (block/read! "123")  ; a665
+        block-c (block/read! "456")  ; b3a8
+        block-d (block/read! "ABC")] ; b5d4
+    (testing "empty dest"
+      (let [source (doto (memory-block-store)
+                     (block/put! block-a)
+                     (block/put! block-b)
+                     (block/put! block-c))
+            dest (memory-block-store)]
+        (is (= 3 (count (block/list source))))
+        (is (empty? (block/list dest)))
+        (let [sync-summary (block/sync! source dest)]
+          (is (= 3 (:count sync-summary)))
+          (is (= 9 (:size sync-summary))))
+        (is (= 3 (count (block/list source))))
+        (is (= 3 (count (block/list dest))))))
+    (testing "subset source"
+      (let [source (doto (memory-block-store)
+                     (block/put! block-a)
+                     (block/put! block-c))
+            dest (doto (memory-block-store)
+                   (block/put! block-a)
+                   (block/put! block-b)
+                   (block/put! block-c))
+            summary (block/sync! source dest)]
+        (is (zero? (:count summary)))
+        (is (zero? (:size summary)))
+        (is (= 2 (count (block/list source))))
+        (is (= 3 (count (block/list dest))))))
+    (testing "mixed blocks"
+      (let [source (doto (memory-block-store)
+                     (block/put! block-a)
+                     (block/put! block-c))
+            dest (doto (memory-block-store)
+                   (block/put! block-b)
+                   (block/put! block-d))
+            summary (block/sync! source dest)]
+        (is (= 2 (:count summary)))
+        (is (= 6 (:size summary)))
+        (is (= 2 (count (block/list source))))
+        (is (= 4 (count (block/list dest))))))
+    (testing "filter logic"
+      (let [source (doto (memory-block-store)
+                     (block/put! block-a)
+                     (block/put! block-c))
+            dest (doto (memory-block-store)
+                   (block/put! block-b)
+                   (block/put! block-d))
+            summary (block/sync! source dest :filter (comp #{(:id block-c)} :id))]
+        (is (= 1 (:count summary)))
+        (is (= 3 (:size summary)))
+        (is (= 2 (count (block/list source))))
+        (is (= 3 (count (block/list dest))))))))
