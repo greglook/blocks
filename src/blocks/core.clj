@@ -183,7 +183,9 @@
   does not contain the identified block."
   [store id]
   (when id
-    ; TODO: verify that id is a Multihash?
+    (when-not (instance? Multihash id)
+      (throw (IllegalArgumentException.
+               (str "Id value must be a multihash, got: " (pr-str id)))))
     (store/-stat store id)))
 
 
@@ -259,8 +261,6 @@
 
   If the source is a file, it will be streamed into the store. Otherwise, the
   content is read into memory, so this may not be suitable for large sources."
-  ; TODO: protocol for efficient storage? `store/receive!` maybe?
-  ; May need a protocol for turning a value into a block, as well.
   ([store source]
    (store! store source default-algorithm))
   ([store source algorithm]

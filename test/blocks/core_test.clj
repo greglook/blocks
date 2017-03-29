@@ -11,9 +11,10 @@
     [multihash.digest :as digest])
   (:import
     blocks.data.Block
-    java.io.ByteArrayOutputStream
-    java.io.IOException
-    java.io.InputStream))
+    (java.io
+      ByteArrayOutputStream
+      InputStream
+      IOException)))
 
 
 ;; ## IO Tests
@@ -130,6 +131,11 @@
             (block/list store :limit 0)))
       (is (= {:algorithm :sha1, :after "012abc", :limit 10}
              (block/list store :algorithm :sha1, :after "012abc", :limit 10))))))
+
+
+(deftest stat-wrapper
+  (testing "non-multihash id"
+    (is (thrown? IllegalArgumentException (block/stat {} "foo")))))
 
 
 (deftest get-wrapper
