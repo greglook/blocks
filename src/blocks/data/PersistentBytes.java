@@ -23,7 +23,7 @@ import java.util.Iterator;
 /**
  * Simple immutable byte sequence data structure.
  */
-public class PersistentBytes implements IHashEq, Indexed, Iterable, Seqable, Sequential {
+public class PersistentBytes implements Comparable<PersistentBytes>, IHashEq, Indexed, Iterable, Seqable, Sequential {
 
     private final byte[] _data;
     private int _hash = -1;
@@ -106,6 +106,23 @@ public class PersistentBytes implements IHashEq, Indexed, Iterable, Seqable, Seq
     @Override
     public String toString() {
         return String.format("%s[size=%d]", this.getClass().getSimpleName(), count());
+    }
+
+
+
+    ///// Comparable /////
+
+    @Override
+    public int compareTo(PersistentBytes other) {
+        int prefixLen = Math.min(count(), other.count());
+        for ( int i = 0; i < prefixLen; i++ ) {
+            byte a = (byte)nth(i);
+            byte b = (byte)other.nth(i);
+            if ( a != b ) {
+                return a - b;
+            }
+        }
+        return count() - other.count();
     }
 
 

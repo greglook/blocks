@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `ErasableStore` protocol for block stores which support efficient or atomic
   data removal. There's a matching `blocks.core/erase!!` function using it,
   which falls back to deleting the blocks in the store individually.
+- `PersistentBytes` support comparison using lexical sorting rules.
 
 ### Changed
 - Storage protocol changed to wrap `enumerate` with block listing utility.
