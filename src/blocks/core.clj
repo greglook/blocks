@@ -268,7 +268,7 @@
                  (from-file source algorithm)
                  (read! source algorithm))]
      (when (pos? (:size block))
-       (store/-put! store block)))))
+       (put! store block)))))
 
 
 (defn delete!

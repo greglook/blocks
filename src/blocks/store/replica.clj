@@ -19,7 +19,6 @@
     [this opts]
     (->> stores
          (map #(store/-list % opts))
-         (doall)
          (apply store/merge-block-lists)))
 
 
@@ -32,7 +31,7 @@
     [this block]
     (let [stored-block (store/-put! (first stores) block)
           copy-block (store/preferred-copy block stored-block)]
-      (dorun (map #(store/-put! % copy-block) (rest stores)))
+      (run! #(store/-put! % copy-block) (rest stores))
       stored-block))
 
 

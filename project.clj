@@ -5,7 +5,7 @@
             :url "http://unlicense.org/"}
 
   :aliases
-  {"coverage" ["with-profile" "+test,+coverage" "cloverage"
+  {"coverage" ["with-profile" "+coverage" "cloverage"
                "--ns-exclude-regex" "blocks.store.tests"]}
 
   :deploy-branches ["master"]
@@ -52,5 +52,6 @@
 
    :coverage
    {:plugins [[lein-cloverage "1.0.9"]]
+    :dependencies [[commons-logging "1.2"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
