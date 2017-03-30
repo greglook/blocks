@@ -13,11 +13,12 @@
 (defn new-cache
   "Helper function to construct a fresh cache store backed by empty memory
   stores."
-  [size-limit]
-  (caching-block-store
+  [size-limit & args]
+  (apply caching-block-store
     size-limit
     :primary (memory-block-store)
-    :cache (memory-block-store)))
+    :cache (memory-block-store)
+    args))
 
 
 (deftest store-construction
@@ -58,7 +59,7 @@
         store' (component/start store)]
     (is (every? #(block/stat (:cache store) %) (keys blocks))
         "all blocks should still be present in store")
-    (is (every? #(contains? (:priorities @(:state store)) %) (keys blocks))
+    (is (every? (:priorities @(:state store)) (keys blocks))
         "all blocks should have an entry in the priority map")))
 
 
@@ -73,11 +74,27 @@
         "reap cleans up at least the desired free space")))
 
 
-(deftest block-over-size
-  (let [store (component/start (new-cache 16))
-        block (block/put! store (block/read! "0123456789abcdef0123"))]
-    (is (block/stat store (:id block)) "block is stored")
-    (is (nil? (block/stat (:cache store) (:id block))) "cache should not store block")))
+(deftest size-limits
+  (testing "block without limit"
+    (let [store (component/start (new-cache 512))
+          block (block/put! store (block/read! "0123456789"))]
+      (is (block/stat store (:id block)) "block is stored")
+      (is (block/stat (:cache store) (:id block)) "cache should store block")))
+  (testing "block under limit"
+    (let [store (component/start (new-cache 512 :max-block-size 16))
+          block (block/put! store (block/read! "0123456789"))]
+      (is (block/stat store (:id block)) "block is stored")
+      (is (block/stat (:cache store) (:id block)) "cache should store block")))
+  (testing "block over limit"
+    (let [store (component/start (new-cache 512 :max-block-size 16))
+          block (block/put! store (block/read! "0123456789abcdef0123"))]
+      (is (block/stat store (:id block)) "block is stored")
+      (is (nil? (block/stat (:cache store) (:id block))) "cache should not store block")))
+  (testing "block larger than cache"
+    (let [store (component/start (new-cache 16))
+          block (block/put! store (block/read! "0123456789abcdef0123"))]
+      (is (block/stat store (:id block)) "block is stored")
+      (is (nil? (block/stat (:cache store) (:id block))) "cache should not store block"))))
 
 
 (deftest ^:integration test-caching-store

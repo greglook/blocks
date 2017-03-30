@@ -1,13 +1,16 @@
 (ns blocks.store.cache
-  "Logical block storage backed by two other stores, a _primary store_ and a
-  _cache_. Blocks are added to the cache on reads and writes, and evicted with
-  a least-recently-used strategy to keep the cache under a certain total size.
+  "Cache stores provide logical block storage backed by two other stores, a
+  _primary store_ and a _cache_. Blocks are added to the cache on reads and
+  writes, and evicted with a least-recently-used strategy to keep the cache
+  under a certain total size. Operations on this store will prefer to look up
+  blocks in the cache, and fall back to the primary store when not available.
 
-  Operations on this store will prefer to look up blocks in the cache, and fall
-  back to the primary store when not available."
+  Because the caching logic runs locally, the backing cache storage should not
+  be shared among multiple concurrent processes."
   (:require
     [blocks.core :as block]
     [blocks.store :as store]
+    [blocks.summary :as sum]
     [clojure.data.priority-map :refer [priority-map]]
     [clojure.tools.logging :as log]
     [com.stuartsierra.component :as component]))
@@ -19,7 +22,9 @@
   [store]
   (reduce
     (fn [state block]
-      (let [tick (or (some-> ^java.util.Date (:stored-at block) (.getTime)) 0)]
+      ; TODO: could do something clever with the :stored-at metadata, but this
+      ; is probably sufficient.
+      (let [tick 0]
         (-> state
             (update :priorities assoc (:id block) [tick (:size block)])
             (update :total-size + (:size block))
@@ -45,23 +50,24 @@
 
 (defn reap!
   "Given a target amount of space to free and a cache store, deletes blocks from
-  the cache to free up the desired amount of space. Returns a vector of the
+  the cache to free up the desired amount of space. Returns a summary of the
   deleted entries."
   [store target-free]
   (let [{:keys [cache state size-limit]} store]
-    (loop [deleted []]
-      (let [{:keys [priorities total-size]} @state]
-        (if (and (< (- size-limit total-size) target-free)
-                 (not (empty? priorities)))
-          ; Need to delete the next block.
-          (let [[id [tick size]] (peek priorities)]
-            (block/delete! cache id)
-            (swap! state assoc
-                   :total-size (- total-size size)
-                   :priorities (pop priorities))
-            (recur (conj deleted {:id id, :tick tick, :size size})))
-          ; Enough free space, or no more blocks to delete.
-          deleted)))))
+    (locking store
+      (loop [deleted (sum/init)]
+        (let [{:keys [priorities total-size]} @state]
+          (if (and (< (- size-limit total-size) target-free)
+                   (not (empty? priorities)))
+            ; Need to delete the next block.
+            (let [[id [tick size]] (peek priorities)]
+              (block/delete! cache id)
+              (swap! state #(-> %
+                                (update :total-size - size)
+                                (update :priorities pop)))
+              (recur (sum/update deleted {:id id, :size size})))
+            ; Enough free space, or no more blocks to delete.
+            deleted))))))
 
 
 (defn- maybe-cache!
@@ -76,11 +82,10 @@
       ; Store the block and update cache state.
       (when-let [cached (block/put! cache block)]
         (swap! (:state store)
-               (fn update-state
-                 [{:keys [priorities total-size tick]}]
-                 {:priorities (assoc priorities (:id cached) [tick (:size cached)])
-                  :total-size (+ total-size (:size cached))
-                  :tick (inc tick)}))
+               #(-> %
+                    (update :priorities assoc (:id cached) [(:tick %) (:size cached)])
+                    (update :total-size + (:size cached))
+                    (update :tick inc)))
         cached))))
 
 
@@ -105,7 +110,7 @@
         (let [initial-state (scan-state cache)
               cached-bytes (:total-size initial-state)]
           (reset! state initial-state)
-          (when (and cached-bytes (pos? cached-bytes))
+          (when (pos? cached-bytes)
             (log/infof "Cache has %d bytes in %d blocks"
                        (:total-size initial-state)
                        (count (:priorities initial-state))))
