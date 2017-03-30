@@ -5,7 +5,7 @@
     [alphabase.bytes :refer [random-bytes]]
     [alphabase.hex :as hex]
     [blocks.core :as block]
-    [blocks.summary :as summary]
+    [blocks.summary :as sum]
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.test :refer :all]
     [clojure.test.check :as check]
@@ -223,7 +223,7 @@
         (is (map? (:sizes result)))
         (is (every? integer? (keys (:sizes result))))
         (is (= (count model) (reduce + (vals (:sizes result)))))
-        (is (every? (partial summary/probably-contains? result) (map :id (vals model)))))}
+        (is (every? (partial sum/probably-contains? result) (map :id (vals model)))))}
 
      :open-block
      {:args choose-id

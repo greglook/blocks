@@ -15,7 +15,7 @@
   (:require
     [blocks.data :as data]
     [blocks.store :as store]
-    [blocks.summary :as summary]
+    [blocks.summary :as sum]
     [byte-streams :as bytes]
     [clojure.java.io :as io]
     [clojure.set :as set]
@@ -359,7 +359,7 @@
   ([store p]
    (-> (enumerate store)
        (cond->> p (filter p))
-       (->> (reduce summary/update (summary/init))))))
+       (->> (reduce sum/update (sum/init))))))
 
 
 (defn sync!
@@ -379,5 +379,5 @@
              (fn copy-block
                [summary stat]
                (put! dest (get source (:id stat)))
-               (summary/update summary stat))
-             (summary/init)))))
+               (sum/update summary stat))
+             (sum/init)))))

@@ -5,7 +5,7 @@
   (:require
     [blocks.core :as block]
     [blocks.store :as store]
-    [blocks.summary :as summary]))
+    [blocks.summary :as sum]))
 
 
 (defrecord BufferBlockStore
@@ -55,7 +55,7 @@
        (map (fn [stats]
               (block/delete! (:buffer store) (:id stats))
               stats))
-       (reduce summary/update (summary/init))))
+       (reduce sum/update (sum/init))))
 
 
 (defn flush!
@@ -71,7 +71,7 @@
                   (block/put! (:store store) block)
                   (block/delete! (:buffer store) id)
                   block)))
-        (reduce summary/update (summary/init)))))
+        (reduce sum/update (sum/init)))))
 
 
 
