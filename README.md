@@ -98,10 +98,9 @@ stream over a block's content using `open`:
 => (slurp (block/open hello))
 "hello, blocks!"
 
-; Ideally you should use with-open to ensure the stream is closed:
-=> (-> (with-open [content (block/open readme)]
-         (slurp content))
-       (subs 0 32))
+; You can also provide a start/end index to get a range of bytes:
+=> (with-open [content (block/open readme 0 32)]
+     (slurp content))
 "Block Storage\n=============\n\n[!["
 ```
 
@@ -157,11 +156,11 @@ The block storage protocol is comprised of five methods:
 
 ```clojure
 ; Create a new memory store:
-=> (def store (blocks.store.memory/memory-store))
+=> (def store (block/->store "mem:-"))
 #'user/store
 
 => store
-#blocks.store.memory.MemoryStore {:memory #<Atom@2573332e {}>}
+#blocks.store.memory.MemoryBlockStore {:memory #<Atom@2573332e {}>}
 
 ; Initially, the store is empty:
 => (block/list store)
@@ -229,6 +228,7 @@ This library comes with a few block store implementations built in:
   block storage.
 - `blocks.store.file` provides a simple one-file-per-block store in a local
   directory.
+- `blocks.store.buffer` holds blocks in one store, then flushes them to another.
 - `blocks.store.replica` stores blocks in multiple backing stores for
   durability.
 - `blocks.store.cache` manages two backing stores to provide an LRU cache that
