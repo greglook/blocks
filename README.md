@@ -229,6 +229,8 @@ This library comes with a few block store implementations built in:
   block storage.
 - `blocks.store.file` provides a simple one-file-per-block store in a local
   directory.
+- `blocks.store.replica` stores blocks in multiple backing stores for
+  durability.
 - `blocks.store.cache` manages two backing stores to provide an LRU cache that
   will stay under a certain size limit.
 

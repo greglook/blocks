@@ -8,6 +8,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `PersistentBytes` values support comparison using lexical sorting rules.
+- `blocks.core/->store` initializer function to create block stores from URI
+  configuration strings.
 - Store `scan` function to produce a summary of the contained blocks.
 - Summary data functions which provide a count, total size, size histogram, and
   bloom filter for block id membership.
@@ -15,11 +18,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `ErasableStore` protocol for block stores which support efficient or atomic
   data removal. There's a matching `blocks.core/erase!!` function using it,
   which falls back to deleting the blocks in the store individually.
-- `PersistentBytes` support comparison using lexical sorting rules.
+- Buffer store supports a maximum block size limit. Storing blocks larger than
+  the limit will write directly to the backing store, skipping the buffer.
 
 ### Changed
 - Storage protocol changed to wrap `enumerate` with block listing utility.
 - Rename `BlockEnumerator` protocol to `EnumerableStore` for consistency.
+- **BREAKING:** `blocks.store.util` namespace merged into `blocks.store`. This
+  mainly impacts store implementers.
 
 ## [0.8.0] - 2016-08-14
 
