@@ -7,8 +7,11 @@
       [data :as data]
       [store :as store])
     (blocks.store
-      [memory :refer [memory-block-store]]
+      [buffer :refer [buffer-block-store]]
+      [cache :refer [caching-block-store]]
       [file :refer [file-block-store]]
+      [memory :refer [memory-block-store]]
+      [replica :refer [replica-block-store]]
       [tests :as tests])
     [clojure.java.io :as io]
     [clojure.repl :refer :all]
