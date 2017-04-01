@@ -11,10 +11,11 @@
   - `:source`      resource location for the block content
   - `:stored-at`   time block was added to the store
   "
-  (:refer-clojure :exclude [get list])
+  (:refer-clojure :exclude [get list sync])
   (:require
     [blocks.data :as data]
     [blocks.store :as store]
+    [blocks.summary :as sum]
     [byte-streams :as bytes]
     [clojure.java.io :as io]
     [clojure.set :as set]
@@ -25,14 +26,9 @@
     (blocks.data
       Block
       PersistentBytes)
-    (java.io
-      File
-      IOException
-      InputStream)
+    java.io.File
     multihash.core.Multihash
-    (org.apache.commons.io.input
-      BoundedInputStream
-      CountingInputStream)))
+    org.apache.commons.io.input.CountingInputStream))
 
 
 (def default-algorithm
@@ -58,13 +54,6 @@
 
 ;; ## Block IO
 
-(defn- bounded-input-stream
-  ^java.io.InputStream
-  [^InputStream input start end]
-  (.skip input start)
-  (BoundedInputStream. input (- end start)))
-
-
 (defn from-file
   "Creates a lazy block from a local file. The file is read once to calculate
   the identifier."
@@ -86,32 +75,16 @@
   opening a block with size _n_ with `(open block 0 n)` would return the full
   block contents."
   (^java.io.InputStream
-   [^Block block]
-   (let [content ^PersistentBytes (.content block)
-         reader (.reader block)]
-     (cond
-       content (.open content)
-       reader  (reader)
-       :else   (throw (IOException.
-                         (str "Cannot open empty block " (:id block)))))))
+   [block]
+   (data/content-stream block nil nil))
   (^java.io.InputStream
-   [^Block block start end]
+   [block start end]
    (when-not (and (integer? start) (integer? end)
                   (<= 0 start end (:size block)))
      (throw (IllegalArgumentException.
               (str "Range bounds must be integers within block bounds: ["
                    (pr-str start) ", " (pr-str end) ")"))))
-   (let [content ^PersistentBytes (.content block)
-         reader (.reader block)]
-     (cond
-       content (bounded-input-stream (.open content) start end)
-       reader  (try
-                 (reader start end)
-                 (catch clojure.lang.ArityException e
-                   ; Native ranged open not supported, use naive approach.
-                   (bounded-input-stream (reader) start end)))
-       :else   (throw (IOException.
-                         (str "Cannot open empty block " (:id block))))))))
+   (data/content-stream block start end)))
 
 
 (defn read!
@@ -176,13 +149,22 @@
 
 ;; ## Storage API
 
+(defn ->store
+  "Constructs a new block store from a URI by dispatching on the scheme. The
+  store will be returned in an initialized (but not started) state."
+  [uri]
+  (store/initialize uri))
+
+
 (defn stat
   "Returns a map with an `:id` and `:size` but no content. The returned map
   may contain additional data like the date stored. Returns nil if the store
   does not contain the identified block."
   [store id]
   (when id
-    ; TODO: verify that id is a Multihash?
+    (when-not (instance? Multihash id)
+      (throw (IllegalArgumentException.
+               (str "Id value must be a multihash, got: " (pr-str id)))))
     (store/-stat store id)))
 
 
@@ -258,8 +240,6 @@
 
   If the source is a file, it will be streamed into the store. Otherwise, the
   content is read into memory, so this may not be suitable for large sources."
-  ; TODO: protocol for efficient storage? `store/receive!` maybe?
-  ; May need a protocol for turning a value into a block, as well.
   ([store source]
    (store! store source default-algorithm))
   ([store source algorithm]
@@ -267,7 +247,7 @@
                  (from-file source algorithm)
                  (read! source algorithm))]
      (when (pos? (:size block))
-       (store/-put! store block)))))
+       (put! store block)))))
 
 
 (defn delete!
@@ -324,3 +304,49 @@
   (if (satisfies? store/BatchingStore store)
     (set (store/-delete-batch! store ids))
     (set (filter (partial delete! store) ids))))
+
+
+
+;; ## Storage Utilities
+
+(defn erase!!
+  "Completely removes any data associated with the store. After this call, the
+  store should be empty."
+  [store]
+  (if (satisfies? store/ErasableStore store)
+    (store/-erase! store)
+    (run! (comp (partial delete! store) :id)
+          (store/-list store nil))))
+
+
+(defn scan
+  "Scans all the blocks in the store, building up a store-level summary. If
+  given, the predicate function will be called with each block in the store.
+  By default, all blocks are scanned."
+  ([store]
+   (scan store nil))
+  ([store p]
+   (-> (store/-list store nil)
+       (cond->> p (filter p))
+       (->> (reduce sum/update (sum/init))))))
+
+
+(defn sync!
+  "Synchronize blocks from the `source` store to the `dest` store. Returns a
+  summary of the copied blocks. Options may include:
+
+  - `:filter` a function to run on every block stats before it is copied to the
+    `dest` store. If the function returns a falsey value, the block will not be
+    copied."
+  [source dest & {:as opts}]
+  (-> (store/missing-blocks
+        (store/-list source nil)
+        (store/-list dest nil))
+      (cond->>
+        (:filter opts) (filter (:filter opts)))
+      (->> (reduce
+             (fn copy-block
+               [summary stat]
+               (put! dest (get source (:id stat)))
+               (sum/update summary stat))
+             (sum/init)))))

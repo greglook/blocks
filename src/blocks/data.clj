@@ -22,7 +22,11 @@
     [multihash.digest :as digest])
   (:import
     blocks.data.PersistentBytes
-    multihash.core.Multihash))
+    (java.io
+      InputStream
+      IOException)
+    multihash.core.Multihash
+    org.apache.commons.io.input.BoundedInputStream))
 
 
 (deftype Block
@@ -225,11 +229,41 @@
         id))))
 
 
+(defn- bounded-input-stream
+  "Wraps an input stream such that it only returns a stream of bytes in the
+  range start - end."
+  ^java.io.InputStream
+  [^InputStream input start end]
+  (.skip input start)
+  (BoundedInputStream. input (- end start)))
+
+
+(defn content-stream
+  "Opens an input stream to read the contents of the block."
+  ^java.io.InputStream
+  [^Block block start end]
+  (let [content ^PersistentBytes (.content block)
+        reader (.reader block)]
+    (cond
+      content (cond-> (.open content)
+                (or start end)
+                  (bounded-input-stream start end))
+      reader (if (or start end)
+               (try
+                 (reader start end)
+                 (catch clojure.lang.ArityException e
+                   ; Native ranged open not supported, use naive approach.
+                   (bounded-input-stream (reader) start end)))
+               (reader))
+      :else (throw (IOException.
+                     (str "Cannot open empty block " (:id block)))))))
+
+
 
 ;; ## Constructors
 
 ;; Remove automatic constructor function.
-(ns-unmap *ns* '->Block)
+(alter-meta! #'->Block assoc :private true)
 
 
 (defn lazy-block
@@ -238,7 +272,7 @@
   given the id and size directly, without being checked."
   ^blocks.data.Block
   [id size reader]
-  (Block. id size nil reader nil nil))
+  (->Block id size nil reader nil nil))
 
 
 (defn literal-block
@@ -248,7 +282,7 @@
   [id source]
   (let [content (collect-bytes source)]
     (when (pos? (count content))
-      (Block. id (count content) content nil nil nil))))
+      (->Block id (count content) content nil nil nil))))
 
 
 (defn read-block
@@ -258,18 +292,18 @@
   (let [hash-fn (checked-hasher algorithm)
         content (collect-bytes source)]
     (when (pos? (count content))
-      (Block. (hash-fn (.open content)) (count content) content nil nil nil))))
+      (->Block (hash-fn (.open content)) (count content) content nil nil nil))))
 
 
 (defn clean-block
   "Creates a version of the given block without extra attributes or metadata."
   [^Block block]
-  (Block. (.id block)
-          (.size block)
-          (.content block)
-          (.reader block)
-          nil
-          nil))
+  (->Block (.id block)
+           (.size block)
+           (.content block)
+           (.reader block)
+           nil
+           nil))
 
 
 (defn merge-blocks
@@ -282,9 +316,9 @@
     (throw (IllegalArgumentException.
              (str "Cannot merge blocks with differing ids " (.id a)
                   " and " (.id b)))))
-  (Block. (.id b)
-          (.size b)
-          (.content b)
-          (.reader b)
-          (not-empty (merge (._attrs a) (._attrs b)))
-          (not-empty (merge (._meta  a) (._meta  b)))))
+  (->Block (.id b)
+           (.size b)
+           (.content b)
+           (.reader b)
+           (not-empty (merge (._attrs a) (._attrs b)))
+           (not-empty (merge (._meta  a) (._meta  b)))))

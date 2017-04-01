@@ -9,6 +9,35 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ...
 
+## [0.9.0] - 2017-03-31
+
+This release has a couple of breaking changes, detailed below.
+
+### Added
+- `PersistentBytes` values support comparison using lexical sorting rules.
+- `blocks.core/->store` initializer function to create block stores from URI
+  configuration strings.
+- `blocks.core/scan` function to produce a summary of the blocks contained in
+  the store.
+- Summary data functions which provide a count, total size, size histogram, and
+  bloom filter for block id membership.
+- `blocks.core/sync!` function to copy blocks between stores.
+- `ErasableStore` protocol for block stores which support efficient or atomic
+  data removal. There's a matching `blocks.core/erase!!` function using it,
+  which falls back to deleting the blocks in the store individually.
+- Buffer store supports a maximum block size limit. Storing blocks larger than
+  the limit will write directly to the backing store, skipping the buffer.
+
+### Changed
+- `blocks.store.util` namespace merged into `blocks.store`. This mainly impacts
+  store implementers.
+- Replica store construction changed to make them better components. They now
+  take a vector of keys, rather than stores.
+
+### Removed
+- Dropped `EnumerableStore` protocol and `enumerate` method. No usages have
+  come up requiring it and it's easy to replace in the non-optimized case.
+
 ## [0.8.0] - 2016-08-14
 
 ### Changed
@@ -136,7 +165,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/greglook/blocks/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/greglook/blocks/compare/0.7.1...0.8.0
 [0.7.1]: https://github.com/greglook/blocks/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/greglook/blocks/compare/0.6.1...0.7.0

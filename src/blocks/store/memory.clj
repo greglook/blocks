@@ -1,6 +1,7 @@
 (ns blocks.store.memory
   "Block storage backed by a map in an atom. Blocks put into this store will be
-  passed to `load!` to ensure the content resides in memory.
+  passed to `load!` to ensure the content resides in memory. Memory block stores
+  may be constructed usin the `mem:-` URI form.
 
   This store is most suitable for testing, caches, and other situations which
   call for a non-persistent block store."
@@ -8,8 +9,7 @@
     (blocks
       [core :as block]
       [data :as data]
-      [store :as store])
-    [blocks.store.util :as util])
+      [store :as store]))
   (:import
     java.util.Date))
 
@@ -38,7 +38,7 @@
     [this opts]
     (->> @memory
          (map (comp block-stats val))
-         (util/select-stats opts)))
+         (store/select-stats opts)))
 
 
   (-get
@@ -68,6 +68,9 @@
 
 ;; ## Constructors
 
+(store/privatize-constructors! MemoryBlockStore)
+
+
 (defn memory-block-store
   "Creates a new in-memory block store."
   [& {:as opts}]
@@ -78,8 +81,3 @@
 (defmethod store/initialize "mem"
   [location]
   (memory-block-store))
-
-
-;; Remove automatic constructor functions.
-(ns-unmap *ns* '->MemoryBlockStore)
-(ns-unmap *ns* 'map->MemoryBlockStore)

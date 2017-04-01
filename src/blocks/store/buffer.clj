@@ -5,11 +5,11 @@
   (:require
     [blocks.core :as block]
     [blocks.store :as store]
-    [blocks.store.util :as util]))
+    [blocks.summary :as sum]))
 
 
 (defrecord BufferBlockStore
-  [store buffer]
+  [max-block-size store buffer]
 
   store/BlockStore
 
@@ -21,7 +21,7 @@
 
   (-list
     [this opts]
-    (util/merge-block-lists
+    (store/merge-block-lists
       (store/-list buffer opts)
       (store/-list store  opts)))
 
@@ -35,7 +35,10 @@
   (-put!
     [this block]
     (or (store/-get store (:id block))
-        (store/-put! buffer block)))
+        (if (or (nil? max-block-size)
+                (<= (:size block) max-block-size))
+          (store/-put! buffer block)
+          (store/-put! store block))))
 
 
   (-delete!
@@ -45,30 +48,40 @@
       (boolean (or buffered? stored?)))))
 
 
-(defn flush!
-  "Flushes the store, writing all buffered blocks to the backing store. Returns
-  a sequence of the flushed block ids."
+(defn clear!
+  "Removes all blocks from the buffer. Returns a summary of the deleted blocks."
   [store]
   (->> (block/list (:buffer store))
-       (map (fn copy [stats]
-              (->> (:id stats)
-                   (block/get (:buffer store))
-                   (block/put! (:store store)))
+       (map (fn [stats]
               (block/delete! (:buffer store) (:id stats))
-              (:id stats)))
-       (doall)))
+              stats))
+       (reduce sum/update (sum/init))))
+
+
+(defn flush!
+  "Flushes the store, writing all buffered blocks to the backing store. Returns
+  a summary of the flushed blocks."
+  ([store]
+   (flush! store (map :id (block/list (:buffer store)))))
+  ([store block-ids]
+   (->> block-ids
+        (keep (fn copy
+                [id]
+                (when-let [block (block/get (:buffer store) id)]
+                  (block/put! (:store store) block)
+                  (block/delete! (:buffer store) id)
+                  block)))
+        (reduce sum/update (sum/init)))))
 
 
 
 ;; ## Constructors
+
+(store/privatize-constructors! BufferBlockStore)
+
 
 (defn buffer-block-store
   "Creates a new buffering block store. If no buffer store is given, defaults to
   an in-memory store."
   [& {:as opts}]
   (map->BufferBlockStore opts))
-
-
-;; Remove automatic constructor functions.
-(ns-unmap *ns* '->BufferBlockStore)
-(ns-unmap *ns* 'map->BufferBlockStore)

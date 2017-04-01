@@ -1,7 +1,7 @@
-(ns blocks.store.util-test
+(ns blocks.store-test
   (:require
     [blocks.core :as block]
-    [blocks.store.util :as util]
+    [blocks.store :as store]
     [clojure.test :refer :all]
     [multihash.core :as multihash]))
 
@@ -9,27 +9,27 @@
 (deftest check-macro
   (testing "check with true predicate"
     (let [effects (atom [])]
-      (is (= :foo (util/check :foo some?
+      (is (= :foo (store/check :foo some?
                     (swap! effects conj [:> value])))
           "should return value")
       (is (empty? @effects) "should not cause side effects")))
   (testing "check with false predicate"
     (let [effects (atom [])]
-      (is (nil? (util/check :foo (constantly false)
+      (is (nil? (store/check :foo (constantly false)
                   (swap! effects conj [:> value])))
           "should return nil")
       (is (= [[:> :foo]] @effects) "should cause side effects"))))
 
 
 (deftest block-preference
-  (is (nil? (util/preferred-copy nil))
+  (is (nil? (store/preferred-copy nil))
       "returns nil with no block arguments")
   (let [literal (block/read! "foo")
         lazy-a (block/from-file "project.clj")
         lazy-b (block/from-file "README.md")]
-    (is (= literal (util/preferred-copy lazy-a literal lazy-b))
+    (is (= literal (store/preferred-copy lazy-a literal lazy-b))
         "returns literal block if present")
-    (is (= lazy-a (util/preferred-copy lazy-a lazy-b))
+    (is (= lazy-a (store/preferred-copy lazy-a lazy-b))
         "returns first block if all lazy")))
 
 
@@ -42,7 +42,7 @@
         f (multihash/create :sha2-256 "285c3c23d662b5ef7172373df0963ff4ce003206")
         ids [a b c d e f]
         stats (map #(hash-map :id % :size 1) ids)]
-    (are [result opts] (= result (map :id (util/select-stats opts stats)))
+    (are [result opts] (= result (map :id (store/select-stats opts stats)))
          ids        {}
          [f]        {:algorithm :sha2-256}
          [c d e f]  {:after "111473fd2"}
@@ -62,14 +62,14 @@
             {:id "abb", :baz :qux}
             {:id "abc", :key :val}
             {:id "xyz", :wqr :axo}]
-           (util/merge-block-lists
+           (store/merge-block-lists
              list-a list-b list-c)))))
 
 
 (deftest uri-parsing
-  (is (= {:scheme "mem", :name "-"} (util/parse-uri "mem:-")))
-  (is (= {:scheme "file", :path "/foo/bar"} (util/parse-uri "file:///foo/bar")))
-  (is (= {:scheme "file", :host "foo" :path "/bar"} (util/parse-uri "file://foo/bar")))
+  (is (= {:scheme "mem", :name "-"} (store/parse-uri "mem:-")))
+  (is (= {:scheme "file", :path "/foo/bar"} (store/parse-uri "file:///foo/bar")))
+  (is (= {:scheme "file", :host "foo" :path "/bar"} (store/parse-uri "file://foo/bar")))
   (is (= {:scheme "https"
           :user-info {:id "user"
                       :secret "password"}
@@ -78,4 +78,4 @@
           :path "/path/to/thing"
           :query {:foo "alpha"
                   :bar "123"}}
-         (util/parse-uri "https://user:password@example.com:443/path/to/thing?foo=alpha&bar=123"))))
+         (store/parse-uri "https://user:password@example.com:443/path/to/thing?foo=alpha&bar=123"))))

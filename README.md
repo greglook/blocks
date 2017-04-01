@@ -6,7 +6,6 @@ Block Storage
 [![Coverage Status](https://coveralls.io/repos/greglook/blocks/badge.svg?branch=develop&service=github)](https://coveralls.io/github/greglook/blocks?branch=develop)
 [![API codox](https://img.shields.io/badge/doc-API-blue.svg)](https://greglook.github.io/blocks/api/)
 [![marginalia docs](https://img.shields.io/badge/doc-marginalia-blue.svg)](https://greglook.github.io/blocks/marginalia/uberdoc.html)
-[![Join the chat at https://gitter.im/greglook/blocks](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/greglook/blocks)
 
 This library implements [content-addressable storage](https://en.wikipedia.org/wiki/Content-addressable_storage)
 types and protocols for Clojure. Content-addressable storage has several useful properties:
@@ -67,10 +66,9 @@ number of bytes in the block content.
 
 Internally, blocks either have a buffer holding the data in memory, or a reader
 function which can be invoked to create new input streams for the block content.
-Blocks can be treated as pending values; a block with in-memory content is a
-_literal block_ while a block with a reader function is a _lazy block_.
-Dereferencing a literal block returns its content, while lazy blocks contain
-`nil`.
+A block with in-memory content is a _literal block_ while a block with a reader
+is a _lazy block_.  Dereferencing a literal block returns its content, while
+lazy blocks contain `nil`.
 
 ```clojure
 ; hello is a literal block, whose content is an immutable byte sequence:
@@ -100,10 +98,9 @@ stream over a block's content using `open`:
 => (slurp (block/open hello))
 "hello, blocks!"
 
-; Ideally you should use with-open to ensure the stream is closed:
-=> (-> (with-open [content (block/open readme)]
-         (slurp content))
-       (subs 0 32))
+; You can also provide a start/end index to get a range of bytes:
+=> (with-open [content (block/open readme 0 32)]
+     (slurp content))
 "Block Storage\n=============\n\n[!["
 ```
 
@@ -159,11 +156,11 @@ The block storage protocol is comprised of five methods:
 
 ```clojure
 ; Create a new memory store:
-=> (def store (blocks.store.memory/memory-store))
+=> (def store (block/->store "mem:-"))
 #'user/store
 
 => store
-#blocks.store.memory.MemoryStore {:memory #<Atom@2573332e {}>}
+#blocks.store.memory.MemoryBlockStore {:memory #<Atom@2573332e {}>}
 
 ; Initially, the store is empty:
 => (block/list store)
@@ -231,6 +228,9 @@ This library comes with a few block store implementations built in:
   block storage.
 - `blocks.store.file` provides a simple one-file-per-block store in a local
   directory.
+- `blocks.store.buffer` holds blocks in one store, then flushes them to another.
+- `blocks.store.replica` stores blocks in multiple backing stores for
+  durability.
 - `blocks.store.cache` manages two backing stores to provide an LRU cache that
   will stay under a certain size limit.
 

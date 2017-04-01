@@ -5,6 +5,7 @@
     [alphabase.bytes :refer [random-bytes]]
     [alphabase.hex :as hex]
     [blocks.core :as block]
+    [blocks.summary :as sum]
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.test :refer :all]
     [clojure.test.check :as check]
@@ -80,7 +81,7 @@
         "result should match the number of blocks expected")
     (is (every? (partial apply check-stat model)
                 (map vector expected-ids result))
-        "all stat results are rturned")))
+        "all stat results are returned")))
 
 
 
@@ -212,6 +213,18 @@
         [model ids]
         (apply dissoc model ids))}
 
+     :scan
+     {:args (constantly (gen/return (constantly true)))
+      :check
+      (fn check-summary
+        [model p result]
+        (is (= (count model) (:count result)))
+        (is (= (reduce + (map :size (vals model))) (:size result)))
+        (is (map? (:sizes result)))
+        (is (every? integer? (keys (:sizes result))))
+        (is (= (count model) (reduce + (vals (:sizes result)))))
+        (is (every? (partial sum/probably-contains? result) (map :id (vals model)))))}
+
      :open-block
      {:args choose-id
       :apply block/get
@@ -232,7 +245,7 @@
       (fn check-open-block-range
         [model [id start end] result]
         (if-let [block (get model id)]
-          (is (bytes= (@#'blocks.core/bounded-input-stream
+          (is (bytes= (@#'blocks.data/bounded-input-stream
                         (.open ^PersistentBytes (.content ^Block block)) start end)
                       (block/open result start end)))
           (is (nil? result))))}}))
@@ -312,7 +325,6 @@
   - `blocks`      generate this many random blocks to test the store with
   - `max-size`    maximum block size to generate, in bytes
   - `iterations`  number of generative tests to perform
-  - `eraser`      optional custom function to completely remove the store
 
   Returns the results of the generative tests."
   [constructor & {:keys [blocks max-size iterations eraser]
@@ -328,10 +340,9 @@
               (throw (IllegalStateException.
                        (str "Cannot run integration test on " (pr-str store)
                             " as it already contains blocks!"))))
+            (is (zero? (:count (block/scan store))))
             (let [result (valid-op-seq? store ops)]
-              (if eraser
-                (eraser store)
-                (block/delete-batch! store (set (keys test-blocks))))
+              (block/erase!! store)
               (is (empty? (block/list store)) "ends empty")
               result)
             (finally
