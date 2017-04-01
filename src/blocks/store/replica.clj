@@ -2,47 +2,64 @@
   "Logical block storage which writes to multiple backing stores to ensure
   durability. Lookups will try the backing stores in order to find blocks."
   (:require
-    [blocks.store :as store]))
+    [blocks.store :as store]
+    [com.stuartsierra.component :as component]))
 
 
 (defrecord ReplicaBlockStore
-  [stores]
+  [store-keys]
+
+  component/Lifecycle
+
+  (start
+    [this]
+    (when-let [missing (seq (remove (partial contains? this) store-keys))]
+      (throw (IllegalStateException.
+               (str "Replica block store is missing configured keys: "
+                    (pr-str missing)))))
+    this)
+
+
+  (stop
+    [this]
+    this)
+
 
   store/BlockStore
 
   (-stat
     [this id]
-    (some #(store/-stat % id) stores))
+    (some #(store/-stat (get this %) id) store-keys))
 
 
   (-list
     [this opts]
-    (->> stores
-         (map #(store/-list % opts))
+    (->> store-keys
+         (map #(store/-list (get this %) opts))
          (apply store/merge-block-lists)))
 
 
   (-get
     [this id]
-    (some #(store/-get % id) stores))
+    (some #(store/-get (get this %) id) store-keys))
 
 
   (-put!
     [this block]
-    (let [stored-block (store/-put! (first stores) block)
+    (let [stored-block (store/-put! (get this (first store-keys)) block)
           copy-block (store/preferred-copy block stored-block)]
-      (run! #(store/-put! % copy-block) (rest stores))
+      (run! #(store/-put! (get this %) copy-block) (rest store-keys))
       stored-block))
 
 
   (-delete!
     [this id]
     (reduce
-      (fn [existed? store]
-        (let [result (store/-delete! store id)]
+      (fn [existed? store-key]
+        (let [result (store/-delete! (get this store-key) id)]
           (or existed? result)))
       false
-      stores)))
+      store-keys)))
 
 
 
@@ -52,7 +69,9 @@
 
 
 (defn replica-block-store
-  "Creates a new replica block store."
-  [stores & {:as opts}]
+  "Creates a new replica block store which will persist blocks to multiple
+  backing stores. Block operations will be performed on the stores in the order
+  given in `store-keys`, where each key is looked up in the store record."
+  [store-keys & {:as opts}]
   (map->ReplicaBlockStore
-    (assoc opts :stores (vec stores))))
+    (assoc opts :store-keys (vec store-keys))))

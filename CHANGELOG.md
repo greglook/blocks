@@ -26,6 +26,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Rename `BlockEnumerator` protocol to `EnumerableStore` for consistency.
 - **BREAKING:** `blocks.store.util` namespace merged into `blocks.store`. This
   mainly impacts store implementers.
+- Replica store construction changed to make them better components. They now
+  take a vector of keys, rather than stores.
 
 ### Removed
 - Dropped `EnumerableStore` protocol and `enumerate` method. No usages have

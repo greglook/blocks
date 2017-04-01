@@ -5,13 +5,19 @@
       [memory :refer [memory-block-store]]
       [replica :refer [replica-block-store]]
       [tests :as tests])
-    [clojure.test :refer :all]))
+    [clojure.test :refer :all]
+    [com.stuartsierra.component :as component]))
+
+
+(deftest store-construction
+  (is (thrown-with-msg? Exception #"missing configured keys"
+        (component/start (replica-block-store [:a :b])))))
 
 
 (deftest replica-behavior
   (let [replica-1 (memory-block-store)
         replica-2 (memory-block-store)
-        store (replica-block-store [replica-1 replica-2])
+        store (replica-block-store [:a :b] :a replica-1 :b replica-2)
         a (block/read! "foo bar baz")
         b (block/read! "abracadabra")
         c (block/read! "123 xyz")]
@@ -34,4 +40,8 @@
 
 
 (deftest ^:integration test-replica-store
-  (tests/check-store! #(replica-block-store [(memory-block-store) (memory-block-store)])))
+  (tests/check-store!
+    #(replica-block-store
+       [:a :b]
+       :a (memory-block-store)
+       :b (memory-block-store))))
