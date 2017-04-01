@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+## [0.9.0] - 2017-03-31
+
 This release has a couple of breaking changes, detailed below.
 
 ### Added
@@ -161,7 +165,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/greglook/blocks/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/greglook/blocks/compare/0.7.1...0.8.0
 [0.7.1]: https://github.com/greglook/blocks/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/greglook/blocks/compare/0.6.1...0.7.0
