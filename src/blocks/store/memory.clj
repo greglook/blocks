@@ -1,6 +1,7 @@
 (ns blocks.store.memory
   "Block storage backed by a map in an atom. Blocks put into this store will be
-  passed to `load!` to ensure the content resides in memory.
+  passed to `load!` to ensure the content resides in memory. Memory block stores
+  may be constructed usin the `mem:-` URI form.
 
   This store is most suitable for testing, caches, and other situations which
   call for a non-persistent block store."

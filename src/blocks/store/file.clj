@@ -1,6 +1,7 @@
 (ns blocks.store.file
   "Block storage backed by files in nested directories. Each block is stored in
-  a separate file.
+  a separate file. File block stores may be constructed using the
+  `file://<path-to-root>` URI form.
 
   In many filesystems, performance degrades as the number of files in a
   directory grows. In order to reduce this impact and make navigating the

@@ -149,6 +149,13 @@
 
 ;; ## Storage API
 
+(defn ->store
+  "Constructs a new block store from a URI by dispatching on the scheme. The
+  store will be returned in an initialized (but not started) state."
+  [uri]
+  (store/initialize uri))
+
+
 (defn stat
   "Returns a map with an `:id` and `:size` but no content. The returned map
   may contain additional data like the date stored. Returns nil if the store

@@ -283,6 +283,11 @@
 
 ;; ## Utility Tests
 
+(deftest store-construction
+  (is (satisfies? store/BlockStore (block/->store "mem:-")))
+  (is (thrown? Exception (block/->store "foo://x?z=1"))))
+
+
 (deftest stat-metadata
   (let [block {:id "foo"}
         block' (block/with-stats block {:stored-at 123})]
