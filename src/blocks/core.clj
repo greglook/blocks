@@ -336,7 +336,7 @@
   ([store]
    (scan store nil))
   ([store p]
-   (-> (enumerate store)
+   (-> (store/-list store nil)
        (cond->> p (filter p))
        (->> (reduce sum/update (sum/init))))))
 

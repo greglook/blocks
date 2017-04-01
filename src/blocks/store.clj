@@ -73,7 +73,7 @@
 
 
 (defprotocol ErasableStore
-  "An eraseable store has some notion of being removed in its entirety, usually
+  "An erasable store has some notion of being removed in its entirety, usually
   also atomically. One example would be a file system unlinking the root
   directory rather than deleting each individual file."
 
