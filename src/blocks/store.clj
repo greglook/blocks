@@ -61,17 +61,6 @@
     multihashes. Returns a collection of multihashes for the deleted blocks."))
 
 
-(defprotocol EnumerableStore
-  "An enumerator provides a way to efficiently iterate over all the stored
-  blocks."
-
-  (-enumerate
-    [store]
-    "Returns a lazy sequence of stored blocks. Blocks are expliticly **not**
-    returned in any defined order; it is assumed that the store will enumerate
-    them in the most efficient order available."))
-
-
 (defprotocol ErasableStore
   "An erasable store has some notion of being removed in its entirety, usually
   also atomically. One example would be a file system unlinking the root

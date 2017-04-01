@@ -27,6 +27,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - **BREAKING:** `blocks.store.util` namespace merged into `blocks.store`. This
   mainly impacts store implementers.
 
+### Removed
+- Dropped `EnumerableStore` protocol and `enumerate` method. No usages have
+  come up requiring it and it's easy to replace in the non-optimized case.
+
 ## [0.8.0] - 2016-08-14
 
 ### Changed

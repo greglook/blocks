@@ -319,16 +319,6 @@
           (store/-list store nil))))
 
 
-(defn enumerate
-  "Returns a lazy sequence of stored blocks. Blocks are expliticly **not**
-  returned in any defined order; it is assumed that the store will enumerate
-  them in the most efficient order available."
-  [store]
-  (if (satisfies? store/EnumerableStore store)
-    (store/-enumerate store)
-    (map #(store/-get store (:id %)) (store/-list store nil))))
-
-
 (defn scan
   "Scans all the blocks in the store, building up a store-level summary. If
   given, the predicate function will be called with each block in the store.

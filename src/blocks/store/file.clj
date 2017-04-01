@@ -196,15 +196,6 @@
                  (.delete file)))))
 
 
-  store/EnumerableStore
-
-  (-enumerate
-    [this]
-    (->> (.listFiles root)
-         (mapcat #(.listFiles ^File %))
-         (map #(file->block (file->id root %) %))))
-
-
   store/ErasableStore
 
   (-erase!
