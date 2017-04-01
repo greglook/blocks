@@ -22,7 +22,11 @@
     [multihash.digest :as digest])
   (:import
     blocks.data.PersistentBytes
-    multihash.core.Multihash))
+    (java.io
+      InputStream
+      IOException)
+    multihash.core.Multihash
+    org.apache.commons.io.input.BoundedInputStream))
 
 
 (deftype Block
@@ -223,6 +227,36 @@
                    (str "Block identifier must be a Multihash, "
                         "hashing algorithm returned: " (pr-str id)))))
         id))))
+
+
+(defn- bounded-input-stream
+  "Wraps an input stream such that it only returns a stream of bytes in the
+  range start - end."
+  ^java.io.InputStream
+  [^InputStream input start end]
+  (.skip input start)
+  (BoundedInputStream. input (- end start)))
+
+
+(defn content-stream
+  "Opens an input stream to read the contents of the block."
+  ^java.io.InputStream
+  [^Block block start end]
+  (let [content ^PersistentBytes (.content block)
+        reader (.reader block)]
+    (cond
+      content (cond-> (.open content)
+                (or start end)
+                  (bounded-input-stream start end))
+      reader (if (or start end)
+               (try
+                 (reader start end)
+                 (catch clojure.lang.ArityException e
+                   ; Native ranged open not supported, use naive approach.
+                   (bounded-input-stream (reader) start end)))
+               (reader))
+      :else (throw (IOException.
+                     (str "Cannot open empty block " (:id block)))))))
 
 
 

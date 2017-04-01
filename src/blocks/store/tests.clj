@@ -245,7 +245,7 @@
       (fn check-open-block-range
         [model [id start end] result]
         (if-let [block (get model id)]
-          (is (bytes= (@#'blocks.core/bounded-input-stream
+          (is (bytes= (@#'blocks.data/bounded-input-stream
                         (.open ^PersistentBytes (.content ^Block block)) start end)
                       (block/open result start end)))
           (is (nil? result))))}}))
