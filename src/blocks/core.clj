@@ -79,11 +79,13 @@
    (data/content-stream block nil nil))
   (^java.io.InputStream
    [block start end]
-   (when-not (and (integer? start) (integer? end)
+   (when-not (and (integer? start)
+                  (integer? end)
+                  (not= start end)
                   (<= 0 start end (:size block)))
      (throw (IllegalArgumentException.
-              (str "Range bounds must be integers within block bounds: ["
-                   (pr-str start) ", " (pr-str end) ")"))))
+              (format "Range bounds must be distinct integers within block bounds: [0, %d]"
+                      (:size block)))))
    (data/content-stream block start end)))
 
 

@@ -246,9 +246,9 @@
         reader (.reader block)]
     (cond
       content (cond-> (.open content)
-                (or start end)
+                (and start end)
                   (bounded-input-stream start end))
-      reader (if (or start end)
+      reader (if (and start end)
                (try
                  (reader start end)
                  (catch clojure.lang.ArityException e
