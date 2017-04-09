@@ -7,7 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-...
+### Added
+- `PersistentBytes` has a `toByteArray` method to return a copy of the byte data
+  as a raw array.
 
 ## [0.9.0] - 2017-03-31
 

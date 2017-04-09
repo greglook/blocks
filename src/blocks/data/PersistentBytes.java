@@ -205,4 +205,14 @@ public class PersistentBytes implements Comparable<PersistentBytes>, IHashEq, In
         return ByteBuffer.wrap(_data).asReadOnlyBuffer();
     }
 
+
+    /**
+     * Creates a copy of the byte data.
+     *
+     * @return byte array data copy
+     */
+    public byte[] toByteArray() {
+        return Arrays.copyOf(_data, _data.length);
+    }
+
 }
