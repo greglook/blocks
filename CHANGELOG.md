@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+## [0.9.1] - 2017-05-17
+
 ### Added
 - `PersistentBytes` has a `toByteArray` method to return a copy of the byte data
   as a raw array.
@@ -167,7 +171,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/0.9.1...HEAD
+[0.9.1]: https://github.com/greglook/blocks/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/greglook/blocks/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/greglook/blocks/compare/0.7.1...0.8.0
 [0.7.1]: https://github.com/greglook/blocks/compare/0.7.0...0.7.1
