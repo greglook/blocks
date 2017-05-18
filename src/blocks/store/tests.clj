@@ -7,16 +7,20 @@
     [blocks.core :as block]
     [blocks.summary :as sum]
     [byte-streams :as bytes :refer [bytes=]]
+    [clojure.java.io :as io]
     [clojure.test :refer :all]
     [clojure.test.check :as check]
     [clojure.test.check.generators :as gen]
     [clojure.test.check.properties :as prop]
     [com.stuartsierra.component :as component]
     [multihash.core :as multihash]
-    [multihash.digest :as digest])
+    [multihash.digest :as digest]
+    [puget.color.ansi :as ansi]
+    [puget.printer :as puget])
   (:import
     blocks.data.Block
-    blocks.data.PersistentBytes))
+    blocks.data.PersistentBytes
+    multihash.core.Multihash))
 
 
 ;; ## Block Utilities
@@ -48,273 +52,399 @@
 
 
 
-;; ## Result Checkers
+;; ## Operation Multimethods
 
-(defn- check-stat
-  "Checker for the response for block stats."
-  [model id result]
-  (if-let [block (get model id)]
-    (testing "for stored block"
-      (is (map? result))
-      (is (= (:id block) (:id result)))
-      (is (= (:size block) (:size result)))
-      (is (some? (:stored-at result))))
-    (testing "for missing block"
-      (is (nil? result)))))
+(defmulti ^:private apply-op
+  "Apply the operation to the store, returning a result value."
+  (fn dispatch
+    [store [op-key args]]
+    op-key))
 
 
-(defn- check-list
-  "Checker for the response for a list call."
-  [model {:keys [algorithm after limit]} result]
-  (let [expected-ids
-          (cond->> (keys model)
-            after
-              (filter #(pos? (compare (multihash/hex %) after)))
-            algorithm
-              (filter #(= algorithm (:algorithm %)))
-            true
-              (sort)
-            limit
-              (take limit))]
-    (is (sequential? result))
-    (is (= (count result) (count expected-ids))
-        "result should match the number of blocks expected")
-    (is (every? (partial apply check-stat model)
-                (map vector expected-ids result))
-        "all stat results are returned")))
+(defmethod apply-op :default
+  [store [op-key args]]
+  ; Try to resolve the key as a method in the blocks.core namespace.
+  (if-let [method (ns-resolve 'blocks.core (symbol (name op-key)))]
+    (method store args)
+    (throw (ex-info (str "No apply function available for operation " (pr-str op-key))
+                    {:op-key op-key}))))
+
+
+(defmulti ^:private update-model
+  "Apply an update to the model based on the operation."
+  (fn dispatch
+    [model [op-key args]]
+    op-key))
+
+
+(defmethod update-model :default
+  [model _]
+  ; By default, ops have no effect on model state.
+  model)
+
+
+(defmulti ^:private check-op
+  "Make assertions about an operation given the operation type, the model
+  state, and the args/response being tested."
+  ; TODO: should this include `is` or return a boolean?
+  (fn dispatch
+    [model [op-key args result]]
+    op-key))
+
+
+(defmethod check-op :default
+  [_ _]
+  ; By default, checks make no assertions.
+  true)
+
+
+(defmacro ^:private defop
+  "Defines a new specification for a store operation test."
+  [op-key & forms]
+  (let [form-map (into {} (map (juxt first rest)) forms)]
+    `(do
+       (defn- ~(symbol (str "gen-" (name op-key) "-op"))
+         ~(str "Constructs a " (name op-key) " operation spec generator.")
+         ~@(if-let [gen-form (get form-map 'gen-args)]
+             (if (= 1 (count gen-form))
+               [['blocks]
+                `(gen/tuple
+                   (gen/return ~op-key)
+                   ~(list (first gen-form) 'blocks))]
+               [(first gen-form)
+                `(gen/tuple
+                   (gen/return ~op-key)
+                   (do ~@(rest gen-form)))])
+             [['blocks]
+              `(gen/return [~op-key])]))
+       ~(when-let [apply-form (get form-map 'apply)]
+          `(defmethod apply-op ~op-key
+             [store# [op-key# args#]]
+             (let [~(first apply-form) [store# args#]]
+               ~@(rest apply-form))))
+       ~(when-let [check-form (get form-map 'check)]
+          `(defmethod check-op ~op-key
+             [model# [op-key# args# result#]]
+             (let [~(first check-form) [model# args# result#]]
+               ~@(rest check-form))))
+       ~(when-let [update-form (get form-map 'update)]
+          `(defmethod update-model ~op-key
+             [model# [op-key# args#]]
+             (let [~(first update-form) [model# args#]]
+               ~@(rest update-form)))))))
 
 
 
 ;; ## Operation Generators
 
-(defn- gen-list-opts
-  "Generator for options maps to pass into a block/list call."
+(defn- choose-id
+  "Returns a generator which will select a block id from the model pool."
   [blocks]
-  ; TODO: how to test permutations of these better?
-  (let [gen-limit (gen/large-integer* {:min 1, :max (inc (count blocks))})]
-    (gen/one-of
-      [(gen/hash-map
-         :algorithm (gen/elements (keys digest/functions))
-         :limit gen-limit)
-       (gen/hash-map
-         :after (gen/fmap hex/encode (gen/not-empty gen/bytes))
-         :limit gen-limit)])))
+  (gen/elements (keys blocks)))
 
 
-(defn- gen-block-range
-  "Generator for a tuple containing a block id and a start and end offset, where
-  the offsets are guaranteed to follow `0 <= start <= end <= size`."
+(defn- choose-block
+  "Returns a generator which will select a block from the model pool."
   [blocks]
-  (gen/bind
-    (gen/elements (vals blocks))
-    (fn [block]
-      (gen/fmap
-        (fn [positions]
-          (vec (cons (:id block) (sort positions))))
-        (gen/vector (gen/large-integer* {:min 0, :max (:size block)}) 2)))))
+  (gen/elements (vals blocks)))
 
 
-(def ^:private store-operations
-  "Map of information about the various operations which the tests can perform
-  on the block store. Each operation may have the following properties:
+(defop :wait
 
-  - `:args`    A generator for arguments to the operation, called with the map
-               of test blocks: `(args# blocks)`
-  - `:apply`   An optional function called with `(apply# store args)` which
-               should apply the operation to the store and return the store's
-               response. If not provided, the operation will be resolved
-               as a var, for example `:get` will become `#'blocks.core/get`.
-  - `:check`   A function which checks that an operation returned a valid
-               result value. Called with: `(check model args result)`
-  - `:update`  An optional method to update the model after an operation is
-               applied. Called with `(update model args)` and should return
-               an updated model. If not provided, the op is a read which does
-               not affect the model state."
+  (gen-args
+    [_]
+    (gen/choose 1 100))
 
-  (let [choose-id (comp gen/elements keys)
-        choose-block (comp gen/elements vals)]
-    {:stat
-     {:args choose-id
-      :check check-stat}
-
-     :list
-     {:args gen-list-opts
-      :check check-list}
-
-     :get
-     {:args choose-id
-      :check
-      (fn check-get
-        [model id result]
-        (if-let [block (get model id)]
-          (is (= block result)
-              "returned block should be equivalent to model")
-          (is (nil? result)
-              "missing block should return nil")))}
-
-     :put!
-     {:args choose-block
-      :check
-      (fn check-put
-        [model block result]
-        (is (= (:id block) (:id result)))
-        (is (= (:size block) (:size result)))
-        (is (= block result)))
-      :update
-      (fn update-put
-        [model block]
-        (assoc model (:id block) block))}
-
-     :delete!
-     {:args choose-id
-      :check
-      (fn check-delete
-        [model id result]
-        (if (contains? model id)
-          (is (true? result)
-              "deleting a stored block should return true")
-          (is (false? result)
-              "deleting a missing block should return false")))
-      :update
-      (fn update-delete
-        [model id]
-        (dissoc model id))}
-
-     :get-batch
-     {:args (comp gen/not-empty gen/set choose-id)
-      :check
-      (fn check-get-batch
-        [model ids result]
-        (let [expected-blocks (keep model (set ids))]
-          (is (coll? result))
-          (is (= (set expected-blocks) (set result)))))}
-
-     :put-batch!
-     {:args (comp gen/not-empty gen/set choose-block)
-      :check
-      (fn check-put-batch
-        [model blocks result]
-        (is (= (set blocks) (set result))))
-      :update
-      (fn update-put-batch
-        [model blocks]
-        (into model (map (juxt :id identity) blocks)))}
-
-     :delete-batch!
-     {:args (comp gen/not-empty gen/set choose-id)
-      :check
-      (fn check-delete-batch
-        [model ids result]
-        (let [contained-ids (keep (set ids) (keys model))]
-          (is (set? result))
-          (is (= (set contained-ids) result))))
-      :update
-      (fn update-delete-batch
-        [model ids]
-        (apply dissoc model ids))}
-
-     :scan
-     {:args (constantly (gen/return (constantly true)))
-      :check
-      (fn check-summary
-        [model p result]
-        (is (= (count model) (:count result)))
-        (is (= (reduce + (map :size (vals model))) (:size result)))
-        (is (map? (:sizes result)))
-        (is (every? integer? (keys (:sizes result))))
-        (is (= (count model) (reduce + (vals (:sizes result)))))
-        (is (every? (partial sum/probably-contains? result) (map :id (vals model)))))}
-
-     :open-block
-     {:args choose-id
-      :apply block/get
-      :check
-      (fn check-open-block
-        [model id result]
-        (if-let [block (get model id)]
-          (is (bytes= (.open ^PersistentBytes (.content ^Block block)) (block/open result)))
-          (is (nil? result))))}
-
-     :open-block-range
-     {:args gen-block-range
-      :apply
-      (fn apply-block-range
-        [store args]
-        (block/get store (first args)))
-      :check
-      (fn check-open-block-range
-        [model [id start end] result]
-        (if-let [block (get model id)]
-          (is (bytes= (@#'blocks.data/bounded-input-stream
-                        (.open ^PersistentBytes (.content ^Block block)) start end)
-                      (block/open result start end)))
-          (is (nil? result))))}}))
+  (apply
+    [store duration]
+    (Thread/sleep duration)))
 
 
-(defn- gen-store-op
-  "Test generator which creates a single operation against the store."
-  [blocks]
-  (gen/bind
-    (gen/elements (keys store-operations))
-    (fn [op-key]
+(defop :stat
+
+  (gen-args choose-id)
+
+  (check
+    [model id result]
+    (if-let [block (get model id)]
+      (and (map? result)
+           (= (:id block) (:id result))
+           (= (:size block) (:size result))
+           (some? (:stored-at result)))
+      (nil? result))))
+
+
+(defop :list
+
+  (gen-args
+    [blocks]
+    (gen/fmap
+      (fn select
+        [[opts selection]]
+        (select-keys opts selection))
       (gen/tuple
-        (gen/return op-key)
-        ((get-in store-operations [op-key :args]) blocks)))))
+        (gen/hash-map
+          :algorithm (gen/elements (keys digest/functions))
+          :after (gen/fmap hex/encode (gen/not-empty gen/bytes)) ; TODO: pick prefixes
+          :limit (gen/large-integer* {:min 1, :max (inc (count blocks))}))
+        (gen/set (gen/elements #{:algorithm :after :limit})))))
+
+  (apply
+    [store query]
+    (doall (block/list store query)))
+
+  (check
+    [model query result]
+    (let [expected-ids (cond->> (keys model)
+                         (:after query)
+                           (filter #(pos? (compare (multihash/hex %) (:after query))))
+                         (:algorithm query)
+                           (filter #(= (:algorithm query) (:algorithm %)))
+                         true
+                           (sort)
+                         (:limit query)
+                           (take (:limit query)))]
+      (and (is (sequential? result))
+           (is (= (count result) (count expected-ids)))
+           (is (every? #(check-op model (cons :stat %))
+                       (map vector expected-ids result)))))))
+
+
+(defop :get
+
+  (gen-args choose-id)
+
+  (check
+    [model id result]
+    (if-let [block (get model id)]
+      (do
+        (is (some? (:id result)))
+        (is (integer? (:size result)))
+        (is (= id (:id result)))
+        (is (= (:size block) (:size result))))
+      (nil? result))))
+
+
+(defop :put!
+
+  (gen-args choose-block)
+
+  (check
+    [model block result]
+    (= block result))
+
+  (update
+    [model block]
+    (assoc model (:id block) block)))
+
+
+(defop :delete!
+
+  (gen-args choose-id)
+
+  (check
+    [model id result]
+    (if (contains? model id)
+      (true? result)
+      (false? result)))
+
+  (update
+    [model id]
+    (dissoc model id)))
+
+
+(defop :get-batch
+
+  (gen-args
+    [blocks]
+    (gen/set (choose-id blocks)))
+
+  (check
+    [model ids result]
+    (and (is (coll? result))
+         (is (= (set (keep model ids))
+                (set result))))))
+
+
+(defop :put-batch!
+
+  (gen-args
+    [blocks]
+    (gen/set (choose-block blocks)))
+
+  (check
+    [model blocks result]
+    (and (coll? result)
+         (= (set blocks) (set result))))
+
+  (update
+    [model blocks]
+    (into model (map (juxt :id identity) blocks))))
+
+
+(defop :delete-batch!
+
+  (gen-args
+    [blocks]
+    (gen/set (choose-id blocks)))
+
+  (check
+    [model ids result]
+    (and (set? result)
+         (= result (set (filter (set ids) (keys model))))))
+
+  (update
+    [model ids]
+    (apply dissoc model ids)))
+
+
+(defop :erase!!
+
+  (apply
+    [store _]
+    (block/erase!! store))
+
+  (update
+    [model _]
+    (empty model)))
+
+
+(defop :scan
+
+  (gen-args
+    [_]
+    (gen/elements
+      [nil
+       (fn scan-pred
+         [stat]
+         (< (:size stat) 256))]))
+
+  (check
+    [model p result]
+    (let [blocks (cond->> (vals model) p (filter p))]
+      (and (= (count blocks) (:count result))
+           (= (reduce + (map :size blocks)) (:size result))
+           (map? (:sizes result))
+           (every? integer? (keys (:sizes result)))
+           (= (count blocks) (reduce + (vals (:sizes result))))
+           (every? (partial sum/probably-contains? result) (map :id blocks))))))
+
+
+(defop :open
+
+  (gen-args choose-id)
+
+  (apply
+    [store id]
+    (when-let [block (block/get store id)]
+      (let [baos (java.io.ByteArrayOutputStream.)]
+        (with-open [content (block/open block)]
+          (io/copy content baos))
+        (.toByteArray baos))))
+
+  (check
+    [model id result]
+    (if-let [block (get model id)]
+      (bytes= (.toBuffer ^PersistentBytes @block) result)
+      (nil? result))))
+
+
+(defop :open-range
+
+  (gen-args
+    [blocks]
+    (gen/bind
+      (choose-block blocks)
+      (fn [block]
+        (gen/fmap
+          (fn [positions]
+            (vec (cons (:id block) (sort positions))))
+          (gen/vector-distinct
+            (gen/large-integer* {:min 0, :max (:size block)})
+            {:num-elements 2})))))
+
+  (apply
+    [store [id start end]]
+    (when-let [block (block/get store id)]
+      (let [baos (java.io.ByteArrayOutputStream.)]
+        (with-open [content (block/open block start end)]
+          (io/copy content baos))
+        (.toByteArray baos))))
+
+  (check
+    [model [id start end] result]
+    (if-let [block (get model id)]
+      (let [baos (java.io.ByteArrayOutputStream.)
+            length (- end start)
+            subarray (byte-array length)]
+        (block/write! block baos)
+        (System/arraycopy (.toByteArray baos) start subarray 0 length)
+        (bytes= subarray result))
+      (nil? result))))
+
+
+(defn- op-generators
+  [blocks]
+  [(gen-list-op blocks)
+   (gen-scan-op blocks)
+   (gen-stat-op blocks)
+   (gen-get-op blocks)
+   (gen-get-batch-op blocks)
+   (gen-open-op blocks)
+   (gen-open-range-op blocks)
+   (gen-put!-op blocks)
+   (gen-put-batch!-op blocks)
+   (gen-delete!-op blocks)
+   (gen-delete-batch!-op blocks)
+   (gen-erase!!-op blocks)])
+
+
+(defn- gen-op-seq
+  "Generates non-empty sequences of store operations for linear testing."
+  [blocks]
+  (->> (op-generators blocks)
+       (gen/one-of)
+       (gen/list)
+       (gen/not-empty)))
+
+
+(defn- gen-op-seq*
+  "Generates non-empty sequences of store operations for multithread testing,
+  including timing wait ops."
+  [blocks]
+  (->> (op-generators blocks)
+       (cons (gen-wait-op nil))
+       (gen/one-of)
+       (gen/list)
+       (gen/not-empty)))
 
 
 
 ;; ## Operation Testing
 
-(defn- apply-op!
-  "Applies an operation to the store by using the op keyword to resolve a method
-  in the `blocks.core` namespace. Returns the result of calling the method."
-  [store [op-key args]]
-  ;(println ">>" op-key (pr-str args))
-  (if-let [method (or (get-in store-operations [op-key :apply])
-                      (ns-resolve 'blocks.core (symbol (name op-key))))]
-    (method store args)
-    (throw (ex-info "No apply function available for operation!"
-                    {:op-key op-key}))))
-
-
-(defn- check-op
-  "Checks that the result of an operation matches the model of the store's
-  contents. Returns true if the operation and model match."
-  [model [op-key args] result]
-  (if-let [checker (get-in store-operations [op-key :check])]
-    (checker model args result)
-    (throw (ex-info "No check function available for operation!"
-                    {:op-key op-key}))))
-
-
-(defn- update-model
-  "Updates the model after an operation has been applied to the store under
-  test. Returns an updated version of the model."
-  [model [op-key args]]
-  (if-let [updater (get-in store-operations [op-key :update])]
-    (updater model args)
-    model))
-
-
-(defn- valid-op-seq?
-  "Determines whether the given sequence of operations produces valid results
-  when applied to the store. Returns true if the store behavior is valid."
+(defn- apply-ops!
+  "Apply a sequence of operations to a store, returning a list of op vectors
+  with appended results."
   [store ops]
+  (reduce
+    (fn [results op]
+      (conj results (conj op (apply-op store op))))
+    []
+    ops))
+
+
+(defn- valid-ops?
+  "Determines whether the given sequence of operations produced valid results
+  when applied to the store. Returns true if the store behavior is valid."
+  [ops]
   (loop [model {}
          ops ops]
-    (if (seq ops)
-      (let [op (first ops)
-            result (apply-op! store op)]
-        (if (check-op model op result)
-          (recur (update-model model op)
-                 (rest ops))
-          (throw (ex-info "Illegal operation result:"
-                          {:op op, :result result}))))
+    (if-let [op (first ops)]
+      (if (check-op model op)
+        (recur (update-model model op) (rest ops))
+        false)
       true)))
 
-
-
-;; ## Store Tests
 
 (defn check-store
   "Uses generative tests to validate the behavior of a block store
@@ -327,12 +457,12 @@
   - `iterations`  number of generative tests to perform
 
   Returns the results of the generative tests."
-  [constructor & {:keys [blocks max-size iterations eraser]
+  [constructor & {:keys [blocks max-size iterations]
                   :or {blocks 20, max-size 1024, iterations 100}}]
-  {:pre [(some? constructor)]}
+  {:pre [(fn? constructor)]}
   (let [test-blocks (generate-blocks! blocks max-size)]
     (check/quick-check iterations
-      (prop/for-all [ops (gen/list (gen-store-op test-blocks))]
+      (prop/for-all [ops (gen-op-seq test-blocks)]
         (let [store (constructor)]
           (component/start store)
           (try
@@ -341,10 +471,12 @@
                        (str "Cannot run integration test on " (pr-str store)
                             " as it already contains blocks!"))))
             (is (zero? (:count (block/scan store))))
-            (let [result (valid-op-seq? store ops)]
+            ; TODO: multithread test
+            (let [results (apply-ops! store ops)
+                  validity (valid-ops? results)]
               (block/erase!! store)
               (is (empty? (block/list store)) "ends empty")
-              result)
+              validity)
             (finally
               (try
                 (component/stop store)
@@ -361,10 +493,21 @@
       (true? (:result info))
         true
 
-      (instance? Throwable (:result info))
-        (throw (ex-info (str "Tests failed after " (:num-tests info) " iterations")
-                        info
-                        (:result info)))
+      (or (false? (:result info))
+          (instance? Throwable (:result info)))
+        (do
+          (puget/pprint
+            info
+            {:print-color true
+             :print-handlers #(get {Multihash (puget/tagged-handler 'data/hash multihash/base58)
+                                    Block (puget/tagged-handler 'data/block (partial into {}))}
+                                   %
+                                   (puget/common-handlers %))})
+          (if (false? (:result info))
+            (throw (ex-info (format "Tests failed after %d iterations" (:num-tests info))
+                            {:info info}))
+            (throw (:result info))))
 
       :else
-        (throw (ex-info "Unknown info format" info)))))
+        (throw (ex-info (str "Unknown info format: " (pr-str info))
+                        {:info info})))))
