@@ -67,32 +67,20 @@ number of bytes in the block content.
 Internally, blocks either have a buffer holding the data in memory, or a reader
 function which can be invoked to create new input streams for the block content.
 A block with in-memory content is a _literal block_ while a block with a reader
-is a _lazy block_.  Dereferencing a literal block returns its content, while
-lazy blocks contain `nil`.
+is a _lazy block_. Dereferencing a block will return `nil` if it is lazy.
 
 ```clojure
-; hello is a literal block, whose content is an immutable byte sequence:
-=> @hello
-#<blocks.data.PersistentBytes@7dde3f9b PersistentBytes[size=14]>
-
-; Create a lazy block from a local file:
+; Create a block from a local file:
 => (def readme (block/from-file "README.md"))
 #'user/readme
 
-=> @readme
-nil
-
-; Loading a block ensures that the content resides in memory:
-=> (let [readme+ (block/load! readme)] @readme+)
-#<blocks.data.PersistentBytes@3d4cd68c PersistentBytes[size=4860]>
-
-; Block values are still immutable, so this doesn't change the original block:
+; Block is lazily backed by the file on disk:
 => @readme
 nil
 ```
 
-To abstract over the literal/lazy divide, you can generically create an input
-stream over a block's content using `open`:
+To abstract over the literal/lazy divide, you can create an input stream over a
+block's content using `open`:
 
 ```clojure
 => (slurp (block/open hello))
