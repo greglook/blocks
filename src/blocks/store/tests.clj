@@ -2,11 +2,10 @@
   "Suite of tests to verify that a given block store implementation conforms to
   the spec."
   (:require
-    [alphabase.bytes :refer [random-bytes]]
+    [alphabase.bytes :refer [bytes= random-bytes]]
     [alphabase.hex :as hex]
     [blocks.core :as block]
     [blocks.summary :as sum]
-    [byte-streams :as bytes :refer [bytes=]]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
     [clojure.test.check :as check]
@@ -318,7 +317,7 @@
   (check
     [this model result]
     (if-let [block (get model id)]
-      (is (bytes= (.toBuffer ^PersistentBytes @block) result))
+      (is (bytes= (.toByteArray ^PersistentBytes @block) result))
       (is (nil? result)))))
 
 
