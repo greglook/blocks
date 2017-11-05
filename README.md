@@ -21,9 +21,6 @@ types and protocols for Clojure. Content-addressable storage has several useful 
   example, a file's contents can be referenced by different versions of
   metadata without duplicating the file data.
 
-This library aims for compatibility with the [ipfs](//ipfs.io) block storage
-layer.
-
 ## Installation
 
 Library releases are published on Clojars. To use the latest version with
@@ -226,8 +223,9 @@ This library comes with a few block store implementations built in:
 
 Other storage backends are provided by separate libraries:
 
-- [blocks-s3](//github.com/greglook/blocks-s3) provides storage backed by a
-  bucket in Amazon S3.
+- [blocks-s3](//github.com/greglook/blocks-s3) backed by a bucket in Amazon S3.
+- [blocks-adl](//github.com/amperity/blocks-adl) backed by Azure DataLake store.
+- [blocks-monger](//github.com/20centaurifux/blocks-monger) backed by MongoDB.
 
 ## License
 
