@@ -2865,8 +2865,8 @@ net.brehaut.ClojureTools = (function (SH) {
     build_tree: build_tree
   };
 })(SyntaxHighlighter);
-</script><title>mvxcvi/blocks -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name"><a href="https://github.com/greglook/blocks">mvxcvi/blocks</a></h1><h2 class="project-version">0.9.1</h2><br /><p>Content-addressed data storage interface.</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.8.0</td></tr><tr><td class="dep-name">org.clojure/data.priority-map</td><td class="dotted"><hr /></td><td class="dep-version">0.0.7</td></tr><tr><td class="dep-name">org.clojure/test.check</td><td class="dotted"><hr /></td><td class="dep-version">0.9.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.3.1</td></tr><tr><td class="dep-name">bigml/sketchy</td><td class="dotted"><hr /></td><td class="dep-version">0.4.1</td></tr><tr><td class="dep-name">byte-streams</td><td class="dotted"><hr /></td><td class="dep-version">0.2.2</td></tr><tr><td class="dep-name">com.stuartsierra/component</td><td class="dotted"><hr /></td><td class="dep-version">0.3.2</td></tr><tr><td class="dep-name">commons-io</td><td class="dotted"><hr /></td><td class="dep-version">2.5</td></tr><tr><td class="dep-name">mvxcvi/multihash</td><td class="dotted"><hr /></td><td class="dep-version">2.0.1</td></tr><tr><td class="dep-name">mvxcvi/puget</td><td class="dotted"><hr /></td><td class="dep-version">1.0.1</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#blocks.summary">blocks.summary</a></li><li><a href="#blocks.core">blocks.core</a></li><li><a href="#blocks.data">blocks.data</a></li><li><a href="#blocks.store">blocks.store</a></li><li><a href="#blocks.store.memory">blocks.store.memory</a></li><li><a href="#blocks.store.file">blocks.store.file</a></li><li><a href="#blocks.store.tests">blocks.store.tests</a></li><li><a href="#blocks.store.cache">blocks.store.cache</a></li><li><a href="#blocks.store.replica">blocks.store.replica</a></li><li><a href="#blocks.store.buffer">blocks.store.buffer</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#blocks.summary" name="blocks.summary"><h1 class="project-name">blocks.summary</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A 'summary' represents a collection of blocks, including certain statistics
+</script><title>mvxcvi/blocks -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name"><a href="https://github.com/greglook/blocks">mvxcvi/blocks</a></h1><h2 class="project-version">1.0.0</h2><br /><p>Content-addressed data storage interface.</p>
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.8.0</td></tr><tr><td class="dep-name">org.clojure/data.priority-map</td><td class="dotted"><hr /></td><td class="dep-version">0.0.7</td></tr><tr><td class="dep-name">org.clojure/test.check</td><td class="dotted"><hr /></td><td class="dep-version">0.9.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.4.0</td></tr><tr><td class="dep-name">bigml/sketchy</td><td class="dotted"><hr /></td><td class="dep-version">0.4.1</td></tr><tr><td class="dep-name">byte-streams</td><td class="dotted"><hr /></td><td class="dep-version">0.2.3</td></tr><tr><td class="dep-name">com.stuartsierra/component</td><td class="dotted"><hr /></td><td class="dep-version">0.3.2</td></tr><tr><td class="dep-name">commons-io</td><td class="dotted"><hr /></td><td class="dep-version">2.6</td></tr><tr><td class="dep-name">mvxcvi/multihash</td><td class="dotted"><hr /></td><td class="dep-version">2.0.2</td></tr><tr><td class="dep-name">mvxcvi/puget</td><td class="dotted"><hr /></td><td class="dep-version">1.0.2</td></tr><tr><td class="dep-name">mvxcvi/test.carly</td><td class="dotted"><hr /></td><td class="dep-version">0.4.1</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#blocks.summary">blocks.summary</a></li><li><a href="#blocks.core">blocks.core</a></li><li><a href="#blocks.data">blocks.data</a></li><li><a href="#blocks.store">blocks.store</a></li><li><a href="#blocks.store.memory">blocks.store.memory</a></li><li><a href="#blocks.store.file">blocks.store.file</a></li><li><a href="#blocks.store.tests">blocks.store.tests</a></li><li><a href="#blocks.store.cache">blocks.store.cache</a></li><li><a href="#blocks.store.replica">blocks.store.replica</a></li><li><a href="#blocks.store.buffer">blocks.store.buffer</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#blocks.summary" name="blocks.summary"><h1 class="project-name">blocks.summary</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A 'summary' represents a collection of blocks, including certain statistics
   and an imprecise membership test in the form of a bloom filter. These are
   useful for returning from certain operations to represent the set of blocks
   acted upon.</p>
@@ -2966,7 +2966,11 @@ block ids</li>
 </td><td class="codes"><pre class="brush: clojure">(defn meta-stats
   [block]
   (:block/stats (meta block)))</pre></td></tr><tr><td class="docs"><h2>Block IO</h2>
-</td><td class="codes"></td></tr><tr><td class="docs"><p>Creates a lazy block from a local file. The file is read once to calculate
+</td><td class="codes"></td></tr><tr><td class="docs"><p>Returns true if the given block loads its content lazily. Returns false if
+  all of the block's content is loaded in memory.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn lazy?
+  [^Block block]
+  (nil? (.content block)))</pre></td></tr><tr><td class="docs"><p>Creates a lazy block from a local file. The file is read once to calculate
   the identifier.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn from-file
   ([file]
@@ -3005,16 +3009,15 @@ block ids</li>
 </td><td class="codes"><pre class="brush: clojure">(defn write!
   [block out]
   (with-open [stream (open block)]
-    (bytes/transfer stream out)))</pre></td></tr><tr><td class="docs"><p>Returns a literal version of the given block. If the block is lazy, the
-  stream is read into memory and returned as a new literal block. If the block
-  is already loaded, it is returned unchanged.</p>
+    (bytes/transfer stream out)))</pre></td></tr><tr><td class="docs"><p>Returns a loaded version of the given block. If the block is lazy, the
+  stream is read into memory and returned as a new block. If the block is
+  already loaded, it is returned unchanged.</p>
 
 <p>  The returned block will have the same extra attributes and metadata as the one
   given.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn load!
   [^Block block]
-  (if @block
-    block
+  (if (lazy? block)
     (let [content (with-open [stream (open block)]
                     (bytes/to-byte-array stream))]
       (Block. (:id block)
@@ -3022,7 +3025,9 @@ block ids</li>
               (PersistentBytes/wrap content)
               nil
               (._attrs block)
-              (meta block)))))</pre></td></tr><tr><td class="docs"><p>Checks a block to verify that it confirms to the expected schema and has a
+              (meta block)))
+    ; Block is already loaded.
+    block))</pre></td></tr><tr><td class="docs"><p>Checks a block to verify that it confirms to the expected schema and has a
   valid identifier for its content. Returns nil if the block is valid, or
   throws an exception on any error.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn validate!
@@ -3153,14 +3158,22 @@ block ids</li>
     (remove nil? (store/-get-batch store ids))
     (doall (keep (partial get store) ids))))</pre></td></tr><tr><td class="docs"><p>Saves a collection of blocks into the store. Returns a sequence of the
   stored blocks, in no particular order.</p>
+
+<p>  This is not guaranteed to be an atomic operation; readers may be able to see
+  the store in a partially-updated state.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn put-batch!
   [store blocks]
   (validate-collection-of Block blocks)
-  (if (satisfies? store/BatchingStore store)
-    (seq (store/-put-batch! store blocks))
-    (doall (map (partial put! store) blocks))))</pre></td></tr><tr><td class="docs"><p>Removes a batch of blocks from the store, identified by a collection of
+  (if-let [blocks (seq (remove nil? blocks))]
+    (if (satisfies? store/BatchingStore store)
+      (store/-put-batch! store blocks)
+      (mapv (partial put! store) blocks))
+    []))</pre></td></tr><tr><td class="docs"><p>Removes a batch of blocks from the store, identified by a collection of
   multihashes. Returns a set of ids for the blocks which were found and
   deleted.</p>
+
+<p>  This is not guaranteed to be an atomic operation; readers may be able to see
+  the store in a partially-deleted state.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn delete-batch!
   [store ids]
   (validate-collection-of Multihash ids)
@@ -3168,7 +3181,7 @@ block ids</li>
     (set (store/-delete-batch! store ids))
     (set (filter (partial delete! store) ids))))</pre></td></tr><tr><td class="docs"><h2>Storage Utilities</h2>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>Completely removes any data associated with the store. After this call, the
-  store should be empty.</p>
+  store should be empty. This is not guaranteed to be an atomic operation!</p>
 </td><td class="codes"><pre class="brush: clojure">(defn erase!!
   [store]
   (if (satisfies? store/ErasableStore store)
@@ -3210,11 +3223,9 @@ copied.</li>
   number of bytes in the block content.</p>
 
 <p>  Internally, blocks either have in-memory content holding the data, or a
-  reader function which returns new input streams for the block data. This is
-  reflected in the way Blocks are treated as pending values: a block with
-  in-memory content is a <em>literal block</em>, while a block with a reader function
-  is a <em>lazy block</em>. Dereferencing a literal block returns its content, while
-  lazy blocks contain <code>nil</code>.</p>
+  reader function which returns new input streams for the block data. A block
+  with in-memory content is a <em>loaded block</em>, while a block with a reader
+  function is a <em>lazy block</em>.</p>
 
 <p>  A block's id, size, content, and reader cannot be changed after construction,
   so clients can be relatively certain that the block's id is valid. Blocks
@@ -3335,11 +3346,7 @@ copied.</li>
       (:id :size :content :reader)
         (throw (IllegalArgumentException.
                  (str &quot;Block &quot; k &quot; cannot be changed&quot;)))
-      (Block. id size content reader (not-empty (dissoc _attrs k)) _meta)))
-  clojure.lang.IDeref
-  (deref
-    [this]
-    content))</pre></td></tr><tr><td class="docs">
+      (Block. id size content reader (not-empty (dissoc _attrs k)) _meta))))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod print-method Block
   [v ^java.io.Writer w]
   (.write w (str v)))</pre></td></tr><tr><td class="docs"><h2>Utility Functions</h2>
@@ -3415,7 +3422,7 @@ copied.</li>
   [id size reader]
   (-&gt;Block id size nil reader nil nil))</pre></td></tr><tr><td class="docs"><p>Creates a block by reading a source into memory. The block is given the id
   directly, without being checked.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn literal-block
+</td><td class="codes"><pre class="brush: clojure">(defn load-block
   ^blocks.data.Block
   [id source]
   (let [content (collect-bytes source)]
@@ -3455,8 +3462,11 @@ copied.</li>
   directly.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns ^:no-doc blocks.store
   (:require
+    [blocks.data]
     [clojure.string :as str]
-    [multihash.core :as multihash]))</pre></td></tr><tr><td class="docs"><h2>Storage Protocols</h2>
+    [multihash.core :as multihash])
+  (:import
+    blocks.data.Block))</pre></td></tr><tr><td class="docs"><h2>Storage Protocols</h2>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>Protocol for content-addressable storage keyed by multihash identifiers.</p>
 </td><td class="codes"><pre class="brush: clojure">(defprotocol BlockStore
   (-stat
@@ -3554,12 +3564,12 @@ copied.</li>
        (let [~'value value#]
          ~@on-err
          nil))))</pre></td></tr><tr><td class="docs"><p>Chooses among multiple blocks to determine the optimal one to use for
-  copying into a new store. Returns the first literal block, if any are
+  copying into a new store. Returns the first loaded block, if any are
   keeping in-memory content. If none are, returns the first block.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn preferred-copy
   [&amp; blocks]
   (when-let [blocks (seq (remove nil? blocks))]
-    (or (first (filter deref blocks))
+    (or (first (filter #(.content ^Block %) blocks))
         (first blocks))))</pre></td></tr><tr><td class="docs"><p>Selects block stats from a sequence based on the criteria spported in
   <code>blocks.core/list</code>. Helper for block store implementers.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn select-stats
@@ -3616,17 +3626,21 @@ copied.</li>
   call for a non-persistent block store.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns blocks.store.memory
   (:require
-    (blocks
-      [core :as block]
-      [data :as data]
-      [store :as store]))
+    [blocks.core :as block]
+    [blocks.data :as data]
+    [blocks.store :as store])
   (:import
-    java.util.Date))</pre></td></tr><tr><td class="docs"><p>Build a map of stat data for a stored block.</p>
+    java.time.Instant))</pre></td></tr><tr><td class="docs"><p>Build a map of stat data for a stored block.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- block-stats
   [block]
   (merge (block/meta-stats block)
          {:id (:id block)
-          :size (:size block)}))</pre></td></tr><tr><td class="docs"><p>Block records in a memory store are held in a map in an atom.</p>
+          :size (:size block)}))</pre></td></tr><tr><td class="docs"><p>Prepare a new block for storage.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- prep-block
+  [block]
+  (-&gt; (block/load! block)
+      (data/clean-block)
+      (block/with-stats {:stored-at (Instant/now)})))</pre></td></tr><tr><td class="docs"><p>Block records in a memory store are held in a map in an atom.</p>
 </td><td class="codes"><pre class="brush: clojure">(defrecord MemoryBlockStore
   [memory]
   store/BlockStore
@@ -3645,24 +3659,55 @@ copied.</li>
   (-put!
     [this block]
     (when-let [id (:id block)]
-      (if-let [extant (get @memory id)]
-        extant
-        (let [block' (-&gt; (block/load! block)
-                         (data/clean-block)
-                         (block/with-stats {:stored-at (Date.)}))]
-          (swap! memory assoc id block')
-          block'))))
+      (dosync
+        (if-let [extant (get @memory id)]
+          extant
+          (let [block (prep-block block)]
+            (alter memory assoc id block)
+            block)))))
   (-delete!
     [this id]
-    (let [existed? (contains? @memory id)]
-      (swap! memory dissoc id)
-      existed?)))</pre></td></tr><tr><td class="docs"><h2>Constructors</h2>
+    (dosync
+      (let [existed? (contains? @memory id)]
+        (alter memory dissoc id)
+        existed?)))
+  store/BatchingStore
+  (-get-batch
+    [this ids]
+    (keep @memory ids))
+  (-put-batch!
+    [this blocks]
+    (dosync
+      (reduce
+        (fn [acc block]
+          (if-let [extant (get @memory (:id block))]
+            (conj acc extant)
+            (let [block (prep-block block)]
+              (alter memory assoc (:id block) block)
+              (conj acc block))))
+        [] blocks)))
+  (-delete-batch!
+    [this ids]
+    (dosync
+      (reduce
+        (fn [acc id]
+          (if (contains? @memory id)
+            (do (alter memory dissoc id)
+                (conj acc id))
+            acc))
+        [] ids)))
+  store/ErasableStore
+  (-erase!
+    [this]
+    (dosync
+      (alter memory empty))
+    this))</pre></td></tr><tr><td class="docs"><h2>Constructors</h2>
 </td><td class="codes"></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(store/privatize-constructors! MemoryBlockStore)</pre></td></tr><tr><td class="docs"><p>Creates a new in-memory block store.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn memory-block-store
   [&amp; {:as opts}]
   (map-&gt;MemoryBlockStore
-    (assoc opts :memory (atom (sorted-map) :validator map?))))</pre></td></tr><tr><td class="docs">
+    (assoc opts :memory (ref (sorted-map) :validator map?))))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod store/initialize &quot;mem&quot;
   [location]
   (memory-block-store))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#blocks.store.file" name="blocks.store.file"><h1 class="project-name">blocks.store.file</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Block storage backed by files in nested directories. Each block is stored in
@@ -3689,17 +3734,16 @@ copied.</li>
 </td><td class="codes"><pre class="brush: clojure">(ns blocks.store.file
   (:require
     [alphabase.hex :as hex]
-    (blocks
-      [core :as block]
-      [data :as data]
-      [store :as store])
+    [blocks.core :as block]
+    [blocks.data :as data]
+    [blocks.store :as store]
     [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
     [multihash.core :as multihash])
   (:import
     java.io.File
-    java.util.Date))</pre></td></tr><tr><td class="docs"><h2>File System Utilities</h2>
+    java.time.Instant))</pre></td></tr><tr><td class="docs"><h2>File System Utilities</h2>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>Given a marker string, determine whether the file should be skipped, recursed
   into with a substring, or listed in full. Returs nil if the file should be
   skipped, otherwise a vector of the file and a marker to recurse with.</p>
@@ -3736,7 +3780,7 @@ copied.</li>
   8)</pre></td></tr><tr><td class="docs"><p>Calculates storage stats for a block file.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- file-stats
   [^File file]
-  {:stored-at (Date. (.lastModified file))
+  {:stored-at (Instant/ofEpochMilli (.lastModified file))
    :source (.toURI file)})</pre></td></tr><tr><td class="docs"><p>Calculates a merged stat map for a block.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- block-stats
   [id ^File file]
@@ -3834,11 +3878,10 @@ root directory.</p>
   the spec.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns blocks.store.tests
   (:require
-    [alphabase.bytes :refer [random-bytes]]
+    [alphabase.bytes :refer [bytes= random-bytes]]
     [alphabase.hex :as hex]
     [blocks.core :as block]
     [blocks.summary :as sum]
-    [byte-streams :as bytes :refer [bytes=]]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
     [clojure.test.check :as check]
@@ -3848,7 +3891,8 @@ root directory.</p>
     [multihash.core :as multihash]
     [multihash.digest :as digest]
     [puget.color.ansi :as ansi]
-    [puget.printer :as puget])
+    [puget.printer :as puget]
+    [test.carly.core :as carly :refer [defop]])
   (:import
     blocks.data.Block
     blocks.data.PersistentBytes
@@ -3870,119 +3914,56 @@ root directory.</p>
   [store &amp; {:keys [n max-size], :or {n 10, max-size 1024}}]
   (let [blocks (generate-blocks! n max-size)]
     (block/put-batch! store (vals blocks))
-    blocks))</pre></td></tr><tr><td class="docs"><h2>Operation Multimethods</h2>
-</td><td class="codes"></td></tr><tr><td class="docs"><p>Apply the operation to the store, returning a result value.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmulti ^:private apply-op
-  (fn dispatch
-    [store [op-key args]]
-    op-key))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defmethod apply-op :default
-  [store [op-key args]]
-  ; Try to resolve the key as a method in the blocks.core namespace.
-  (if-let [method (ns-resolve 'blocks.core (symbol (name op-key)))]
-    (method store args)
-    (throw (ex-info (str &quot;No apply function available for operation &quot; (pr-str op-key))
-                    {:op-key op-key}))))</pre></td></tr><tr><td class="docs"><p>Apply an update to the model based on the operation.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmulti ^:private update-model
-  (fn dispatch
-    [model [op-key args]]
-    op-key))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defmethod update-model :default
-  [model _]
-  ; By default, ops have no effect on model state.
-  model)</pre></td></tr><tr><td class="docs"><p>Make assertions about an operation given the operation type, the model
-  state, and the args/response being tested.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmulti ^:private check-op
-  ; TODO: should this include `is` or return a boolean?
-  (fn dispatch
-    [model [op-key args result]]
-    op-key))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defmethod check-op :default
-  [_ _]
-  ; By default, checks make no assertions.
-  true)</pre></td></tr><tr><td class="docs"><p>Defines a new specification for a store operation test.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmacro ^:private defop
-  [op-key &amp; forms]
-  (let [form-map (into {} (map (juxt first rest)) forms)]
-    `(do
-       (defn- ~(symbol (str &quot;gen-&quot; (name op-key) &quot;-op&quot;))
-         ~(str &quot;Constructs a &quot; (name op-key) &quot; operation spec generator.&quot;)
-         ~@(if-let [gen-form (get form-map 'gen-args)]
-             (if (= 1 (count gen-form))
-               [['blocks]
-                `(gen/tuple
-                   (gen/return ~op-key)
-                   ~(list (first gen-form) 'blocks))]
-               [(first gen-form)
-                `(gen/tuple
-                   (gen/return ~op-key)
-                   (do ~@(rest gen-form)))])
-             [['blocks]
-              `(gen/return [~op-key])]))
-       ~(when-let [apply-form (get form-map 'apply)]
-          `(defmethod apply-op ~op-key
-             [store# [op-key# args#]]
-             (let [~(first apply-form) [store# args#]]
-               ~@(rest apply-form))))
-       ~(when-let [check-form (get form-map 'check)]
-          `(defmethod check-op ~op-key
-             [model# [op-key# args# result#]]
-             (let [~(first check-form) [model# args# result#]]
-               ~@(rest check-form))))
-       ~(when-let [update-form (get form-map 'update)]
-          `(defmethod update-model ~op-key
-             [model# [op-key# args#]]
-             (let [~(first update-form) [model# args#]]
-               ~@(rest update-form)))))))</pre></td></tr><tr><td class="docs"><h2>Operation Generators</h2>
+    blocks))</pre></td></tr><tr><td class="docs"><h2>Operation Generators</h2>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>Returns a generator which will select a block id from the model pool.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- choose-id
   [blocks]
   (gen/elements (keys blocks)))</pre></td></tr><tr><td class="docs"><p>Returns a generator which will select a block from the model pool.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- choose-block
   [blocks]
-  (gen/elements (vals blocks)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :wait
-
+  (gen/elements (vals blocks)))</pre></td></tr><tr><td class="docs"><p>Generate subsequences of the entries in the given sequence, returning some of
+  the elements in the same order as given.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- gen-sub-seq
+  [xs]
+  (gen/fmap
+    (fn select
+      [bools]
+      (sequence (comp (filter first) (map second)) (map vector bools xs)))
+    (gen/vector gen/boolean (count xs))))</pre></td></tr><tr><td class="docs"><p>Generate subsets of the entries in the given map.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- gen-sub-map
+  [m]
+  (gen/fmap (partial into {}) (gen-sub-seq (seq m))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defop StatBlock
+  [id]
   (gen-args
-    [_]
-    (gen/choose 1 100))
-
-  (apply
-    [store duration]
-    (Thread/sleep duration)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :stat
-
-  (gen-args choose-id)
-
+    [ctx]
+    [(choose-id ctx)])
+  (apply-op
+    [this store]
+    (block/stat store id))
   (check
-    [model id result]
+    [this model result]
     (if-let [block (get model id)]
-      (and (map? result)
-           (= (:id block) (:id result))
-           (= (:size block) (:size result))
-           (some? (:stored-at result)))
-      (nil? result))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :list
-
+      (do (is (map? result))
+          (is (= (:id block) (:id result)))
+          (is (= (:size block) (:size result)))
+          (is (some? (:stored-at result))))
+      (is (nil? result)))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defop ListBlocks
+  [query]
   (gen-args
     [blocks]
-    (gen/fmap
-      (fn select
-        [[opts selection]]
-        (select-keys opts selection))
-      (gen/tuple
-        (gen/hash-map
-          :algorithm (gen/elements (keys digest/functions))
-          :after (gen/fmap hex/encode (gen/not-empty gen/bytes)) ; TODO: pick prefixes
-          :limit (gen/large-integer* {:min 1, :max (inc (count blocks))}))
-        (gen/set (gen/elements #{:algorithm :after :limit})))))
-
-  (apply
-    [store query]
+    [(gen/bind
+       (gen/hash-map
+         :algorithm (gen/elements (keys digest/functions))
+         :after (gen/fmap hex/encode (gen/not-empty gen/bytes)) ; TODO: pick prefixes
+         :limit (gen/large-integer* {:min 1, :max (inc (count blocks))}))
+       gen-sub-map)])
+  (apply-op
+    [this store]
     (doall (block/list store query)))
-
   (check
-    [model query result]
+    [this model result]
     (let [expected-ids (cond-&gt;&gt; (keys model)
                          (:after query)
                            (filter #(pos? (compare (multihash/hex %) (:after query))))
@@ -3992,133 +3973,151 @@ root directory.</p>
                            (sort)
                          (:limit query)
                            (take (:limit query)))]
-      (and (is (sequential? result))
-           (is (= (count result) (count expected-ids)))
-           (is (every? #(check-op model (cons :stat %))
-                       (map vector expected-ids result)))))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :get
-
-  (gen-args choose-id)
-
+      (is (sequential? result))
+      (is (= (count result) (count expected-ids)))
+      (doseq [[id stat] (zipmap expected-ids result)]
+        (if-let [block (get model id)]
+          (do (is (map? stat))
+              (is (= (:id block) (:id stat)))
+              (is (= (:size block) (:size stat)))
+              (is (some? (:stored-at stat))))
+          (is (nil? stat)))))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defop GetBlock
+  [id]
+  (gen-args
+    [blocks]
+    [(choose-id blocks)])
+  (apply-op
+    [this store]
+    (block/get store id))
   (check
-    [model id result]
+    [this model result]
     (if-let [block (get model id)]
-      (do
-        (is (some? (:id result)))
-        (is (integer? (:size result)))
-        (is (= id (:id result)))
-        (is (= (:size block) (:size result))))
-      (nil? result))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :put!
-
-  (gen-args choose-block)
-
+      (do (is (some? (:id result)))
+          (is (integer? (:size result)))
+          (is (= id (:id result)))
+          (is (= (:size block) (:size result))))
+      (is (nil? result)))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defop PutBlock
+  [block]
+  (gen-args
+    [blocks]
+    [(choose-block blocks)])
+  (apply-op
+    [this store]
+    (block/put! store block))
   (check
-    [model block result]
-    (= block result))
-
-  (update
-    [model block]
+    [this model result]
+    (is (= block result)))
+  (update-model
+    [this model]
     (assoc model (:id block) block)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :delete!
-
-  (gen-args choose-id)
-
+</td><td class="codes"><pre class="brush: clojure">(defop DeleteBlock
+  [id]
+  (gen-args
+    [blocks]
+    [(choose-id blocks)])
+  (apply-op
+    [this store]
+    (block/delete! store id))
   (check
-    [model id result]
+    [this model result]
     (if (contains? model id)
-      (true? result)
-      (false? result)))
-
-  (update
-    [model id]
+      (is (true? result))
+      (is (false? result))))
+  (update-model
+    [this model]
     (dissoc model id)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :get-batch
-
+</td><td class="codes"><pre class="brush: clojure">(defop GetBlockBatch
+  [ids]
   (gen-args
     [blocks]
-    (gen/set (choose-id blocks)))
-
+    [(gen/fmap (comp set keys) (gen-sub-map blocks))])
+  (apply-op
+    [this store]
+    (block/get-batch store ids))
   (check
-    [model ids result]
-    (and (is (coll? result))
-         (is (= (set (keep model ids))
-                (set result))))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :put-batch!
-
+    [this model result]
+    (is (coll? result))
+    (is (= (set (keep model ids))
+           (set result)))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defop PutBlockBatch
+  [blocks]
   (gen-args
     [blocks]
-    (gen/set (choose-block blocks)))
-
+    [(gen/fmap (comp set vals) (gen-sub-map blocks))])
+  (apply-op
+    [this store]
+    (block/put-batch! store blocks))
   (check
-    [model blocks result]
-    (and (coll? result)
-         (= (set blocks) (set result))))
-
-  (update
-    [model blocks]
+    [this model result]
+    (is (coll? result))
+    (is (= (set blocks) (set result))))
+  (update-model
+    [this model]
     (into model (map (juxt :id identity) blocks))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :delete-batch!
-
+</td><td class="codes"><pre class="brush: clojure">(defop DeleteBlockBatch
+  [ids]
   (gen-args
     [blocks]
-    (gen/set (choose-id blocks)))
-
+    [(gen/fmap (comp set keys) (gen-sub-map blocks))])
+  (apply-op
+    [this store]
+    (block/delete-batch! store ids))
   (check
-    [model ids result]
-    (and (set? result)
-         (= result (set (filter (set ids) (keys model))))))
-
-  (update
-    [model ids]
+    [this model result]
+    (is (set? result))
+    (is (= (set (filter (set ids) (keys model))) result)))
+  (update-model
+    [this model]
     (apply dissoc model ids)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :erase!!
-
-  (apply
-    [store _]
+</td><td class="codes"><pre class="brush: clojure">(defop EraseStore
+  []
+  (apply-op
+    [this store]
     (block/erase!! store))
-
-  (update
-    [model _]
+  (update-model
+    [this model]
     (empty model)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :scan
-
+</td><td class="codes"><pre class="brush: clojure">(defop ScanStore
+  [p]
   (gen-args
-    [_]
-    (gen/elements
-      [nil
-       (fn scan-pred
-         [stat]
-         (&lt; (:size stat) 256))]))
-
+    [blocks]
+    [(gen/elements [nil (fn scan-pred
+                          [stat]
+                          (&lt; (:size stat) 256))])])
+  (apply-op
+    [this store]
+    ; TODO: bloom filter prints... poorly.
+    (block/scan store p))
   (check
-    [model p result]
+    [this model result]
     (let [blocks (cond-&gt;&gt; (vals model) p (filter p))]
-      (and (= (count blocks) (:count result))
-           (= (reduce + (map :size blocks)) (:size result))
-           (map? (:sizes result))
-           (every? integer? (keys (:sizes result)))
-           (= (count blocks) (reduce + (vals (:sizes result))))
-           (every? (partial sum/probably-contains? result) (map :id blocks))))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :open
-
-  (gen-args choose-id)
-
-  (apply
-    [store id]
+      (is (= (count blocks) (:count result)))
+      (is (= (reduce + (map :size blocks)) (:size result)))
+      (is (map? (:sizes result)))
+      (is (every? integer? (keys (:sizes result))))
+      (is (= (count blocks) (reduce + (vals (:sizes result)))))
+      (is (every? (partial sum/probably-contains? result) (map :id blocks))))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defop OpenBlock
+  [id]
+  (gen-args
+    [blocks]
+    [(choose-id blocks)])
+  (apply-op
+    [this store]
     (when-let [block (block/get store id)]
       (let [baos (java.io.ByteArrayOutputStream.)]
         (with-open [content (block/open block)]
           (io/copy content baos))
         (.toByteArray baos))))
-
   (check
-    [model id result]
+    [this model result]
     (if-let [block (get model id)]
-      (bytes= (.toBuffer ^PersistentBytes @block) result)
-      (nil? result))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defop :open-range
-
+      (is (bytes= (.toByteArray ^PersistentBytes (.content ^Block block)) result))
+      (is (nil? result)))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defop OpenBlockRange
+  [id start end]
   (gen-args
     [blocks]
     (gen/bind
@@ -4126,137 +4125,135 @@ root directory.</p>
       (fn [block]
         (gen/fmap
           (fn [positions]
-            (vec (cons (:id block) (sort positions))))
+            (let [[start end] (sort positions)]
+              {:id (:id block)
+               :start start
+               :end end}))
           (gen/vector-distinct
             (gen/large-integer* {:min 0, :max (:size block)})
             {:num-elements 2})))))
-
-  (apply
-    [store [id start end]]
+  (apply-op
+    [this store]
     (when-let [block (block/get store id)]
       (let [baos (java.io.ByteArrayOutputStream.)]
         (with-open [content (block/open block start end)]
           (io/copy content baos))
         (.toByteArray baos))))
-
   (check
-    [model [id start end] result]
+    [this model result]
     (if-let [block (get model id)]
       (let [baos (java.io.ByteArrayOutputStream.)
             length (- end start)
             subarray (byte-array length)]
         (block/write! block baos)
         (System/arraycopy (.toByteArray baos) start subarray 0 length)
-        (bytes= subarray result))
-      (nil? result))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- op-generators
-  [blocks]
-  [(gen-list-op blocks)
-   (gen-scan-op blocks)
-   (gen-stat-op blocks)
-   (gen-get-op blocks)
-   (gen-get-batch-op blocks)
-   (gen-open-op blocks)
-   (gen-open-range-op blocks)
-   (gen-put!-op blocks)
-   (gen-put-batch!-op blocks)
-   (gen-delete!-op blocks)
-   (gen-delete-batch!-op blocks)
-   (gen-erase!!-op blocks)])</pre></td></tr><tr><td class="docs"><p>Generates non-empty sequences of store operations for linear testing.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn- gen-op-seq
-  [blocks]
-  (-&gt;&gt; (op-generators blocks)
-       (gen/one-of)
-       (gen/list)
-       (gen/not-empty)))</pre></td></tr><tr><td class="docs"><p>Generates non-empty sequences of store operations for multithread testing,
-  including timing wait ops.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn- gen-op-seq*
-  [blocks]
-  (-&gt;&gt; (op-generators blocks)
-       (cons (gen-wait-op nil))
-       (gen/one-of)
-       (gen/list)
-       (gen/not-empty)))</pre></td></tr><tr><td class="docs"><h2>Operation Testing</h2>
-</td><td class="codes"></td></tr><tr><td class="docs"><p>Apply a sequence of operations to a store, returning a list of op vectors
-  with appended results.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn- apply-ops!
-  [store ops]
-  (reduce
-    (fn [results op]
-      (conj results (conj op (apply-op store op))))
-    []
-    ops))</pre></td></tr><tr><td class="docs"><p>Determines whether the given sequence of operations produced valid results
-  when applied to the store. Returns true if the store behavior is valid.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn- valid-ops?
-  [ops]
-  (loop [model {}
-         ops ops]
-    (if-let [op (first ops)]
-      (if (check-op model op)
-        (recur (update-model model op) (rest ops))
-        false)
-      true)))</pre></td></tr><tr><td class="docs"><p>Uses generative tests to validate the behavior of a block store
+        (is (bytes= subarray result)))
+      (is (nil? result)))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(def ^:private basic-op-generators
+  (juxt gen-&gt;StatBlock
+        gen-&gt;ListBlocks
+        ;gen-&gt;ScanStore
+        gen-&gt;GetBlock
+        gen-&gt;OpenBlock
+        gen-&gt;OpenBlockRange
+        gen-&gt;PutBlock
+        gen-&gt;DeleteBlock))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(def ^:private batch-op-generators
+  (juxt gen-&gt;GetBlockBatch
+        gen-&gt;PutBlockBatch
+        gen-&gt;DeleteBlockBatch))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(def ^:private erasable-op-generators
+  (juxt gen-&gt;EraseStore))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- join-generators
+  [ks]
+  (let [op-gens (keep {:basic basic-op-generators
+                       :batch batch-op-generators
+                       :erase erasable-op-generators}
+                      ks)]
+    (fn [ctx]
+      (into [] (mapcat #(% ctx)) op-gens))))</pre></td></tr><tr><td class="docs"><h2>Operation Testing</h2>
+</td><td class="codes"></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- start-store
+  [constructor]
+  (let [store (component/start (constructor))]
+    (when-not (empty? (block/list store))
+      (throw (IllegalStateException.
+               (str &quot;Cannot run integration test on &quot; (pr-str store)
+                    &quot; as it already contains blocks!&quot;))))
+    (is (zero? (:count (block/scan store))))
+    store))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- stop-store
+  [store]
+  (block/erase!! store)
+  (is (empty? (block/list store)) &quot;ends empty&quot;)
+  (component/stop store))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- gen-blocks-context
+  [test-blocks]
+  (let [default-ctx (conj {} (first test-blocks))]
+    (gen/fmap
+      (fn [ctx] (if (seq ctx) ctx default-ctx))
+      (gen-sub-map test-blocks))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(def ^:private print-handlers
+  {Multihash (puget/tagged-handler 'data/hash multihash/base58)
+   Block (puget/tagged-handler 'data/block (partial into {}))
+   (class (byte-array 0)) (puget/tagged-handler 'data/bytes alphabase.hex/encode)})</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- type-&gt;print-handler
+  [t]
+  (or (print-handlers t) (puget/common-handlers t)))</pre></td></tr><tr><td class="docs"><p>Uses generative tests to validate the behavior of a block store
   implementation. The first argument must be a no-arg constructor function which
   will produce a new block store for testing. The remaining options control the
   behavior of the tests:</p>
 
 <ul>
-<li><code>blocks</code>      generate this many random blocks to test the store with</li>
-<li><code>max-size</code>    maximum block size to generate, in bytes</li>
-<li><p><code>iterations</code>  number of generative tests to perform</p>
+<li><code>blocks</code>
+Generate this many random blocks to test the store with.</li>
+<li><code>max-size</code>
+Maximum block size to generate, in bytes.</li>
+<li><code>operations</code>
+Kinds of operations to test - vector of <code>:basic</code>, <code>:batch</code>, <code>:erase</code>.</li>
+<li><code>concurrency</code>
+Maximum number of threads of operations to generate.</li>
+<li><code>iterations</code>
+Number of generative tests to perform.</li>
+<li><p><code>repetitions</code>
+Number of times to repeat the test for concurrency checks.</p>
 
 <p>Returns the results of the generative tests.</p></li>
 </ul>
-</td><td class="codes"><pre class="brush: clojure">(defn check-store
-  [constructor &amp; {:keys [blocks max-size iterations]
-                  :or {blocks 20, max-size 1024, iterations 100}}]
+</td><td class="codes"><pre class="brush: clojure">(defn check-store*
+  [constructor
+   {:keys [blocks max-size operations concurrency iterations repetitions]
+    :or {blocks 20
+         max-size 1024
+         operations [:basic]
+         concurrency 4
+         iterations (or (some-&gt; (System/getenv &quot;BLOCKS_STORE_TEST_ITERATIONS&quot;)
+                                (Integer/parseInt))
+                        100)
+         repetitions (or (some-&gt; (System/getenv &quot;BLOCKS_STORE_TEST_REPETITIONS&quot;)
+                                 (Integer/parseInt))
+                         10)}}]
   {:pre [(fn? constructor)]}
   (let [test-blocks (generate-blocks! blocks max-size)]
-    (check/quick-check iterations
-      (prop/for-all [ops (gen-op-seq test-blocks)]
-        (let [store (constructor)]
-          (component/start store)
-          (try
-            (when-not (empty? (block/list store))
-              (throw (IllegalStateException.
-                       (str &quot;Cannot run integration test on &quot; (pr-str store)
-                            &quot; as it already contains blocks!&quot;))))
-            (is (zero? (:count (block/scan store))))
-            ; TODO: multithread test
-            (let [results (apply-ops! store ops)
-                  validity (valid-ops? results)]
-              (block/erase!! store)
-              (is (empty? (block/list store)) &quot;ends empty&quot;)
-              validity)
-            (finally
-              (try
-                (component/stop store)
-                (catch Exception ex
-                  (println &quot;Error stopping store:&quot; ex))))))))))</pre></td></tr><tr><td class="docs"><p>Runs tests as for <code>check-store</code> but interprets the results for
-  <code>clojure.test</code>. Throws an exception if the tests do not succeed.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn check-store!
-  [&amp; args]
-  (let [info (apply check-store args)]
-    (cond
-      (true? (:result info))
-        true
-      (or (false? (:result info))
-          (instance? Throwable (:result info)))
-        (do
-          (puget/pprint
-            info
-            {:print-color true
-             :print-handlers #(get {Multihash (puget/tagged-handler 'data/hash multihash/base58)
-                                    Block (puget/tagged-handler 'data/block (partial into {}))}
-                                   %
-                                   (puget/common-handlers %))})
-          (if (false? (:result info))
-            (throw (ex-info (format &quot;Tests failed after %d iterations&quot; (:num-tests info))
-                            {:info info}))
-            (throw (:result info))))
-      :else
-        (throw (ex-info (str &quot;Unknown info format: &quot; (pr-str info))
-                        {:info info})))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#blocks.store.cache" name="blocks.store.cache"><h1 class="project-name">blocks.store.cache</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Cache stores provide logical block storage backed by two other stores, a
+    (carly/check-system &quot;integration testing&quot; iterations
+      (fn init-system [ctx] (start-store constructor))
+      (join-generators operations)
+      :on-stop stop-store
+      :context-gen (gen-blocks-context test-blocks)
+      :concurrency concurrency
+      :repetitions repetitions
+      :report {:puget {:print-handlers type-&gt;print-handler}})))</pre></td></tr><tr><td class="docs"><p>Uses generative tests to validate the behavior of a block store
+  implementation. The first argument must be a no-arg constructor function
+  which will produce a new block store for testing.</p>
+
+<p>  See <code>check-store*</code> for a variant with more configurable options.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn check-store
+  [constructor]
+  (check-store*
+    constructor
+    {:operations [:basic :batch :erase]
+     :concurrency 1
+     :repetitions 1}))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#blocks.store.cache" name="blocks.store.cache"><h1 class="project-name">blocks.store.cache</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Cache stores provide logical block storage backed by two other stores, a
   <em>primary store</em> and a <em>cache</em>. Blocks are added to the cache on reads and
   writes, and evicted with a least-recently-used strategy to keep the cache
   under a certain total size. Operations on this store will prefer to look up
