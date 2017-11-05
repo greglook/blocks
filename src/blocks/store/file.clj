@@ -32,7 +32,7 @@
     [multihash.core :as multihash])
   (:import
     java.io.File
-    java.util.Date))
+    java.time.Instant))
 
 
 ;; ## File System Utilities
@@ -87,7 +87,7 @@
 (defn- file-stats
   "Calculates storage stats for a block file."
   [^File file]
-  {:stored-at (Date. (.lastModified file))
+  {:stored-at (Instant/ofEpochMilli (.lastModified file))
    :source (.toURI file)})
 
 

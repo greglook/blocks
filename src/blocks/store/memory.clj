@@ -10,7 +10,7 @@
     [blocks.data :as data]
     [blocks.store :as store])
   (:import
-    java.util.Date))
+    java.time.Instant))
 
 
 (defn- block-stats
@@ -26,7 +26,7 @@
   [block]
   (-> (block/load! block)
       (data/clean-block)
-      (block/with-stats {:stored-at (Date.)})))
+      (block/with-stats {:stored-at (Instant/now)})))
 
 
 ;; Block records in a memory store are held in a map in an atom.
