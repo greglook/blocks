@@ -459,8 +459,12 @@
          max-size 1024
          operations [:basic]
          concurrency 4
-         iterations 100
-         repetitions 10}}]
+         iterations (or (some-> (System/getenv "BLOCKS_STORE_TEST_ITERATIONS")
+                                (Integer/parseInt))
+                        100)
+         repetitions (or (some-> (System/getenv "BLOCKS_STORE_TEST_REPETITIONS")
+                                 (Integer/parseInt))
+                         10)}}]
   {:pre [(fn? constructor)]}
   (let [test-blocks (generate-blocks! blocks max-size)]
     (carly/check-system "integration testing" iterations
