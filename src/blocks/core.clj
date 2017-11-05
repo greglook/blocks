@@ -54,6 +54,13 @@
 
 ;; ## Block IO
 
+(defn lazy?
+  "Returns true if the given block loads its content lazily. Returns false if
+  all of the block's content is loaded in memory."
+  [^Block block]
+  (nil? (.content block)))
+
+
 (defn from-file
   "Creates a lazy block from a local file. The file is read once to calculate
   the identifier."
@@ -106,15 +113,14 @@
 
 
 (defn load!
-  "Returns a literal version of the given block. If the block is lazy, the
-  stream is read into memory and returned as a new literal block. If the block
-  is already loaded, it is returned unchanged.
+  "Returns a loaded version of the given block. If the block is lazy, the
+  stream is read into memory and returned as a new block. If the block is
+  already loaded, it is returned unchanged.
 
   The returned block will have the same extra attributes and metadata as the one
   given."
   [^Block block]
-  (if @block
-    block
+  (if (lazy? block)
     (let [content (with-open [stream (open block)]
                     (bytes/to-byte-array stream))]
       (Block. (:id block)
@@ -122,7 +128,9 @@
               (PersistentBytes/wrap content)
               nil
               (._attrs block)
-              (meta block)))))
+              (meta block)))
+    ; Block is already loaded.
+    block))
 
 
 (defn validate!
@@ -289,18 +297,26 @@
 
 (defn put-batch!
   "Saves a collection of blocks into the store. Returns a sequence of the
-  stored blocks, in no particular order."
+  stored blocks, in no particular order.
+
+  This is not guaranteed to be an atomic operation; readers may be able to see
+  the store in a partially-updated state."
   [store blocks]
   (validate-collection-of Block blocks)
-  (if (satisfies? store/BatchingStore store)
-    (seq (store/-put-batch! store blocks))
-    (doall (map (partial put! store) blocks))))
+  (if-let [blocks (seq (remove nil? blocks))]
+    (if (satisfies? store/BatchingStore store)
+      (store/-put-batch! store blocks)
+      (mapv (partial put! store) blocks))
+    []))
 
 
 (defn delete-batch!
   "Removes a batch of blocks from the store, identified by a collection of
   multihashes. Returns a set of ids for the blocks which were found and
-  deleted."
+  deleted.
+
+  This is not guaranteed to be an atomic operation; readers may be able to see
+  the store in a partially-deleted state."
   [store ids]
   (validate-collection-of Multihash ids)
   (if (satisfies? store/BatchingStore store)
@@ -313,7 +329,7 @@
 
 (defn erase!!
   "Completely removes any data associated with the store. After this call, the
-  store should be empty."
+  store should be empty. This is not guaranteed to be an atomic operation!"
   [store]
   (if (satisfies? store/ErasableStore store)
     (store/-erase! store)

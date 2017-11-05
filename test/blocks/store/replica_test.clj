@@ -1,10 +1,9 @@
 (ns blocks.store.replica-test
   (:require
     [blocks.core :as block]
-    (blocks.store
-      [memory :refer [memory-block-store]]
-      [replica :refer [replica-block-store]]
-      [tests :as tests])
+    [blocks.store.memory :refer [memory-block-store]]
+    [blocks.store.replica :refer [replica-block-store]]
+    [blocks.store.tests :as tests]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]))
 
@@ -39,8 +38,8 @@
         "replica lists all available blocks")))
 
 
-(deftest ^:integration test-replica-store
-  (tests/check-store!
+(deftest ^:integration check-behavior
+  (tests/check-store
     #(replica-block-store
        [:a :b]
        :a (memory-block-store)

@@ -38,7 +38,7 @@
             "should have b's id")
         (is (= (:size merged) (:size b))
             "should have b's size")
-        (is (identical? @merged @b)
+        (is (identical? (.content merged) (.content b))
             "should have b's content")
         (is (nil? (.reader merged))
             "should have no reader")

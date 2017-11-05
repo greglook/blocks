@@ -1,10 +1,9 @@
 (ns blocks.store.buffer-test
   (:require
     [blocks.core :as block]
-    (blocks.store
-      [memory :refer [memory-block-store]]
-      [buffer :refer [buffer-block-store] :as buffer]
-      [tests :as tests])
+    [blocks.store.buffer :refer [buffer-block-store] :as buffer]
+    [blocks.store.memory :refer [memory-block-store]]
+    [blocks.store.tests :as tests]
     [clojure.test :refer :all]))
 
 
@@ -57,7 +56,8 @@
     (is (= (:id c) (:id (first (block/list backer)))))))
 
 
-(deftest ^:integration test-buffer-store
-  (tests/check-store! #(buffer-block-store
-                         :store (memory-block-store)
-                         :buffer (memory-block-store))))
+(deftest ^:integration check-behavior
+  (tests/check-store
+    #(buffer-block-store
+       :store (memory-block-store)
+       :buffer (memory-block-store))))

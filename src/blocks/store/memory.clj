@@ -6,12 +6,11 @@
   This store is most suitable for testing, caches, and other situations which
   call for a non-persistent block store."
   (:require
-    (blocks
-      [core :as block]
-      [data :as data]
-      [store :as store]))
+    [blocks.core :as block]
+    [blocks.data :as data]
+    [blocks.store :as store])
   (:import
-    java.util.Date))
+    java.time.Instant))
 
 
 (defn- block-stats
@@ -20,6 +19,14 @@
   (merge (block/meta-stats block)
          {:id (:id block)
           :size (:size block)}))
+
+
+(defn- prep-block
+  "Prepare a new block for storage."
+  [block]
+  (-> (block/load! block)
+      (data/clean-block)
+      (block/with-stats {:stored-at (Instant/now)})))
 
 
 ;; Block records in a memory store are held in a map in an atom.
@@ -49,20 +56,61 @@
   (-put!
     [this block]
     (when-let [id (:id block)]
-      (if-let [extant (get @memory id)]
-        extant
-        (let [block' (-> (block/load! block)
-                         (data/clean-block)
-                         (block/with-stats {:stored-at (Date.)}))]
-          (swap! memory assoc id block')
-          block'))))
+      (dosync
+        (if-let [extant (get @memory id)]
+          extant
+          (let [block (prep-block block)]
+            (alter memory assoc id block)
+            block)))))
 
 
   (-delete!
     [this id]
-    (let [existed? (contains? @memory id)]
-      (swap! memory dissoc id)
-      existed?)))
+    (dosync
+      (let [existed? (contains? @memory id)]
+        (alter memory dissoc id)
+        existed?)))
+
+
+  store/BatchingStore
+
+  (-get-batch
+    [this ids]
+    (keep @memory ids))
+
+
+  (-put-batch!
+    [this blocks]
+    (dosync
+      (reduce
+        (fn [acc block]
+          (if-let [extant (get @memory (:id block))]
+            (conj acc extant)
+            (let [block (prep-block block)]
+              (alter memory assoc (:id block) block)
+              (conj acc block))))
+        [] blocks)))
+
+
+  (-delete-batch!
+    [this ids]
+    (dosync
+      (reduce
+        (fn [acc id]
+          (if (contains? @memory id)
+            (do (alter memory dissoc id)
+                (conj acc id))
+            acc))
+        [] ids)))
+
+
+  store/ErasableStore
+
+  (-erase!
+    [this]
+    (dosync
+      (alter memory empty))
+    this))
 
 
 
@@ -75,7 +123,7 @@
   "Creates a new in-memory block store."
   [& {:as opts}]
   (map->MemoryBlockStore
-    (assoc opts :memory (atom (sorted-map) :validator map?))))
+    (assoc opts :memory (ref (sorted-map) :validator map?))))
 
 
 (defmethod store/initialize "mem"

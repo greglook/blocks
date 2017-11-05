@@ -34,14 +34,14 @@
           "full open should throw exception")
       (is (thrown? IOException (block/open block 0 3))
           "ranged open should throw exception")))
-  (testing "literal block"
+  (testing "loaded block"
     (let [block (block/read! "the old dog jumped")]
       (is (= "the old dog jumped" (slurp (block/open block))))
       (is (= "old dog" (slurp (block/open block 4 11))))))
   (testing "lazy block"
     (let [block (block/from-file "README.md")
           readme (slurp (block/open block))]
-      (is (nil? @block) "file blocks should be lazy")
+      (is (true? (block/lazy? block)) "file blocks should be lazy")
       (is (string? readme))
       (is (= (subs readme 10 20) (slurp (block/open block 10 20)))))))
 
@@ -61,14 +61,14 @@
 
 (deftest block-loading
   (let [lazy-readme (block/from-file "README.md")
-        literal-readme (block/load! lazy-readme)]
-    (is @literal-readme
-        "load returns literal block for lazy block")
-    (is (identical? literal-readme (block/load! literal-readme))
-        "load returns literal block unchanged")
-    (is (bytes= (.open @literal-readme)
+        loaded-readme (block/load! lazy-readme)]
+    (is (not (block/lazy? loaded-readme))
+        "load returns loaded block for lazy block")
+    (is (identical? loaded-readme (block/load! loaded-readme))
+        "load returns loaded block unchanged")
+    (is (bytes= (block/open loaded-readme)
                 (block/open lazy-readme))
-        "literal block content should match lazy block")))
+        "loaded block content should match lazy block")))
 
 
 (deftest block-validation
@@ -180,11 +180,11 @@
   (let [store (reify store/BlockStore (-put! [_ block] block))]
     (testing "file source"
       (let [block (block/store! store (io/file "README.md"))]
-        (is (nil? @block)
+        (is (block/lazy? block)
             "should create lazy block from file")))
     (testing "other source"
       (let [block (block/store! store "foo bar baz")]
-        (is @block
+        (is (not (block/lazy? block))
             "should be read into memory")))))
 
 

@@ -2,10 +2,9 @@
   (:require
     [blocks.core :as block]
     [blocks.store :as store]
-    (blocks.store
-      [cache :as cache :refer [caching-block-store]]
-      [memory :refer [memory-block-store]]
-      [tests :as tests])
+    [blocks.store.cache :as cache :refer [caching-block-store]]
+    [blocks.store.memory :refer [memory-block-store]]
+    [blocks.store.tests :as tests]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]))
 
@@ -97,11 +96,9 @@
       (is (nil? (block/stat (:cache store) (:id block))) "cache should not store block"))))
 
 
-(deftest ^:integration test-caching-store
-  (tests/check-store!
-    #(caching-block-store (* 16 1024)
-       :max-block-size 1024
+(deftest ^:integration check-behavior
+  (tests/check-store
+    #(caching-block-store 2048
+       :max-block-size 512
        :primary (memory-block-store)
-       :cache (memory-block-store))
-    :blocks 50
-    :max-size 4096))
+       :cache (memory-block-store))))

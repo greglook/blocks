@@ -1,9 +1,8 @@
 Block Storage
 =============
 
-[![Dependency Status](https://www.versioneye.com/user/projects/5639b2761d47d40015000018/badge.svg?style=flat)](https://www.versioneye.com/user/projects/5639b2761d47d40015000018)
 [![CircleCI](https://circleci.com/gh/greglook/blocks.svg?style=shield&circle-token=d652bef14116ac200c225d12b6c7af33933f4c26)](https://circleci.com/gh/greglook/blocks)
-[![Coverage Status](https://coveralls.io/repos/greglook/blocks/badge.svg?branch=develop&service=github)](https://coveralls.io/github/greglook/blocks?branch=develop)
+[![codecov](https://codecov.io/gh/greglook/blocks/branch/develop/graph/badge.svg)](https://codecov.io/gh/greglook/blocks)
 [![API codox](https://img.shields.io/badge/doc-API-blue.svg)](https://greglook.github.io/blocks/api/)
 [![marginalia docs](https://img.shields.io/badge/doc-marginalia-blue.svg)](https://greglook.github.io/blocks/marginalia/uberdoc.html)
 
@@ -21,9 +20,6 @@ types and protocols for Clojure. Content-addressable storage has several useful 
 - Data can be structurally shared by different higher-level constructs. For
   example, a file's contents can be referenced by different versions of
   metadata without duplicating the file data.
-
-This library aims for compatibility with the [ipfs](//ipfs.io) block storage
-layer.
 
 ## Installation
 
@@ -66,20 +62,23 @@ number of bytes in the block content.
 
 Internally, blocks either have a buffer holding the data in memory, or a reader
 function which can be invoked to create new input streams for the block content.
-A block with in-memory content is a _literal block_ while a block with a reader
-is a _lazy block_. Dereferencing a block will return `nil` if it is lazy.
+A block with in-memory content is a _loaded block_ while a block with a reader
+is a _lazy block_.
 
 ```clojure
+=> (block/lazy? hello)
+false
+
 ; Create a block from a local file:
 => (def readme (block/from-file "README.md"))
 #'user/readme
 
 ; Block is lazily backed by the file on disk:
-=> @readme
-nil
+=> (block/lazy? readme)
+true
 ```
 
-To abstract over the literal/lazy divide, you can create an input stream over a
+To abstract over the loaded/lazy divide, you can create an input stream over a
 block's content using `open`:
 
 ```clojure
@@ -224,8 +223,9 @@ This library comes with a few block store implementations built in:
 
 Other storage backends are provided by separate libraries:
 
-- [blocks-s3](//github.com/greglook/blocks-s3) provides storage backed by a
-  bucket in Amazon S3.
+- [blocks-s3](//github.com/greglook/blocks-s3) backed by a bucket in Amazon S3.
+- [blocks-adl](//github.com/amperity/blocks-adl) backed by Azure DataLake store.
+- [blocks-monger](//github.com/20centaurifux/blocks-monger) backed by MongoDB.
 
 ## License
 

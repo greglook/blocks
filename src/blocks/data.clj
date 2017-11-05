@@ -6,11 +6,9 @@
   number of bytes in the block content.
 
   Internally, blocks either have in-memory content holding the data, or a
-  reader function which returns new input streams for the block data. This is
-  reflected in the way Blocks are treated as pending values: a block with
-  in-memory content is a _literal block_, while a block with a reader function
-  is a _lazy block_. Dereferencing a literal block returns its content, while
-  lazy blocks contain `nil`.
+  reader function which returns new input streams for the block data. A block
+  with in-memory content is a _loaded block_, while a block with a reader
+  function is a _lazy block_.
 
   A block's id, size, content, and reader cannot be changed after construction,
   so clients can be relatively certain that the block's id is valid. Blocks
@@ -161,14 +159,7 @@
       (:id :size :content :reader)
         (throw (IllegalArgumentException.
                  (str "Block " k " cannot be changed")))
-      (Block. id size content reader (not-empty (dissoc _attrs k)) _meta)))
-
-
-  clojure.lang.IDeref
-
-  (deref
-    [this]
-    content))
+      (Block. id size content reader (not-empty (dissoc _attrs k)) _meta))))
 
 
 (defmethod print-method Block
@@ -275,7 +266,7 @@
   (->Block id size nil reader nil nil))
 
 
-(defn literal-block
+(defn load-block
   "Creates a block by reading a source into memory. The block is given the id
   directly, without being checked."
   ^blocks.data.Block

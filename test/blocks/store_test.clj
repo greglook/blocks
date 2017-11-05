@@ -24,11 +24,11 @@
 (deftest block-preference
   (is (nil? (store/preferred-copy nil))
       "returns nil with no block arguments")
-  (let [literal (block/read! "foo")
+  (let [loaded (block/read! "foo")
         lazy-a (block/from-file "project.clj")
         lazy-b (block/from-file "README.md")]
-    (is (= literal (store/preferred-copy lazy-a literal lazy-b))
-        "returns literal block if present")
+    (is (= loaded (store/preferred-copy lazy-a loaded lazy-b))
+        "returns loaded block if present")
     (is (= lazy-a (store/preferred-copy lazy-a lazy-b))
         "returns first block if all lazy")))
 

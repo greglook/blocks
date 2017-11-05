@@ -22,17 +22,16 @@
   on-disk representations remain compatible."
   (:require
     [alphabase.hex :as hex]
-    (blocks
-      [core :as block]
-      [data :as data]
-      [store :as store])
+    [blocks.core :as block]
+    [blocks.data :as data]
+    [blocks.store :as store]
     [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
     [multihash.core :as multihash])
   (:import
     java.io.File
-    java.util.Date))
+    java.time.Instant))
 
 
 ;; ## File System Utilities
@@ -87,7 +86,7 @@
 (defn- file-stats
   "Calculates storage stats for a block file."
   [^File file]
-  {:stored-at (Date. (.lastModified file))
+  {:stored-at (Instant/ofEpochMilli (.lastModified file))
    :source (.toURI file)})
 
 
