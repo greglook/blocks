@@ -1,9 +1,8 @@
 Block Storage
 =============
 
-[![Dependency Status](https://www.versioneye.com/user/projects/5639b2761d47d40015000018/badge.svg?style=flat)](https://www.versioneye.com/user/projects/5639b2761d47d40015000018)
 [![CircleCI](https://circleci.com/gh/greglook/blocks.svg?style=shield&circle-token=d652bef14116ac200c225d12b6c7af33933f4c26)](https://circleci.com/gh/greglook/blocks)
-[![Coverage Status](https://coveralls.io/repos/greglook/blocks/badge.svg?branch=develop&service=github)](https://coveralls.io/github/greglook/blocks?branch=develop)
+[![codecov](https://codecov.io/gh/greglook/blocks/branch/develop/graph/badge.svg)](https://codecov.io/gh/greglook/blocks)
 [![API codox](https://img.shields.io/badge/doc-API-blue.svg)](https://greglook.github.io/blocks/api/)
 [![marginalia docs](https://img.shields.io/badge/doc-marginalia-blue.svg)](https://greglook.github.io/blocks/marginalia/uberdoc.html)
 
