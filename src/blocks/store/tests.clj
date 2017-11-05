@@ -67,6 +67,16 @@
   (gen/elements (vals blocks)))
 
 
+(defn- gen-sub-map
+  "Generate subsets of the entries in the given map."
+  [m]
+  (gen/fmap
+    (fn select
+      [bools]
+      (into {} (comp (filter first) (map second)) (map vector bools m)))
+    (gen/vector gen/boolean (count m))))
+
+
 (defop StatBlock
   [id]
 
@@ -198,7 +208,7 @@
 
   (gen-args
     [blocks]
-    [(gen/set (choose-id blocks) {:max-elements (count blocks)})])
+    [(gen/fmap (comp set keys) (gen-sub-map blocks))])
 
   (apply-op
     [this store]
@@ -216,7 +226,7 @@
 
   (gen-args
     [blocks]
-    [(gen/set (choose-block blocks) {:max-elements (count blocks)})])
+    [(gen/fmap (comp set vals) (gen-sub-map blocks))])
 
   (apply-op
     [this store]
@@ -237,7 +247,7 @@
 
   (gen-args
     [blocks]
-    [(gen/set (choose-id blocks) {:max-elements (count blocks)})])
+    [(gen/fmap (comp set keys) (gen-sub-map blocks))])
 
   (apply-op
     [this store]
@@ -404,17 +414,10 @@
 
 (defn- gen-blocks-context
   [test-blocks]
-  (gen/fmap
-    (fn select
-      [bools]
-      (->
-        (->> (map vector bools test-blocks)
-             (filter first)
-             (map second))
-        (seq)
-        (or (list (first test-blocks)))
-        (->> (into {}))))
-    (gen/vector gen/boolean (count test-blocks))))
+  (let [default-ctx (conj {} (first test-blocks))]
+    (gen/fmap
+      (fn [ctx] (if (seq ctx) ctx default-ctx))
+      (gen-sub-map test-blocks))))
 
 
 (def ^:private print-handlers
