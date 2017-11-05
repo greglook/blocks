@@ -246,7 +246,7 @@
   (check
     [this model result]
     (is (set? result))
-    (is (= result (set (filter (set ids) (keys model))))))
+    (is (= (set (filter (set ids) (keys model))) result)))
 
   (update-model
     [this model]
@@ -350,7 +350,7 @@
       (is (nil? result)))))
 
 
-(def ^:private op-generators
+(def ^:private basic-op-generators
   (juxt gen->StatBlock
         gen->ListBlocks
         ;gen->ScanStore
@@ -358,11 +358,27 @@
         gen->OpenBlock
         gen->OpenBlockRange
         gen->PutBlock
-        gen->DeleteBlock
-        gen->GetBlockBatch
+        gen->DeleteBlock))
+
+
+(def ^:private batch-op-generators
+  (juxt gen->GetBlockBatch
         gen->PutBlockBatch
-        gen->DeleteBlockBatch
-        gen->EraseStore))
+        gen->DeleteBlockBatch))
+
+
+(def ^:private erasable-op-generators
+  (juxt gen->EraseStore))
+
+
+(defn- join-generators
+  [ks]
+  (let [op-gens (keep {:basic basic-op-generators
+                       :batch batch-op-generators
+                       :erase erasable-op-generators}
+                      ks)]
+    (fn [ctx]
+      (into [] (mapcat #(% ctx)) op-gens))))
 
 
 
@@ -386,34 +402,81 @@
   (component/stop store))
 
 
-(defn check-store
+(defn- gen-blocks-context
+  [test-blocks]
+  (gen/fmap
+    (fn select
+      [bools]
+      (->
+        (->> (map vector bools test-blocks)
+             (filter first)
+             (map second))
+        (seq)
+        (or (list (first test-blocks)))
+        (->> (into {}))))
+    (gen/vector gen/boolean (count test-blocks))))
+
+
+(def ^:private print-handlers
+  {Multihash (puget/tagged-handler 'data/hash multihash/base58)
+   Block (puget/tagged-handler 'data/block (partial into {}))
+   (class (byte-array 0)) (puget/tagged-handler 'data/bytes alphabase.hex/encode)})
+
+
+(defn- type->print-handler
+  [t]
+  (or (print-handlers t) (puget/common-handlers t)))
+
+
+(defn check-store*
   "Uses generative tests to validate the behavior of a block store
   implementation. The first argument must be a no-arg constructor function which
   will produce a new block store for testing. The remaining options control the
   behavior of the tests:
 
-  - `blocks`      generate this many random blocks to test the store with
-  - `max-size`    maximum block size to generate, in bytes
-  - `iterations`  number of generative tests to perform
+  - `blocks`
+    Generate this many random blocks to test the store with.
+  - `max-size`
+    Maximum block size to generate, in bytes.
+  - `operations`
+    Kinds of operations to test - vector of `:basic`, `:batch`, `:erase`.
+  - `concurrency`
+    Maximum number of threads of operations to generate.
+  - `iterations`
+    Number of generative tests to perform.
+  - `repetitions`
+    Number of times to repeat the test for concurrency checks.
 
   Returns the results of the generative tests."
-  [constructor & {:keys [blocks max-size iterations]
-                  :or {blocks 20, max-size 1024, iterations 100}}]
+  [constructor
+   {:keys [blocks max-size operations concurrency iterations repetitions]
+    :or {blocks 20
+         max-size 1024
+         operations [:basic]
+         concurrency 4
+         iterations 100
+         repetitions 10}}]
   {:pre [(fn? constructor)]}
   (let [test-blocks (generate-blocks! blocks max-size)]
     (carly/check-system "integration testing" iterations
-      #(start-store constructor)
-      op-generators
+      (fn init-system [ctx] (start-store constructor))
+      (join-generators operations)
       :on-stop stop-store
-      :context-gen (gen/fmap
-                     (partial apply generate-blocks!)
-                     (gen/tuple
-                       (gen/choose 1 100)
-                       (gen/choose 16 4096)))
-      :repetitions 10
-      :report
-      {:puget {:print-handlers #(get {Multihash (puget/tagged-handler 'data/hash multihash/base58)
-                                      Block (puget/tagged-handler 'data/block (partial into {}))
-                                      (class (byte-array 0)) (puget/tagged-handler 'data/bytes alphabase.hex/encode)}
-                                     %
-                                     (puget/common-handlers %))}})))
+      :context-gen (gen-blocks-context test-blocks)
+      :concurrency concurrency
+      :repetitions repetitions
+      :report {:puget {:print-handlers type->print-handler}})))
+
+
+(defn check-store
+  "Uses generative tests to validate the behavior of a block store
+  implementation. The first argument must be a no-arg constructor function
+  which will produce a new block store for testing.
+
+  See `check-store*` for a variant with more configurable options."
+  [constructor]
+  (check-store*
+    constructor
+    {:operations [:basic :batch :erase]
+     :concurrency 1
+     :repetitions 1}))

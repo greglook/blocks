@@ -1,9 +1,8 @@
 (ns blocks.store.file-test
   (:require
     [blocks.core :as block]
-    (blocks.store
-      [file :as file :refer [file-block-store]]
-      [tests :as tests])
+    [blocks.store.file :as file :refer [file-block-store]]
+    [blocks.store.tests :as tests]
     [clojure.java.io :as io]
     [clojure.test :refer :all]))
 
@@ -40,6 +39,8 @@
     (is (empty? (block/list store :after "122064")))))
 
 
-(deftest ^:integration test-file-store
+(deftest ^:integration check-behavior
   (let [tmpdir (mk-tmpdir!)]
-    (tests/check-store! #(file-block-store tmpdir))))
+    (tests/check-store
+      #(doto (file-block-store tmpdir)
+         (block/erase!!)))))

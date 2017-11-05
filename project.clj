@@ -23,7 +23,7 @@
    [commons-io "2.6"]
    [mvxcvi/multihash "2.0.2"]
    [mvxcvi/puget "1.0.2" :scope "test"]
-   [mvxcvi/test.carly "0.4.0" :scope "test"]]
+   [mvxcvi/test.carly "0.4.1" :scope "test"]]
 
   :test-selectors
   {:default (complement :integration)
@@ -54,6 +54,7 @@
 
    :coverage
    {:plugins [[lein-cloverage "1.0.10"]]
-    :dependencies [[commons-logging "1.2"]]
+    :dependencies [[commons-logging "1.2"]
+                   [riddley "0.1.14"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})

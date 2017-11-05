@@ -39,8 +39,8 @@
         "replica lists all available blocks")))
 
 
-(deftest ^:integration test-replica-store
-  (tests/check-store!
+(deftest ^:integration check-behavior
+  (tests/check-store
     #(replica-block-store
        [:a :b]
        :a (memory-block-store)

@@ -6,10 +6,9 @@
   This store is most suitable for testing, caches, and other situations which
   call for a non-persistent block store."
   (:require
-    (blocks
-      [core :as block]
-      [data :as data]
-      [store :as store]))
+    [blocks.core :as block]
+    [blocks.data :as data]
+    [blocks.store :as store])
   (:import
     java.util.Date))
 
