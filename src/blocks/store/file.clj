@@ -22,10 +22,9 @@
   on-disk representations remain compatible."
   (:require
     [alphabase.hex :as hex]
-    (blocks
-      [core :as block]
-      [data :as data]
-      [store :as store])
+    [blocks.core :as block]
+    [blocks.data :as data]
+    [blocks.store :as store]
     [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]

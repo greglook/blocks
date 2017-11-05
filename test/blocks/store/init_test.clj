@@ -1,9 +1,8 @@
 (ns blocks.store.init-test
   (:require
     [blocks.store :as store]
-    (blocks.store
-      file
-      memory)
+    [blocks.store.file]
+    [blocks.store.memory]
     [clojure.test :refer :all])
   (:import
     blocks.store.file.FileBlockStore
