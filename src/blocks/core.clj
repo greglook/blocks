@@ -289,18 +289,26 @@
 
 (defn put-batch!
   "Saves a collection of blocks into the store. Returns a sequence of the
-  stored blocks, in no particular order."
+  stored blocks, in no particular order.
+
+  This is not guaranteed to be an atomic operation; readers may be able to see
+  the store in a partially-updated state."
   [store blocks]
   (validate-collection-of Block blocks)
-  (if (satisfies? store/BatchingStore store)
-    (seq (store/-put-batch! store blocks))
-    (doall (map (partial put! store) blocks))))
+  (if-let [blocks (seq (remove nil? blocks))]
+    (if (satisfies? store/BatchingStore store)
+      (store/-put-batch! store blocks)
+      (mapv (partial put! store) blocks))
+    []))
 
 
 (defn delete-batch!
   "Removes a batch of blocks from the store, identified by a collection of
   multihashes. Returns a set of ids for the blocks which were found and
-  deleted."
+  deleted.
+
+  This is not guaranteed to be an atomic operation; readers may be able to see
+  the store in a partially-deleted state."
   [store ids]
   (validate-collection-of Multihash ids)
   (if (satisfies? store/BatchingStore store)
@@ -313,7 +321,7 @@
 
 (defn erase!!
   "Completely removes any data associated with the store. After this call, the
-  store should be empty."
+  store should be empty. This is not guaranteed to be an atomic operation!"
   [store]
   (if (satisfies? store/ErasableStore store)
     (store/-erase! store)
