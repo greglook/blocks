@@ -198,7 +198,7 @@
 
   (gen-args
     [blocks]
-    [(gen/set (choose-id blocks))])
+    [(gen/set (choose-id blocks) {:max-elements (count blocks)})])
 
   (apply-op
     [this store]
@@ -216,7 +216,7 @@
 
   (gen-args
     [blocks]
-    [(gen/set (choose-block blocks))])
+    [(gen/set (choose-block blocks) {:max-elements (count blocks)})])
 
   (apply-op
     [this store]
@@ -237,7 +237,7 @@
 
   (gen-args
     [blocks]
-    [(gen/set (choose-id blocks))])
+    [(gen/set (choose-id blocks) {:max-elements (count blocks)})])
 
   (apply-op
     [this store]
