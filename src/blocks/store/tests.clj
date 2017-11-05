@@ -317,7 +317,7 @@
   (check
     [this model result]
     (if-let [block (get model id)]
-      (is (bytes= (.toByteArray ^PersistentBytes @block) result))
+      (is (bytes= (.toByteArray ^PersistentBytes (.content ^Block block)) result))
       (is (nil? result)))))
 
 

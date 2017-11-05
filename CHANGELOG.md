@@ -13,12 +13,19 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 Finally seems like time for a 1.0 release. One very minor breaking change.
 
+### Added
+- New predicate `blocks.core/lazy?`.
+
 ### Changed
 - *BREAKING:* the `:stored-at` metadata on blocks is now returned as a
   `java.time.Instant` instead of a `java.util.Date`.
 - `MemoryBlockStore` uses a ref internally instead of an atom.
 - Minor dependency version upgrades.
 - Generative block store tests are now based on `test.carly`.
+
+### Removed
+- *BREAKING:* Blocks no longer implement `IDeref` as a way to get their internal
+  content.
 
 ## [0.9.1] - 2017-05-17
 

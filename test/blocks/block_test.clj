@@ -11,7 +11,7 @@
     (testing "equality"
       (is (= b1 (empty b1))
           "empty block should still be equal")
-      (is (= b1 (data/literal-block (:id b1) (.content b1))))
+      (is (= b1 (data/load-block (:id b1) (.content b1))))
       (is (not= b1 (assoc b1 :foo :bar))
           "extra attributes should affect equality")
       (is (not= b1 b2)
@@ -64,10 +64,10 @@
 
 (deftest lazy-blocks
   (let [original "foo bar baz abc123"
-        literal (data/read-block :sha1 original)
-        lazy (data/lazy-block (:id literal) (:size literal)
+        loaded (data/read-block :sha1 original)
+        lazy (data/lazy-block (:id loaded) (:size loaded)
                               #(bytes/to-input-stream (.getBytes original)))]
-    (testing "deref logic"
-      (is (some? @literal)
-          "deref literal block should return content")
-      (is (nil? @lazy) "deref lazy block returns nil"))))
+    (is (some? (.content loaded))
+        "loaded block should have content")
+    (is (nil? (.content lazy))
+        "lazy block should not have content")))

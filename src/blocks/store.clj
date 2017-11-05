@@ -3,8 +3,11 @@
   API wrapper functions in `blocks.core` instead of using these methods
   directly."
   (:require
+    [blocks.data]
     [clojure.string :as str]
-    [multihash.core :as multihash]))
+    [multihash.core :as multihash])
+  (:import
+    blocks.data.Block))
 
 
 ;; ## Storage Protocols
@@ -146,11 +149,11 @@
 
 (defn preferred-copy
   "Chooses among multiple blocks to determine the optimal one to use for
-  copying into a new store. Returns the first literal block, if any are
+  copying into a new store. Returns the first loaded block, if any are
   keeping in-memory content. If none are, returns the first block."
   [& blocks]
   (when-let [blocks (seq (remove nil? blocks))]
-    (or (first (filter deref blocks))
+    (or (first (filter #(.content ^Block %) blocks))
         (first blocks))))
 
 
