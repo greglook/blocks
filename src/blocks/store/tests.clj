@@ -66,14 +66,21 @@
   (gen/elements (vals blocks)))
 
 
-(defn- gen-sub-map
-  "Generate subsets of the entries in the given map."
-  [m]
+(defn- gen-sub-seq
+  "Generate subsequences of the entries in the given sequence, returning some of
+  the elements in the same order as given."
+  [xs]
   (gen/fmap
     (fn select
       [bools]
-      (into {} (comp (filter first) (map second)) (map vector bools m)))
-    (gen/vector gen/boolean (count m))))
+      (sequence (comp (filter first) (map second)) (map vector bools xs)))
+    (gen/vector gen/boolean (count xs))))
+
+
+(defn- gen-sub-map
+  "Generate subsets of the entries in the given map."
+  [m]
+  (gen/fmap (partial into {}) (gen-sub-seq (seq m))))
 
 
 (defop StatBlock
@@ -102,16 +109,12 @@
 
   (gen-args
     [blocks]
-    [(gen/fmap
-       (fn select
-         [[opts selection]]
-         (select-keys opts selection))
-       (gen/tuple
-         (gen/hash-map
-           :algorithm (gen/elements (keys digest/functions))
-           :after (gen/fmap hex/encode (gen/not-empty gen/bytes)) ; TODO: pick prefixes
-           :limit (gen/large-integer* {:min 1, :max (inc (count blocks))}))
-         (gen/set (gen/elements #{:algorithm :after :limit}))))])
+    [(gen/bind
+       (gen/hash-map
+         :algorithm (gen/elements (keys digest/functions))
+         :after (gen/fmap hex/encode (gen/not-empty gen/bytes)) ; TODO: pick prefixes
+         :limit (gen/large-integer* {:min 1, :max (inc (count blocks))}))
+       gen-sub-map)])
 
   (apply-op
     [this store]
