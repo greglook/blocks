@@ -9,6 +9,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ...
 
+## [1.0.0] - 2017-11-05
+
+Finally seems like time for a 1.0 release. One very minor breaking change.
+
+### Changed
+- *BREAKING:* the `:stored-at` metadata on blocks is now returned as a
+  `java.time.Instant` instead of a `java.util.Date`.
+- `MemoryBlockStore` uses a ref internally instead of an atom.
+- Minor dependency version upgrades.
+- Generative block store tests are now based on `test.carly`.
+
 ## [0.9.1] - 2017-05-17
 
 ### Added
@@ -171,7 +182,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/0.9.1...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/greglook/blocks/compare/0.9.1...1.0.0
 [0.9.1]: https://github.com/greglook/blocks/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/greglook/blocks/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/greglook/blocks/compare/0.7.1...0.8.0
