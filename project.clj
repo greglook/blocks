@@ -16,16 +16,17 @@
   [[org.clojure/clojure "1.8.0"]
    [org.clojure/data.priority-map "0.0.7"]
    [org.clojure/test.check "0.9.0" :scope "test"]
-   [org.clojure/tools.logging "0.3.1"]
+   [org.clojure/tools.logging "0.4.0"]
    [bigml/sketchy "0.4.1"]
-   [byte-streams "0.2.2"]
+   [byte-streams "0.2.3"]
    [com.stuartsierra/component "0.3.2"]
-   [commons-io "2.5"]
-   [mvxcvi/multihash "2.0.1"]
-   [mvxcvi/puget "1.0.1" :scope "test"]]
+   [commons-io "2.6"]
+   [mvxcvi/multihash "2.0.2"]
+   [mvxcvi/puget "1.0.2" :scope "test"]
+   [mvxcvi/test.carly "0.4.0" :scope "test"]]
 
   :test-selectors
-  {:unit (complement :integration)
+  {:default (complement :integration)
    :integration :integration}
 
   :hiera
@@ -52,7 +53,7 @@
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
 
    :coverage
-   {:plugins [[lein-cloverage "1.0.9"]]
+   {:plugins [[lein-cloverage "1.0.10"]]
     :dependencies [[commons-logging "1.2"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
