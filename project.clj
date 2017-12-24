@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "1.0.0"
+(defproject mvxcvi/blocks "1.1.0"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -13,7 +13,7 @@
   :pedantic? :abort
 
   :dependencies
-  [[org.clojure/clojure "1.8.0"]
+  [[org.clojure/clojure "1.9.0"]
    [org.clojure/data.priority-map "0.0.7"]
    [org.clojure/test.check "0.9.0" :scope "test"]
    [org.clojure/tools.logging "0.4.0"]
