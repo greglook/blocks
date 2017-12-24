@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ...
 
+## [1.1.0] - 2017-12-24
+
+This release upgrades the library to Clojure 1.9.0.
+
 ## [1.0.0] - 2017-11-05
 
 Finally seems like time for a 1.0 release. One very minor breaking change.
@@ -189,7 +193,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/1.0.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/greglook/blocks/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/greglook/blocks/compare/0.9.1...1.0.0
 [0.9.1]: https://github.com/greglook/blocks/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/greglook/blocks/compare/0.8.0...0.9.0
