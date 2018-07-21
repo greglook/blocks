@@ -14,14 +14,14 @@
 
   :dependencies
   [[org.clojure/clojure "1.9.0"]
-   [org.clojure/data.priority-map "0.0.7"]
+   [org.clojure/data.priority-map "0.0.10"]
    [org.clojure/test.check "0.9.0" :scope "test"]
-   [org.clojure/tools.logging "0.4.0"]
-   [bigml/sketchy "0.4.1"]
-   [byte-streams "0.2.3"]
+   [org.clojure/tools.logging "0.4.1"]
+   [bigml/sketchy "0.4.2"]
+   [byte-streams "0.2.4"]
    [com.stuartsierra/component "0.3.2"]
    [commons-io "2.6"]
-   [mvxcvi/multihash "2.0.2"]
+   [mvxcvi/multihash "2.0.3"]
    [mvxcvi/puget "1.0.2" :scope "test"]
    [mvxcvi/test.carly "0.4.1" :scope "test"]]
 
@@ -55,6 +55,6 @@
    :coverage
    {:plugins [[lein-cloverage "1.0.10"]]
     :dependencies [[commons-logging "1.2"]
-                   [riddley "0.1.14"]]
+                   [riddley "0.1.15"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
