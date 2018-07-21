@@ -77,7 +77,6 @@
               (Block. (if (= k :id)      v (:id b))
                       (if (= k :size)    v (:size b))
                       (if (= k :content) v (.content b))
-                      (if (= k :reader)  v (.reader b))
                       nil nil))]
     (testing "non-multihash id"
       (is (thrown? IllegalStateException

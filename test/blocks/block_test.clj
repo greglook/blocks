@@ -54,8 +54,6 @@
           "size should not be settable")
       (is (thrown? IllegalArgumentException (assoc b2 :content nil))
           "content should not be settable")
-      (is (thrown? IllegalArgumentException (assoc b2 :reader nil))
-          "reader should not be settable")
       (is (thrown? IllegalArgumentException (dissoc b1 :id))
           "should not be dissociatable"))
     (testing "print-method"

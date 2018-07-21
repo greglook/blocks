@@ -58,7 +58,7 @@
   "Returns true if the given block loads its content lazily. Returns false if
   all of the block's content is loaded in memory."
   [^Block block]
-  (nil? (.content block)))
+  (not (instance? PersistentBytes (.content block))))
 
 
 (defn from-file
@@ -126,7 +126,6 @@
       (Block. (:id block)
               (count content)
               (PersistentBytes/wrap content)
-              nil
               (._attrs block)
               (meta block)))
     ; Block is already loaded.

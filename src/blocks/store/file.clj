@@ -132,6 +132,7 @@
   (block/with-stats
     (data/lazy-block
       id (.length file)
+      ; OPTIMIZE: return a ContentReader that can seek into the file.
       (fn file-reader [] (io/input-stream file)))
     (file-stats file)))
 

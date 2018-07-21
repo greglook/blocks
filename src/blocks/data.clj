@@ -5,15 +5,15 @@
   is a `Multihash` with the digest identifying the content. The size is the
   number of bytes in the block content.
 
-  Internally, blocks either have in-memory content holding the data, or a
-  reader function which returns new input streams for the block data. A block
-  with in-memory content is a _loaded block_, while a block with a reader
-  function is a _lazy block_.
+  Internally, blocks either have their content in-memory as persistent bytes,
+  or a _source_ which constructs new input streams for the block data on
+  demand. A block with in-memory content is considered a _loaded block_, while
+  blocks with other sources are _lazy blocks_.
 
-  A block's id, size, content, and reader cannot be changed after construction,
-  so clients can be relatively certain that the block's id is valid. Blocks
-  _may_ have additional attributes associated with them and support metadata,
-  similar to records."
+  A block's id, size, and content cannot be changed after construction, so
+  clients can be relatively certain that the block's id is valid. Blocks _may_
+  have additional attributes associated with them and support metadata, similar
+  to records."
   (:require
     [byte-streams :as bytes]
     [multihash.core :as multihash]
@@ -30,8 +30,7 @@
 (deftype Block
   [^Multihash id
    ^long size
-   ^PersistentBytes content
-   reader
+   content
    _attrs
    _meta]
 
@@ -43,7 +42,10 @@
   (toString
     [this]
     (format "Block[%s %s %s]"
-            id size (if content "*" (if reader "~" "!"))))
+            id size (cond
+                      (instance? PersistentBytes content) "*"
+                      content "~"
+                      :else "!")))
 
   (equals
     [this that]
@@ -76,7 +78,7 @@
 
   (withMeta
     [this meta-map]
-    (Block. id size content reader _attrs meta-map))
+    (Block. id size content _attrs meta-map))
 
 
   ; TODO: IKeywordLookup?
@@ -102,7 +104,7 @@
 
   (empty
     [this]
-    (Block. id size nil nil nil _meta))
+    (Block. id size nil nil _meta))
 
   (cons
     [this element]
@@ -148,18 +150,18 @@
   (assoc
     [this k v]
     (case k
-      (:id :size :content :reader)
+      (:id :size :content)
         (throw (IllegalArgumentException.
                  (str "Block " k " cannot be changed")))
-      (Block. id size content reader (assoc _attrs k v) _meta)))
+      (Block. id size content (assoc _attrs k v) _meta)))
 
   (without
     [this k]
     (case k
-      (:id :size :content :reader)
+      (:id :size :content)
         (throw (IllegalArgumentException.
                  (str "Block " k " cannot be changed")))
-      (Block. id size content reader (not-empty (dissoc _attrs k)) _meta))))
+      (Block. id size content (not-empty (dissoc _attrs k)) _meta))))
 
 
 (defmethod print-method Block
@@ -291,12 +293,12 @@
 
 
 (defn lazy-block
-  "Creates a block from a reader function. Each time the function is called, it
-  should return a new `InputStream` to read the block contents. The block is
-  given the id and size directly, without being checked."
+  "Creates a block from a content source. The simplest version is a no-arg
+  function which should return a new `InputStream` to read the block contents.
+  The block is given the id and size directly, without being checked."
   ^blocks.data.Block
   [id size reader]
-  (->Block id size nil reader nil nil))
+  (->Block id size reader nil nil))
 
 
 (defn load-block
@@ -306,17 +308,18 @@
   [id source]
   (let [content (collect-bytes source)]
     (when (pos? (count content))
-      (->Block id (count content) content nil nil nil))))
+      (->Block id (count content) content nil nil))))
 
 
 (defn read-block
   "Creates a block by reading the source into memory and hashing it."
   ^blocks.data.Block
   [algorithm source]
+  ; OPTIMIZE: calculate the hash while reading the content in one pass.
   (let [hash-fn (checked-hasher algorithm)
         content (collect-bytes source)]
     (when (pos? (count content))
-      (->Block (hash-fn (.open content)) (count content) content nil nil nil))))
+      (->Block (hash-fn (read-all content)) (count content) content nil nil))))
 
 
 (defn clean-block
@@ -325,16 +328,14 @@
   (->Block (.id block)
            (.size block)
            (.content block)
-           (.reader block)
            nil
            nil))
 
 
 (defn merge-blocks
   "Creates a new block by merging together two blocks representing the same
-  content. Block ids and sizes must match. The new block's content or reader
-  comes from the second block, and any extra attributes and metadata are merged
-  together."
+  content. Block ids and sizes must match. The new block's content comes from
+  the second block, and any extra attributes and metadata are merged together."
   [^Block a ^Block b]
   (when (not= (.id a) (.id b))
     (throw (IllegalArgumentException.
@@ -343,6 +344,5 @@
   (->Block (.id b)
            (.size b)
            (.content b)
-           (.reader b)
            (not-empty (merge (._attrs a) (._attrs b)))
            (not-empty (merge (._meta  a) (._meta  b)))))
