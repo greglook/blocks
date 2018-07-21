@@ -168,6 +168,69 @@
 
 
 
+;; ## Content Readers
+
+(defprotocol ContentReader
+  "Content readers provide functions for repeatably reading byte streams from
+  some backing data source."
+
+  (read-all
+    [reader]
+    "Open an input stream that returns all bytes of the content.")
+
+  (read-range
+    [reader start end]
+    "Open an input stream that reads just bytes from `start` to `end`,
+    inclusive."))
+
+
+(defn- bounded-input-stream
+  "Wraps an input stream such that it only returns a stream of bytes in the
+  range `start` to `end`."
+  ^java.io.InputStream
+  [^InputStream input start end]
+  (.skip input start)
+  (BoundedInputStream. input (- end start)))
+
+
+(extend-protocol ContentReader
+
+  PersistentBytes
+
+  (read-all
+    [^PersistentBytes this]
+    (.open this))
+
+  (read-range
+    [^PersistentBytes this start end]
+    (bounded-input-stream (.open this) start end))
+
+
+  clojure.lang.IFn
+
+  (read-all
+    [this]
+    (this))
+
+  (read-range
+    [this start end]
+    ; Ranged open not supported for generic functions, use naive approach.
+    (bounded-input-stream (this) start end)))
+
+
+(defn content-stream
+  "Opens an input stream to read the contents of the block."
+  ^java.io.InputStream
+  [^Block block start end]
+  (let [content (.content block)]
+    (when-not content
+      (throw (IOException. (str "Cannot open empty block " (:id block)))))
+    (if (and start end)
+      (read-range content start end)
+      (read-all content))))
+
+
+
 ;; ## Utility Functions
 
 (defn- collect-bytes
@@ -218,36 +281,6 @@
                    (str "Block identifier must be a Multihash, "
                         "hashing algorithm returned: " (pr-str id)))))
         id))))
-
-
-(defn- bounded-input-stream
-  "Wraps an input stream such that it only returns a stream of bytes in the
-  range start - end."
-  ^java.io.InputStream
-  [^InputStream input start end]
-  (.skip input start)
-  (BoundedInputStream. input (- end start)))
-
-
-(defn content-stream
-  "Opens an input stream to read the contents of the block."
-  ^java.io.InputStream
-  [^Block block start end]
-  (let [content ^PersistentBytes (.content block)
-        reader (.reader block)]
-    (cond
-      content (cond-> (.open content)
-                (and start end)
-                  (bounded-input-stream start end))
-      reader (if (and start end)
-               (try
-                 (reader start end)
-                 (catch clojure.lang.ArityException e
-                   ; Native ranged open not supported, use naive approach.
-                   (bounded-input-stream (reader) start end)))
-               (reader))
-      :else (throw (IOException.
-                     (str "Cannot open empty block " (:id block)))))))
 
 
 
