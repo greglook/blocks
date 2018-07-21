@@ -132,7 +132,7 @@
                          (:limit query)
                            (take (:limit query)))]
       (is (sequential? result))
-      (is (= (count result) (count expected-ids)))
+      (is (= (count expected-ids) (count result)))
       (doseq [[id stat] (zipmap expected-ids result)]
         (if-let [block (get model id)]
           (do (is (map? stat))
