@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "1.1.1-SNAPSHOT"
+(defproject mvxcvi/blocks "1.2.0-SNAPSHOT"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -53,7 +53,7 @@
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
 
    :coverage
-   {:plugins [[lein-cloverage "1.0.10"]]
+   {:plugins [[lein-cloverage "1.0.11"]]
     :dependencies [[commons-logging "1.2"]
                    [riddley "0.1.15"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
