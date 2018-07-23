@@ -49,20 +49,25 @@
 
 
 (defn- metering-input-stream
-  "Wrap the given input stream in a proxy which will call the given
-  `record-io!` function with the number of bytes read."
-  [^InputStream input-stream record-io!]
+  "Wrap the given input stream in a proxy which will record metric events with
+  the given type and number of bytes read."
+  [store metric-type block-id ^InputStream input-stream]
   (let [meter (volatile! [(System/nanoTime) 0])]
     (letfn [(flush!
               []
               (let [[last-time sum] @meter
-                    elapsed (/ (- (System/nanoTime) last-time) 1e9)]
-                (when (pos? sum)
-                  ; TODO: wire up label
-                  (log/tracef "Transferred %s of block %s (%s)"
-                              (format-bytes sum "B")
-                              (format-bytes (/ sum elapsed) "Bps"))
-                  (record-io! sum))
+                    elapsed (/ (- (System/nanoTime) last-time) 1e9)
+                    record-event (:record-event store)]
+                (log/tracef "Metered %s of %s block %s: %s (%s)"
+                            (name metric-type) (:label store) block-id
+                            (format-bytes sum "B")
+                            (format-bytes (/ sum elapsed) "Bps"))
+                (record-event
+                  store
+                  {:type metric-type
+                   :label (:label store)
+                   :block block-id
+                   :value sum})
                 (vreset! [(System/nanoTime) 0])))]
       (proxy [ProxyInputStream] [input-stream]
 
@@ -80,18 +85,22 @@
 
 
 (deftype MeteredContentReader
-  [content record-io!]
+  [store metric-type block-id content]
 
   data/ContentReader
 
   (read-all
     [this]
-    (metering-input-stream (data/read-all content) record-io!))
+    (metering-input-stream
+      store metric-type block-id
+      (data/read-all content)))
 
 
   (read-range
     [this start end]
-    (metering-input-stream (data/read-range content start end) record-io!)))
+    (metering-input-stream
+      store metric-type block-id
+      (data/read-range content start end))))
 
 
 (alter-meta! #'->MeteredContentReader assoc :private true)
@@ -99,17 +108,15 @@
 
 (defn- metered-block
   "Wrap the given block with a lazy constructor for a metered input stream
-  which will report metrics to the given function."
+  which will report metrics."
   [store metric-type block]
   (when block
-    (letfn [(record-io!
-              [value]
-              (let [record! (:record-event store)
-                    event {:type metric-type
-                           :block (:id block)
-                           :value value}]
-                (record! store event)))]
-      (data/wrap-block block #(->MeteredContentReader % record-io!)))))
+    (data/wrap-block
+      block
+      (partial ->MeteredContentReader
+               store
+               metric-type
+               (:id block)))))
 
 
 
@@ -128,12 +135,18 @@
   [[method-kw args] & body]
   `(let [elapsed# (stopwatch)]
      (try
+       ; TODO: bind dynamic context
        ~@body
        (finally
-         (log/tracef "Store " )
+         (log/tracef "Method %s of %s block store on %s took %.1f ms"
+                     (name ~method-kw)
+                     ~'label
+                     ~args
+                     @elapsed#)
          (~'record-event
            ~'this
            {:type ::method-time
+            :label ~'label
             :method ~method-kw
             :value @elapsed#})))))
 
@@ -166,16 +179,16 @@
   (-get
     [this id]
     (measure-method [:get id]
-      (metered-block this ::read-bytes (store/-get store id))))
+      (metered-block this ::io-read (store/-get store id))))
 
 
   (-put!
     [this block]
     (measure-method [:put! (:id block)]
       (->> block
-           (metered-block this ::write-bytes)
+           (metered-block this ::io-write)
            (store/-put! store)
-           (metered-block this ::read-bytes))))
+           (metered-block this ::io-read))))
 
 
   (-delete!
@@ -191,16 +204,16 @@
     (measure-method [:get-batch ids]
       (->> ids
            (block/get-batch store)
-           (map (partial metered-block this ::read-bytes)))))
+           (map (partial metered-block this ::io-read)))))
 
 
   (-put-batch!
     [this blocks]
     (measure-method [:put-batch! (mapv :id blocks)]
       (->> blocks
-           (map (partial metered-block this ::write-bytes))
+           (map (partial metered-block this ::io-write))
            (block/put-batch! store)
-           (map (partial metered-block this ::read-bytes)))))
+           (map (partial metered-block this ::io-read)))))
 
 
   (-delete-batch!
