@@ -27,6 +27,12 @@
     org.apache.commons.io.input.BoundedInputStream))
 
 
+(defn persistent-bytes?
+  "True if the argument is a persistent byte array."
+  [x]
+  (instance? PersistentBytes x))
+
+
 (deftype Block
   [^Multihash id
    ^long size
@@ -43,7 +49,7 @@
     [this]
     (format "Block[%s %s %s]"
             id size (cond
-                      (instance? PersistentBytes content) "*"
+                      (persistent-bytes? content) "*"
                       content "~"
                       :else "!")))
 
@@ -235,12 +241,18 @@
 
 ;; ## Utility Functions
 
+(defn loaded?
+  "True if the block has content loaded into memory."
+  [^Block block]
+  (persistent-bytes? (.content block)))
+
+
 (defn- collect-bytes
   "Collects bytes from a data source into a `PersistentBytes` object. If the
   source is already persistent, it will be reused directly."
   ^PersistentBytes
   [source]
-  (if (instance? PersistentBytes source)
+  (if (persistent-bytes? source)
     source
     (PersistentBytes/wrap (bytes/to-byte-array source))))
 
