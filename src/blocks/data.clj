@@ -208,7 +208,7 @@
     (bounded-input-stream (.open this) start end))
 
 
-  clojure.lang.IFn
+  clojure.lang.Fn
 
   (read-all
     [this]
