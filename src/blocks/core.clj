@@ -54,11 +54,16 @@
 
 ;; ## Block IO
 
+(defn loaded?
+  "True if the block's content is already loaded into memory."
+  [block]
+  (data/loaded? block))
+
+
 (defn lazy?
-  "Returns true if the given block loads its content lazily. Returns false if
-  all of the block's content is loaded in memory."
-  [^Block block]
-  (not (instance? PersistentBytes (.content block))))
+  "True if the given block reads its content on-demand."
+  [block]
+  (not (data/loaded? block)))
 
 
 (defn from-file
