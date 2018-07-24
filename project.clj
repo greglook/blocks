@@ -53,7 +53,7 @@
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
 
    :coverage
-   {:plugins [[lein-cloverage "1.0.11"]]
+   {:plugins [[lein-cloverage "1.0.10"]]
     :dependencies [[commons-logging "1.2"]
                    [riddley "0.1.15"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
