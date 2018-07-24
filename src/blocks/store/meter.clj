@@ -169,6 +169,7 @@
            {:type ::method-time
             :label label
             :method method-kw
+            :args args
             :value @elapsed})))))
 
 
