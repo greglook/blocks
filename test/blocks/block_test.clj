@@ -66,5 +66,5 @@
         lazy (data/lazy-block
                (:id loaded) (:size loaded)
                #(bytes/to-input-stream (.getBytes content)))]
-    (is (data/loaded? loaded))
-    (is (not (data/loaded? lazy)))))
+    (is (data/byte-content? loaded))
+    (is (not (data/byte-content? lazy)))))

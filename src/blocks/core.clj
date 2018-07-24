@@ -57,13 +57,13 @@
 (defn loaded?
   "True if the block's content is already loaded into memory."
   [block]
-  (data/loaded? block))
+  (data/byte-content? block))
 
 
 (defn lazy?
   "True if the given block reads its content on-demand."
   [block]
-  (not (data/loaded? block)))
+  (not (data/byte-content? block)))
 
 
 (defn from-file
