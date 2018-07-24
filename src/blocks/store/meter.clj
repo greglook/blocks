@@ -26,7 +26,28 @@
       ProxyOutputStream)))
 
 
-; TODO: dynamic context var
+(def ^:dynamic *meter-store*
+  "Thread-bound inner metering store to report events up to."
+  nil)
+
+
+(defn- meter-label
+  "Construct a string to label the metered store."
+  [store]
+  (or (:label store) (.getSimpleName (class (:store store)))))
+
+
+(defn record-metric!
+  "Record a metric to the current thread-bound meter store. Does nothing if no
+  store is bound."
+  [metric-type value & {:as attrs}]
+  {:pre [(qualified-keyword? metric-type) (number? value)]}
+  (when-let [store *meter-store*]
+    (let [event (assoc attrs :type metric-type :value value)
+          record! (:record-fn store)]
+      (record! store event)))
+  nil)
+
 
 
 ;; ## Stream Metering
@@ -57,15 +78,16 @@
               []
               (let [[last-time sum] @meter
                     elapsed (/ (- (System/nanoTime) last-time) 1e9)
-                    record-event (:record-event store)]
+                    record! (:recording-fn store)
+                    label (meter-label store)]
                 (log/tracef "Metered %s of %s block %s: %s (%s)"
-                            (name metric-type) (:label store) block-id
+                            (name metric-type) label block-id
                             (format-bytes sum "B")
                             (format-bytes (/ sum elapsed) "Bps"))
-                (record-event
+                (record!
                   store
                   {:type metric-type
-                   :label (:label store)
+                   :label label
                    :block block-id
                    :value sum})
                 (vreset! [(System/nanoTime) 0])))]
@@ -133,20 +155,21 @@
 (defmacro ^:private measure-method
   "Anaphoric macro to wrap a form in metric recording."
   [[method-kw args] & body]
-  `(let [elapsed# (stopwatch)]
+  `(let [label# (meter-label ~'this)
+         elapsed# (stopwatch)]
      (try
-       ; TODO: bind dynamic context
-       ~@body
+       (binding [*meter-store* ~'this]
+         ~@body)
        (finally
          (log/tracef "Method %s of %s block store on %s took %.1f ms"
                      (name ~method-kw)
-                     ~'label
+                     label#
                      ~args
                      @elapsed#)
-         (~'record-event
+         (~'recording-fn
            ~'this
            {:type ::method-time
-            :label ~'label
+            :label label#
             :method ~method-kw
             :value @elapsed#})))))
 
@@ -160,7 +183,7 @@
 ;; some cases if care is not taken.
 
 (defrecord MeteredBlockStore
-  [store label record-event]
+  [store label recording-fn]
 
   store/BlockStore
 
@@ -237,13 +260,13 @@
 
 
 (defn metered-block-store
-  "Creates a new metered block store. The `record-event` function will be
+  "Creates a new metered block store. The `recording-fn` function will be
   called once for each measurement, with the meter store record and a map
   containing the metric name string, a numeric value, and possibly other data."
-  [record-event & {:as opts}]
-  (when-not (fn? record-event)
+  [recording-fn & {:as opts}]
+  (when-not (fn? recording-fn)
     (throw (IllegalArgumentException.
              (str "First argument must be a metric recording function: "
-                  (pr-str record-event)))))
+                  (pr-str recording-fn)))))
   (map->MeteredBlockStore
-    (assoc opts :record-event record-event)))
+    (assoc opts :recording-fn recording-fn)))
