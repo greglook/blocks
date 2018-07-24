@@ -97,8 +97,7 @@
   (start
     [this]
     (if @state
-      (do (log/info "CachingStore is already initialized")
-          this)
+      this
       (do
         (when-not primary
           (throw (IllegalStateException.
@@ -106,7 +105,6 @@
         (when-not cache
           (throw (IllegalStateException.
                    "Cannot start caching store without backing cache store")))
-        (log/debug "Scanning cache store to build state...")
         (let [initial-state (scan-state cache)
               cached-bytes (:total-size initial-state)]
           (reset! state initial-state)
