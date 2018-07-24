@@ -65,6 +65,9 @@
         loaded (data/read-block :sha1 content)
         lazy (data/lazy-block
                (:id loaded) (:size loaded)
-               #(bytes/to-input-stream (.getBytes content)))]
+               #(bytes/to-input-stream (.getBytes content)))
+        wrapped (data/wrap-block loaded (constantly ::wrapped))]
     (is (data/loaded? loaded))
-    (is (not (data/loaded? lazy)))))
+    (is (not (data/loaded? lazy)))
+    (is (= loaded wrapped))
+    (is (not (data/loaded? wrapped)))))
