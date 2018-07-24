@@ -60,8 +60,8 @@
 (defn- format-bytes
   "Format a byte value as a string with the given suffix."
   [value unit]
-  (loop [prefixes ["" "K" "M" "G"]
-         value value]
+  (loop [value value
+         prefixes ["" "K" "M" "G"]]
     (if (and (< 1024 value) (seq prefixes))
       (recur (/ value 1024) (next prefixes))
       (if (integer? value)
@@ -90,7 +90,7 @@
                    :label label
                    :block block-id
                    :value sum})
-                (vreset! [(System/nanoTime) 0])))]
+                (vreset! meter [(System/nanoTime) 0])))]
       (proxy [ProxyInputStream] [input-stream]
 
         (afterRead
@@ -152,26 +152,32 @@
     (delay (/ (- (System/nanoTime) start) 1e6))))
 
 
+(defn- measure-method*
+  "Helper function for the `measure-method` macro."
+  [store method-kw args body-fn]
+  (let [record! (:recording-fn store)
+        label (meter-label store)
+        elapsed (stopwatch)]
+     (try
+       (binding [*meter-store* store]
+         (body-fn))
+       (finally
+         (log/tracef "Method %s of %s block store on %s took %.1f ms"
+                     (name method-kw) label args @elapsed)
+         (record!
+           store
+           {:type ::method-time
+            :label label
+            :method method-kw
+            :value @elapsed})))))
+
+
 (defmacro ^:private measure-method
   "Anaphoric macro to wrap a form in metric recording."
   [[method-kw args] & body]
-  `(let [label# (meter-label ~'this)
-         elapsed# (stopwatch)]
-     (try
-       (binding [*meter-store* ~'this]
-         ~@body)
-       (finally
-         (log/tracef "Method %s of %s block store on %s took %.1f ms"
-                     (name ~method-kw)
-                     label#
-                     ~args
-                     @elapsed#)
-         (~'recording-fn
-           ~'this
-           {:type ::method-time
-            :label label#
-            :method ~method-kw
-            :value @elapsed#})))))
+  `(measure-method*
+     ~'this ~method-kw ~args
+     (fn body# [] ~@body)))
 
 
 
