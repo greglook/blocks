@@ -2,6 +2,7 @@
   "Logical block storage which writes to multiple backing stores to ensure
   durability. Lookups will try the backing stores in order to find blocks."
   (:require
+    [blocks.core :as block]
     [blocks.store :as store]
     [com.stuartsierra.component :as component]))
 
@@ -29,26 +30,26 @@
 
   (-stat
     [this id]
-    (some #(store/-stat (get this %) id) store-keys))
+    (some #(block/stat (get this %) id) store-keys))
 
 
   (-list
     [this opts]
     (->> store-keys
-         (map #(store/-list (get this %) opts))
+         (map #(block/list (get this %) opts))
          (apply store/merge-block-lists)))
 
 
   (-get
     [this id]
-    (some #(store/-get (get this %) id) store-keys))
+    (some #(block/get (get this %) id) store-keys))
 
 
   (-put!
     [this block]
-    (let [stored-block (store/-put! (get this (first store-keys)) block)
+    (let [stored-block (block/put! (get this (first store-keys)) block)
           copy-block (store/preferred-copy block stored-block)]
-      (run! #(store/-put! (get this %) copy-block) (rest store-keys))
+      (run! #(block/put! (get this %) copy-block) (rest store-keys))
       stored-block))
 
 
@@ -56,7 +57,7 @@
     [this id]
     (reduce
       (fn [existed? store-key]
-        (let [result (store/-delete! (get this store-key) id)]
+        (let [result (block/delete! (get this store-key) id)]
           (or existed? result)))
       false
       store-keys)))
