@@ -205,7 +205,10 @@
   (let [allowed-keys #{:algorithm :after :limit}
         opts-map (cond
                    (empty? opts) nil
-                   (and (= 1 (count opts)) (map? (first opts))) (first opts)
+                   (and (= 1 (count opts))
+                        (or (map? (first opts))
+                            (nil? (first opts))))
+                     (first opts)
                    :else (apply hash-map opts))
         bad-opts (set/difference (set (keys opts-map)) allowed-keys)]
     (when (not-empty bad-opts)
