@@ -1,17 +1,13 @@
-(ns blocks.store.meter-test
+(ns blocks.meter-test
   (:require
     [blocks.core :as block]
-    [blocks.store.meter :refer [metered-block-store] :as meter]
+    [blocks.meter :as meter]
     [blocks.store.memory :refer [memory-block-store]]
     [blocks.store.tests :as tests]
     [clojure.test :refer :all]))
 
 
-(deftest store-construction
-  (is (thrown? IllegalArgumentException (metered-block-store :foo))
-      "construction with non-function should not work"))
-
-
+#_
 (deftest store-behavior
   (let [underlying (memory-block-store)
         store (metered-block-store
@@ -28,11 +24,3 @@
     (prn @(:events store))
     ; TODO: check events
     ))
-
-
-#_
-(deftest ^:integration check-behavior
-  (tests/check-store
-    #(metered-block-store
-       (constantly nil)
-       :store (memory-block-store))))
