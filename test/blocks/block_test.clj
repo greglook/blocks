@@ -67,7 +67,7 @@
                (:id loaded) (:size loaded)
                #(bytes/to-input-stream (.getBytes content)))
         wrapped (data/wrap-block loaded (constantly ::wrapped))]
-    (is (data/loaded? loaded))
-    (is (not (data/loaded? lazy)))
+    (is (data/byte-content? loaded))
+    (is (not (data/byte-content? lazy)))
     (is (= loaded wrapped))
-    (is (not (data/loaded? wrapped)))))
+    (is (not (data/byte-content? wrapped)))))

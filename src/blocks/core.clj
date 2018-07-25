@@ -27,7 +27,9 @@
     (blocks.data
       Block
       PersistentBytes)
-    java.io.File
+    (java.io
+      File
+      FileInputStream)
     multihash.core.Multihash
     org.apache.commons.io.input.CountingInputStream))
 
@@ -58,13 +60,13 @@
 (defn loaded?
   "True if the block's content is already loaded into memory."
   [block]
-  (data/loaded? block))
+  (data/byte-content? block))
 
 
 (defn lazy?
   "True if the given block reads its content on-demand."
   [block]
-  (not (data/loaded? block)))
+  (not (data/byte-content? block)))
 
 
 (defn from-file
@@ -75,7 +77,7 @@
   ([file algorithm]
    (let [file (io/file file)
          hash-fn (data/checked-hasher algorithm)
-         reader #(io/input-stream file)
+         reader (fn file-reader [] (FileInputStream. file))
          id (hash-fn (reader))]
      (data/lazy-block id (.length file) reader))))
 
@@ -125,16 +127,11 @@
 
   The returned block will have the same extra attributes and metadata as the one
   given."
-  [^Block block]
+  [block]
   (if (lazy? block)
-    (let [content (with-open [stream (open block)]
-                    (bytes/to-byte-array stream))]
-      (Block. (:id block)
-              (count content)
-              (PersistentBytes/wrap content)
-              (._attrs block)
-              (meta block)))
-    ; Block is already loaded.
+    (-> (data/load-block (:id block) (open block))
+        (into (remove (comp #{:id :size} key)) block)
+        (with-meta (meta block)))
     block))
 
 

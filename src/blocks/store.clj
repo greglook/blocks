@@ -153,7 +153,7 @@
   keeping in-memory content. If none are, returns the first block."
   [& blocks]
   (when-let [blocks (seq (remove nil? blocks))]
-    (or (first (filter data/loaded? blocks))
+    (or (first (filter data/byte-content? blocks))
         (first blocks))))
 
 

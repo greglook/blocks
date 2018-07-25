@@ -6,14 +6,14 @@
   number of bytes in the block content.
 
   Internally, blocks either have their content in-memory as persistent bytes,
-  or a _source_ which constructs new input streams for the block data on
+  or a _reader_ which constructs new input streams for the block data on
   demand. A block with in-memory content is considered a _loaded block_, while
-  blocks with other sources are _lazy blocks_.
+  blocks with readers are _lazy blocks_.
 
   A block's id, size, and content cannot be changed after construction, so
-  clients can be relatively certain that the block's id is valid. Blocks _may_
-  have additional attributes associated with them and support metadata, similar
-  to records."
+  clients can be confident that the block's id is valid. Blocks _may_ have
+  additional attributes associated with them and support metadata, similar to
+  records."
   (:require
     [byte-streams :as bytes]
     [multihash.core :as multihash]
@@ -241,8 +241,8 @@
 
 ;; ## Utility Functions
 
-(defn loaded?
-  "True if the block has content loaded into memory."
+(defn byte-content?
+  "True if the block has content loaded into memory as persistent bytes."
   [^Block block]
   (persistent-bytes? (.content block)))
 
@@ -305,9 +305,9 @@
 
 
 (defn lazy-block
-  "Creates a block from a content source. The simplest version is a no-arg
-  function which should return a new `InputStream` to read the block contents.
-  The block is given the id and size directly, without being checked."
+  "Creates a block from a content reader. The simplest version is a no-arg
+  function which should return a new `InputStream` to read the full block
+  content. The block is given the id and size directly, without being checked."
   ^blocks.data.Block
   [id size reader]
   (->Block id size reader nil nil))
@@ -331,7 +331,11 @@
   (let [hash-fn (checked-hasher algorithm)
         content (collect-bytes source)]
     (when (pos? (count content))
-      (->Block (hash-fn (read-all content)) (count content) content nil nil))))
+      (->Block (hash-fn (read-all content))
+               (count content)
+               content
+               nil
+               nil))))
 
 
 (defn wrap-block
