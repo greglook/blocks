@@ -26,7 +26,9 @@
     (blocks.data
       Block
       PersistentBytes)
-    java.io.File
+    (java.io
+      File
+      FileInputStream)
     multihash.core.Multihash
     org.apache.commons.io.input.CountingInputStream))
 
@@ -74,7 +76,7 @@
   ([file algorithm]
    (let [file (io/file file)
          hash-fn (data/checked-hasher algorithm)
-         reader #(io/input-stream file)
+         reader (fn file-reader [] (FileInputStream. file))
          id (hash-fn (reader))]
      (data/lazy-block id (.length file) reader))))
 

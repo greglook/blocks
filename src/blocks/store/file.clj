@@ -30,7 +30,9 @@
     [clojure.tools.logging :as log]
     [multihash.core :as multihash])
   (:import
-    java.io.File
+    (java.io
+      File
+      FileInputStream)
     java.time.Instant))
 
 
@@ -132,8 +134,7 @@
   (block/with-stats
     (data/lazy-block
       id (.length file)
-      ; OPTIMIZE: return a ContentReader that can seek into the file.
-      (fn file-reader [] (io/input-stream file)))
+      (fn file-reader [] (FileInputStream. file)))
     (file-stats file)))
 
 
