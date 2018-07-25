@@ -188,33 +188,33 @@
   - `:after`      list blocks whose id (in hex) lexically follows this string
   - `:limit`      restrict the maximum number of results returned
   "
-  ([store & opts]
-   (let [allowed-keys #{:algorithm :after :limit}
-         opts-map (cond
-                    (empty? opts) nil
-                    (and (= 1 (count opts)) (map? (first opts))) (first opts)
-                    :else (apply hash-map opts))
-         bad-opts (set/difference (set (keys opts-map)) allowed-keys)]
-     (when (not-empty bad-opts)
-       (throw (IllegalArgumentException.
-                (str "Invalid options passed to list: "
-                     (str/join " " bad-opts)))))
-     (when-let [algorithm (:algorithm opts-map)]
-       (when-not (keyword? algorithm)
-         (throw (IllegalArgumentException.
-                  (str "Option :algorithm is not a keyword: "
-                       (pr-str algorithm))))))
-     (when-let [after (:after opts-map)]
-       (when-not (and (string? after) (re-matches #"^[0-9a-fA-F]*$" after))
-         (throw (IllegalArgumentException.
-                  (str "Option :after is not a hex string: "
-                       (pr-str after))))))
-     (when-let [limit (:limit opts-map)]
-       (when-not (and (integer? limit) (pos? limit))
-         (throw (IllegalArgumentException.
-                  (str "Option :limit is not a positive integer: "
-                       (pr-str limit))))))
-     (store/-list store opts-map))))
+  [store & opts]
+  (let [allowed-keys #{:algorithm :after :limit}
+        opts-map (cond
+                   (empty? opts) nil
+                   (and (= 1 (count opts)) (map? (first opts))) (first opts)
+                   :else (apply hash-map opts))
+        bad-opts (set/difference (set (keys opts-map)) allowed-keys)]
+    (when (not-empty bad-opts)
+      (throw (IllegalArgumentException.
+               (str "Invalid options passed to list: "
+                    (str/join " " bad-opts)))))
+    (when-let [algorithm (:algorithm opts-map)]
+      (when-not (keyword? algorithm)
+        (throw (IllegalArgumentException.
+                 (str "Option :algorithm is not a keyword: "
+                      (pr-str algorithm))))))
+    (when-let [after (:after opts-map)]
+      (when-not (and (string? after) (re-matches #"^[0-9a-fA-F]*$" after))
+        (throw (IllegalArgumentException.
+                 (str "Option :after is not a hex string: "
+                      (pr-str after))))))
+    (when-let [limit (:limit opts-map)]
+      (when-not (and (integer? limit) (pos? limit))
+        (throw (IllegalArgumentException.
+                 (str "Option :limit is not a positive integer: "
+                      (pr-str limit))))))
+    (store/-list store opts-map)))
 
 
 (defn get
