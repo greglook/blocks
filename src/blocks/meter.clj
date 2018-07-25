@@ -160,11 +160,12 @@
      (try
        (body-fn)
        (finally
-         (log/tracef "Method %s of %s block store on %s took %.1f ms"
-                     (name method-kw)
-                     (meter-label store)
-                     args
-                     @elapsed)
-         (record! store ::method-time @elapsed
-                  :method method-kw
-                  :args args)))))
+         (when (::recorder store)
+           (log/tracef "Method %s of %s block store on %s took %.1f ms"
+                       (name method-kw)
+                       (meter-label store)
+                       args
+                       @elapsed)
+           (record! store ::method-time @elapsed
+                    :method method-kw
+                    :args args))))))
