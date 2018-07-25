@@ -11,9 +11,10 @@
   - `:source`      resource location for the block content
   - `:stored-at`   time block was added to the store
   "
-  (:refer-clojure :exclude [get list sync])
+  (:refer-clojure :exclude [get list])
   (:require
     [blocks.data :as data]
+    [blocks.meter :as meter]
     [blocks.store :as store]
     [blocks.summary :as sum]
     [byte-streams :as bytes]
@@ -170,6 +171,14 @@
   (store/initialize uri))
 
 
+(defmacro ^:private measure-method
+  "Anophoric macro to measure a store method."
+  [[method-kw args] & body]
+  `(meter/measure-method*
+     ~'store ~method-kw ~args
+     (fn body# [] ~@body)))
+
+
 (defn stat
   "Returns a map with an `:id` and `:size` but no content. The returned map
   may contain additional data like the date stored. Returns nil if the store
@@ -179,7 +188,8 @@
     (when-not (instance? Multihash id)
       (throw (IllegalArgumentException.
                (str "Id value must be a multihash, got: " (pr-str id)))))
-    (store/-stat store id)))
+    (measure-method [::stat id]
+      (store/-stat store id))))
 
 
 (defn list
@@ -191,33 +201,34 @@
   - `:after`      list blocks whose id (in hex) lexically follows this string
   - `:limit`      restrict the maximum number of results returned
   "
-  ([store & opts]
-   (let [allowed-keys #{:algorithm :after :limit}
-         opts-map (cond
-                    (empty? opts) nil
-                    (and (= 1 (count opts)) (map? (first opts))) (first opts)
-                    :else (apply hash-map opts))
-         bad-opts (set/difference (set (keys opts-map)) allowed-keys)]
-     (when (not-empty bad-opts)
-       (throw (IllegalArgumentException.
-                (str "Invalid options passed to list: "
-                     (str/join " " bad-opts)))))
-     (when-let [algorithm (:algorithm opts-map)]
-       (when-not (keyword? algorithm)
-         (throw (IllegalArgumentException.
-                  (str "Option :algorithm is not a keyword: "
-                       (pr-str algorithm))))))
-     (when-let [after (:after opts-map)]
-       (when-not (and (string? after) (re-matches #"^[0-9a-fA-F]*$" after))
-         (throw (IllegalArgumentException.
-                  (str "Option :after is not a hex string: "
-                       (pr-str after))))))
-     (when-let [limit (:limit opts-map)]
-       (when-not (and (integer? limit) (pos? limit))
-         (throw (IllegalArgumentException.
-                  (str "Option :limit is not a positive integer: "
-                       (pr-str limit))))))
-     (store/-list store opts-map))))
+  [store & opts]
+  (let [allowed-keys #{:algorithm :after :limit}
+        opts-map (cond
+                   (empty? opts) nil
+                   (and (= 1 (count opts)) (map? (first opts))) (first opts)
+                   :else (apply hash-map opts))
+        bad-opts (set/difference (set (keys opts-map)) allowed-keys)]
+    (when (not-empty bad-opts)
+      (throw (IllegalArgumentException.
+               (str "Invalid options passed to list: "
+                    (str/join " " bad-opts)))))
+    (when-let [algorithm (:algorithm opts-map)]
+      (when-not (keyword? algorithm)
+        (throw (IllegalArgumentException.
+                 (str "Option :algorithm is not a keyword: "
+                      (pr-str algorithm))))))
+    (when-let [after (:after opts-map)]
+      (when-not (and (string? after) (re-matches #"^[0-9a-fA-F]*$" after))
+        (throw (IllegalArgumentException.
+                 (str "Option :after is not a hex string: "
+                      (pr-str after))))))
+    (when-let [limit (:limit opts-map)]
+      (when-not (and (integer? limit) (pos? limit))
+        (throw (IllegalArgumentException.
+                 (str "Option :limit is not a positive integer: "
+                      (pr-str limit))))))
+    (measure-method [::list opts-map]
+      (store/-list store opts-map))))
 
 
 (defn get
@@ -230,11 +241,13 @@
   (when-not (instance? Multihash id)
     (throw (IllegalArgumentException.
              (str "Id value must be a multihash, got: " (pr-str id)))))
-  (when-let [block (store/-get store id)]
-    (when-not (= id (:id block))
-      (throw (RuntimeException.
-               (str "Asked for block " id " but got " (:id block)))))
-    block))
+  (let [block (measure-method [::get id]
+                (store/-get store id))]
+    (when block
+      (when-not (= id (:id block))
+        (throw (RuntimeException.
+                 (str "Asked for block " id " but got " (:id block)))))
+      (meter/metered-block store ::meter/io-read block))))
 
 
 (defn put!
@@ -245,7 +258,13 @@
     (when-not (instance? Block block)
       (throw (IllegalArgumentException.
                (str "Argument must be a block, got: " (pr-str block)))))
-    (data/merge-blocks block (store/-put! store block))))
+    (data/merge-blocks
+      block
+      (measure-method [::put! block]
+        (->> block
+             (meter/metered-block store ::meter/io-write)
+             (store/-put! store)
+             (meter/metered-block store ::meter/io-read))))))
 
 
 (defn store!
@@ -269,7 +288,8 @@
   removed."
   [store id]
   (when id
-    (store/-delete! store id)))
+    (measure-method [::delete! id]
+      (store/-delete! store id))))
 
 
 
@@ -295,7 +315,9 @@
   [store ids]
   (validate-collection-of Multihash ids)
   (if (satisfies? store/BatchingStore store)
-    (remove nil? (store/-get-batch store ids))
+    (measure-method [::get-batch ids]
+      (keep (partial meter/metered-block store ::meter/io-read)
+            (store/-get-batch store ids)))
     (doall (keep (partial get store) ids))))
 
 
@@ -309,7 +331,11 @@
   (validate-collection-of Block blocks)
   (if-let [blocks (seq (remove nil? blocks))]
     (if (satisfies? store/BatchingStore store)
-      (store/-put-batch! store blocks)
+      (measure-method [::put-batch! blocks]
+        (->> blocks
+             (map (partial meter/metered-block store ::meter/io-write))
+             (store/-put-batch! store)
+             (map (partial meter/metered-block store ::meter/io-read))))
       (mapv (partial put! store) blocks))
     []))
 
@@ -324,7 +350,8 @@
   [store ids]
   (validate-collection-of Multihash ids)
   (if (satisfies? store/BatchingStore store)
-    (set (store/-delete-batch! store ids))
+    (measure-method [::delete-batch! ids]
+      (set (store/-delete-batch! store ids)))
     (set (filter (partial delete! store) ids))))
 
 
@@ -336,7 +363,8 @@
   store should be empty. This is not guaranteed to be an atomic operation!"
   [store]
   (if (satisfies? store/ErasableStore store)
-    (store/-erase! store)
+    (measure-method [::erase!! nil]
+      (store/-erase! store))
     (run! (comp (partial delete! store) :id)
           (store/-list store nil))))
 
