@@ -124,16 +124,11 @@
 
   The returned block will have the same extra attributes and metadata as the one
   given."
-  [^Block block]
+  [block]
   (if (lazy? block)
-    (let [content (with-open [stream (open block)]
-                    (bytes/to-byte-array stream))]
-      (Block. (:id block)
-              (count content)
-              (PersistentBytes/wrap content)
-              (._attrs block)
-              (meta block)))
-    ; Block is already loaded.
+    (-> (data/load-block (:id block) (open block))
+        (into (remove (comp #{:id :size} key)) block)
+        (with-meta (meta block)))
     block))
 
 
