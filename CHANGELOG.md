@@ -7,7 +7,19 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-...
+This release contains a minor change to the way blocks store their internal
+content reference. While this is an implementation detail, it has the potential
+to break some third-party block stores if they happened to rely on it.
+
+### Added
+- Predicate `blocks.core/loaded?` which is the complement of `lazy?`.
+- `blocks.data/ContentReader` protocol for richer byte source integration.
+
+### Changed
+- *BREAKING:* blocks no longer have a separate `reader` field - the `content`
+  field either stores a `PersistentBytes` object (as before) _or_ a content
+  reader.
+- Dependencies upgraded.
 
 ## [1.1.0] - 2017-12-24
 

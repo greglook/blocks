@@ -40,8 +40,6 @@
             "should have b's size")
         (is (identical? (.content merged) (.content b))
             "should have b's content")
-        (is (nil? (.reader merged))
-            "should have no reader")
         (is (= true (:foo merged)))
         (is (= "baz" (:bar merged)))
         (is (= 'thing (:qux merged)))

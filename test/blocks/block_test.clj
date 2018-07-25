@@ -54,20 +54,17 @@
           "size should not be settable")
       (is (thrown? IllegalArgumentException (assoc b2 :content nil))
           "content should not be settable")
-      (is (thrown? IllegalArgumentException (assoc b2 :reader nil))
-          "reader should not be settable")
       (is (thrown? IllegalArgumentException (dissoc b1 :id))
           "should not be dissociatable"))
     (testing "print-method"
       (is (string? (pr-str b1))))))
 
 
-(deftest lazy-blocks
-  (let [original "foo bar baz abc123"
-        loaded (data/read-block :sha1 original)
-        lazy (data/lazy-block (:id loaded) (:size loaded)
-                              #(bytes/to-input-stream (.getBytes original)))]
-    (is (some? (.content loaded))
-        "loaded block should have content")
-    (is (nil? (.content lazy))
-        "lazy block should not have content")))
+(deftest block-laziness
+  (let [content "foo bar baz abc123"
+        loaded (data/read-block :sha1 content)
+        lazy (data/lazy-block
+               (:id loaded) (:size loaded)
+               #(bytes/to-input-stream (.getBytes content)))]
+    (is (data/byte-content? loaded))
+    (is (not (data/byte-content? lazy)))))

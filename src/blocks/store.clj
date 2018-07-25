@@ -3,7 +3,7 @@
   API wrapper functions in `blocks.core` instead of using these methods
   directly."
   (:require
-    [blocks.data]
+    [blocks.data :as data]
     [clojure.string :as str]
     [multihash.core :as multihash])
   (:import
@@ -153,7 +153,7 @@
   keeping in-memory content. If none are, returns the first block."
   [& blocks]
   (when-let [blocks (seq (remove nil? blocks))]
-    (or (first (filter #(.content ^Block %) blocks))
+    (or (first (filter data/byte-content? blocks))
         (first blocks))))
 
 
