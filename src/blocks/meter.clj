@@ -83,20 +83,22 @@
               (let [[last-time sum] @meter
                     elapsed (/ (- (System/nanoTime) last-time) 1e9)
                     label (meter-label store)]
-                (log/tracef "Metered %s of %s block %s: %s (%s)"
-                            (name metric-type) label block-id
-                            (format-bytes sum "B")
-                            (format-bytes (/ sum elapsed) "Bps"))
-                (record! store metric-type sum :block block-id)
-                (vreset! meter [(System/nanoTime) 0])))]
+                (when (pos? sum)
+                  (log/tracef "Metered %s of %s block %s: %s (%s)"
+                              (name metric-type) label block-id
+                              (format-bytes sum "B")
+                              (format-bytes (/ sum elapsed) "Bps"))
+                  (record! store metric-type sum :block block-id)
+                  (vreset! meter [(System/nanoTime) 0]))))]
       (proxy [ProxyInputStream] [input-stream]
 
         (afterRead
           [n]
-          (let [[last-time sum] (vswap! meter update 1 + n)
-                elapsed (/ (- (System/nanoTime) last-time) 1e9)]
-            (when (<= *io-report-period* elapsed)
-              (flush!))))
+          (when (pos? n)
+            (let [[last-time sum] (vswap! meter update 1 + n)
+                  elapsed (/ (- (System/nanoTime) last-time) 1e9)]
+              (when (<= *io-report-period* elapsed)
+                (flush!)))))
 
         (close
           []
