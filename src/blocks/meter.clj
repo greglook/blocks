@@ -21,14 +21,18 @@
 ;; Recording function; called with the store and each metric event.
 (s/def ::recorder ifn?)
 
-;; Custom label to add to events reported to a block store.
-(s/def ::label string?)
-
 ;; Metric event type.
 (s/def ::type qualified-keyword?)
 
+;; Custom label to add to events reported to a block store.
+(s/def ::label string?)
+
 ;; Metric value.
 (s/def ::value number?)
+
+;; Event map.
+(s/def ::event
+  (s/keys :req-un [::type ::label ::value]))
 
 
 (defn- meter-label
@@ -53,16 +57,17 @@
   "Helper to record an event to the metered store if a recording function is
   present."
   [store metric-type value & {:as attrs}]
-  (when-let [recorder (::recorder store)]
-    (try
-      (recorder
-        store
-        (assoc attrs
-               :label (meter-label store)
-               :metric-type metric-type
-               :value value))
-      (catch Exception ex
-        (log/warn ex "Failure while recording metric")))))
+  (let [event (assoc attrs
+                     :type metric-type
+                     :label (meter-label store)
+                     :value value)]
+    (when-not (s/valid? ::event event)
+      (log/warn "Block metric event is invalid:" (s/explain-str ::event event)))
+    (when-let [recorder (::recorder store)]
+      (try
+        (recorder store event)
+        (catch Exception ex
+          (log/warn ex "Failure while recording metric"))))))
 
 
 

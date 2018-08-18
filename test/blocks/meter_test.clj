@@ -22,7 +22,7 @@
       (is (= 1 (count @events)))
       (let [event (first @events)]
         (is (= "MemoryBlockStore" (:label event)))
-        (is (= ::meter/method-time (:metric-type event)))
+        (is (= ::meter/method-time (:type event)))
         (is (= ::block/put! (:method event)))
         (is (= a (:args event)))
         (is (number? (:value event)))))
@@ -39,7 +39,7 @@
         (is (= 1 (count @events)))
         (let [event (first @events)]
           (is (= "memory" (:label event)))
-          (is (= ::meter/method-time (:metric-type event)))
+          (is (= ::meter/method-time (:type event)))
           (is (= ::block/put! (:method event)))
           (is (= b (:args event)))
           (is (number? (:value event))))))
@@ -48,7 +48,7 @@
       (is (= a (block/get store (:id a))))
       (is (= 1 (count @events)))
       (let [event (first @events)]
-        (is (= ::meter/method-time (:metric-type event)))
+        (is (= ::meter/method-time (:type event)))
         (is (= ::block/get (:method event)))
         (is (= (:id a) (:args event)))
         (is (number? (:value event)))))))
@@ -72,7 +72,7 @@
           (is (= 1 (count @events)))
           (let [event (first @events)]
             (is (= "MemoryBlockStore" (:label event)))
-            (is (= ::meter/io-read (:metric-type event)))
+            (is (= ::meter/io-read (:type event)))
             (is (= 1 (:value event))))))
       (testing "read remaining bytes"
         (reset! events [])
@@ -80,5 +80,5 @@
           (is (= content (slurp input))))
         (is (= 1 (count @events)))
         (let [event (first @events)]
-          (is (= ::meter/io-read (:metric-type event)))
+          (is (= ::meter/io-read (:type event)))
           (is (= 44 (:value event))))))))
