@@ -125,8 +125,8 @@
   (-stat
     [this id]
     (ensure-initialized! this)
-    (or (store/-stat cache   id)
-        (store/-stat primary id)))
+    (or (block/stat cache id)
+        (block/stat primary id)))
 
 
   (-list
@@ -135,15 +135,15 @@
     (store/select-stats
       opts
       (store/merge-block-lists
-        (store/-list cache   opts)
-        (store/-list primary opts))))
+        (block/list cache opts)
+        (block/list primary opts))))
 
 
   (-get
     [this id]
     (ensure-initialized! this)
-    (or (store/-get cache id)
-        (when-let [block (store/-get primary id)]
+    (or (block/get cache id)
+        (when-let [block (block/get primary id)]
           (or (maybe-cache! this block)
               block))))
 
@@ -154,15 +154,15 @@
     (when-let [id (:id block)]
       (let [cached (maybe-cache! this block)
             preferred (store/preferred-copy cached block)
-            stored (store/-put! primary preferred)]
+            stored (block/put! primary preferred)]
         (or cached stored))))
 
 
   (-delete!
     [this id]
     (ensure-initialized! this)
-    (store/-delete! cache   id)
-    (store/-delete! primary id)))
+    (block/delete! cache id)
+    (block/delete! primary id)))
 
 
 

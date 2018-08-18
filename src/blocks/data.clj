@@ -338,6 +338,18 @@
                nil))))
 
 
+(defn wrap-block
+  "Wrap a block's content by calling `f` on it, returning a new block with the
+  same id and size."
+  ^blocks.data.Block
+  [^Block block f]
+  (->Block (.id block)
+           (.size block)
+           (f (.content block))
+           (._attrs block)
+           (._meta block)))
+
+
 (defn clean-block
   "Creates a version of the given block without extra attributes or metadata."
   [^Block block]

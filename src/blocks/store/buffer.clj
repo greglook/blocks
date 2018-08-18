@@ -15,36 +15,36 @@
 
   (-stat
     [this id]
-    (or (store/-stat buffer id)
-        (store/-stat store  id)))
+    (or (block/stat buffer id)
+        (block/stat store id)))
 
 
   (-list
     [this opts]
     (store/merge-block-lists
-      (store/-list buffer opts)
-      (store/-list store  opts)))
+      (block/list buffer opts)
+      (block/list store opts)))
 
 
   (-get
     [this id]
-    (or (store/-get buffer id)
-        (store/-get store  id)))
+    (or (block/get buffer id)
+        (block/get store id)))
 
 
   (-put!
     [this block]
-    (or (store/-get store (:id block))
+    (or (block/get store (:id block))
         (if (or (nil? max-block-size)
                 (<= (:size block) max-block-size))
-          (store/-put! buffer block)
-          (store/-put! store block))))
+          (block/put! buffer block)
+          (block/put! store block))))
 
 
   (-delete!
     [this id]
-    (let [buffered? (store/-delete! buffer id)
-          stored?   (store/-delete! store  id)]
+    (let [buffered? (block/delete! buffer id)
+          stored? (block/delete! store id)]
       (boolean (or buffered? stored?)))))
 
 
