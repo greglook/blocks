@@ -21,12 +21,14 @@ types and protocols for Clojure. Content-addressable storage has several useful 
   example, a file's contents can be referenced by different versions of
   metadata without duplicating the file data.
 
+
 ## Installation
 
 Library releases are published on Clojars. To use the latest version with
 Leiningen, add the following dependency to your project definition:
 
 [![Clojars Project](http://clojars.org/mvxcvi/blocks/latest-version.svg)](http://clojars.org/mvxcvi/blocks)
+
 
 ## Block Values
 
@@ -61,19 +63,22 @@ number of bytes in the block content.
 ```
 
 Internally, blocks either have a buffer holding the data in memory, or a reader
-function which can be invoked to create new input streams for the block content.
-A block with in-memory content is a _loaded block_ while a block with a reader
-is a _lazy block_.
+which can be invoked to create new input streams for the block content.  A block
+with in-memory content is a _loaded block_ while a block with a reader is a
+_lazy block_.
 
 ```clojure
-=> (block/lazy? hello)
-false
+=> (block/loaded? hello)
+true
 
 ; Create a block from a local file:
 => (def readme (block/from-file "README.md"))
 #'user/readme
 
 ; Block is lazily backed by the file on disk:
+=> (block/loaded? readme)
+false
+
 => (block/lazy? readme)
 true
 ```
@@ -126,6 +131,7 @@ nil
 {:baz 123}
 ```
 
+
 ## Storage Interface
 
 A _block store_ is a system which saves and retrieves block data. Block stores
@@ -135,10 +141,10 @@ backed by a map in memory. Another basic example is a store backed by a local
 filesystem, where blocks are stored as files in a directory.
 
 The block storage protocol is comprised of five methods:
-- `stat` - get metadata about a stored block
 - `list` - enumerate the stored blocks
-- `get` - return the bytes stored for a block
-- `put!` - store a some bytes as a block
+- `stat` - get metadata about a stored block
+- `get` - retrieve a block from the store
+- `put!` - add a block to the store
 - `delete!` - remove a block from the store
 
 ```clojure
@@ -207,7 +213,7 @@ true
 nil
 ```
 
-## Implementations
+### Implementations
 
 This library comes with a few block store implementations built in:
 
@@ -226,6 +232,23 @@ Other storage backends are provided by separate libraries:
 - [blocks-s3](//github.com/greglook/blocks-s3) backed by a bucket in Amazon S3.
 - [blocks-adl](//github.com/amperity/blocks-adl) backed by Azure DataLake store.
 - [blocks-monger](//github.com/20centaurifux/blocks-monger) backed by MongoDB.
+
+
+## Block Metrics
+
+The `blocks.meter` namespace provides instrumentation for block stores to
+measure data flows, call latencies, and other metrics. These measurements are
+built around the notion of a _metric event_ and an associated _recording
+function_ on the store which the events are passed to. Each event has a
+namespaced `:type` keyword, a `:label` associated with the store, and a numeric
+`:value`. The store currently measures the call latencies of the storage methods
+as well as the flow of bytes into or out of a store's blocks.
+
+To enable metering, set a `::meter/recorder` function on the store. The function
+will be called with the store itself and each metric event. The `:label` on each
+event is derived from the store - it will use the store's class name or an
+explicit `::meter/label` value if available.
+
 
 ## License
 

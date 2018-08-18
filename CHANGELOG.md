@@ -14,6 +14,8 @@ to break some third-party block stores if they happened to rely on it.
 ### Added
 - Predicate `blocks.core/loaded?` which is the complement of `lazy?`.
 - `blocks.data/ContentReader` protocol for richer byte source integration.
+- The `blocks.meter` namespace provides a common framework for instrumenting
+  block stores and collecting metrics.
 
 ### Changed
 - *BREAKING:* blocks no longer have a separate `reader` field - the `content`
