@@ -3,7 +3,7 @@
     [blocks.core :as block]
     [blocks.store.buffer :refer [buffer-block-store] :as buffer]
     [blocks.store.memory :refer [memory-block-store]]
-    [blocks.store.tests :as tests]
+    [blocks.store.test-harness :as test-harness]
     [clojure.test :refer :all]))
 
 
@@ -57,7 +57,7 @@
 
 
 (deftest ^:integration check-behavior
-  (tests/check-store
+  (test-harness/check-store
     #(buffer-block-store
        :store (memory-block-store)
        :buffer (memory-block-store))))
