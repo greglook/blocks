@@ -28,7 +28,7 @@
     [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
-    [multihash.core :as multihash])
+    [multiformats.hash :as multihash])
   (:import
     (java.io
       File

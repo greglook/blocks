@@ -2,28 +2,23 @@
   "Block type and constructor functions.
 
   Blocks have two primary attributes, `:id` and `:size`. The block identifier
-  is a `Multihash` with the digest identifying the content. The size is the
+  is a multihash with the digest identifying the content. The size is the
   number of bytes in the block content.
 
-  Internally, blocks either have their content in-memory as persistent bytes,
-  or a _reader_ which constructs new input streams for the block data on
+  Internally, blocks may reference their content in-memory as a byte array, or
+  a _content reader_ which constructs new input streams for the block data on
   demand. A block with in-memory content is considered a _loaded block_, while
-  blocks with readers are _lazy blocks_.
-
-  A block's id, size, and content cannot be changed after construction, so
-  clients can be confident that the block's id is valid. Blocks _may_ have
-  additional attributes associated with them and support metadata, similar to
-  records."
+  blocks with readers are _lazy blocks_."
   (:require
     [byte-streams :as bytes]
-    [multihash.core :as multihash]
-    [multihash.digest :as digest])
+    [multiformats.hash :as mhash])
   (:import
     blocks.data.PersistentBytes
     (java.io
       InputStream
       IOException)
-    multihash.core.Multihash
+    java.time.Instant
+    multiformats.hash.Multihash
     org.apache.commons.io.input.BoundedInputStream))
 
 

@@ -5,8 +5,7 @@
   acted upon."
   (:refer-clojure :exclude [update merge])
   (:require
-    [bigml.sketchy.bloom :as bloom]
-    [multihash.core :as multihash]))
+    [bigml.sketchy.bloom :as bloom]))
 
 
 (defn init

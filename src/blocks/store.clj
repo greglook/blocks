@@ -5,7 +5,7 @@
   (:require
     [blocks.data :as data]
     [clojure.string :as str]
-    [multihash.core :as multihash])
+    [multiformats.hash :as multihash])
   (:import
     blocks.data.Block))
 

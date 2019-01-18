@@ -30,7 +30,7 @@
     (java.io
       File
       FileInputStream)
-    multihash.core.Multihash
+    multiformats.hash.Multihash
     org.apache.commons.io.input.CountingInputStream))
 
 
