@@ -2,39 +2,34 @@
   "Custom repl customization for local development."
   (:require
     [byte-streams :as bytes :refer [bytes=]]
-    (blocks
-      [core :as block]
-      [data :as data]
-      [store :as store])
-    (blocks.store
-      [buffer :refer [buffer-block-store]]
-      [cache :refer [caching-block-store]]
-      [file :refer [file-block-store]]
-      [memory :refer [memory-block-store]]
-      [replica :refer [replica-block-store]]
-      [tests :as tests])
+    [blocks.core :as block]
+    [blocks.data :as data]
+    [blocks.store :as store]
+    [blocks.store.buffer :refer [buffer-block-store]]
+    [blocks.store.cache :refer [caching-block-store]]
+    [blocks.store.file :refer [file-block-store]]
+    [blocks.store.memory :refer [memory-block-store]]
+    [blocks.store.replica :refer [replica-block-store]]
     [clojure.java.io :as io]
     [clojure.repl :refer :all]
+    [clojure.stacktrace :refer [print-cause-trace]]
     [clojure.string :as str]
     [clojure.test.check :as check]
     [clojure.test.check.generators :as gen]
     [clojure.test.check.properties :as prop]
-    [multihash.core :as multihash]
-    [multihash.digest :as digest])
+    [clojure.tools.namespace.repl :refer [refresh]]
+    [multiformats.hash :as mhash])
   (:import
     blocks.data.Block
-    multihash.core.Multihash))
+    multiformats.hash.Multihash))
 
 
-; Conditional imports from clj-stacktrace and clojure.tools.namespace:
-(try (require '[clojure.stacktrace :refer [print-cause-trace]]) (catch Exception e nil))
-(try (require '[clojure.tools.namespace.repl :refer [refresh]]) (catch Exception e nil))
-
-
+#_
 (def test-blocks
   (tests/generate-blocks! 10 1024))
 
 
+#_
 (def tbs
   "Temporary block store in target."
   (file-block-store "target/blocks"))
