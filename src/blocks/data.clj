@@ -129,7 +129,7 @@
 
 
 (defn- bounded-input-stream
-  "Wraps an input stream such that it only returns a stream of bytes in the
+  "Wrap an input stream such that it only returns a stream of bytes in the
   range `start` to `end`."
   ^java.io.InputStream
   [^InputStream input start end]
@@ -168,7 +168,7 @@
 
 
 (defn content-stream
-  "Opens an input stream to read the contents of the block."
+  "Open an input stream to read the contents of the block."
   ^java.io.InputStream
   [^Block block start end]
   (let [content (.content block)]
@@ -178,9 +178,6 @@
       (read-range content start end)
       (read-all content))))
 
-
-
-;; ## Content Functions
 
 (defn persistent-bytes?
   "True if the argument is a persistent byte array."
@@ -195,7 +192,7 @@
 
 
 (defn- collect-bytes
-  "Collects bytes from a data source into a `PersistentBytes` object. If the
+  "Collect bytes from a data source into a `PersistentBytes` object. If the
   source is already persistent, it will be reused directly."
   ^PersistentBytes
   [source]
@@ -221,7 +218,7 @@
 
 
 (defn create-block
-  "Creates a block from a content reader. The simplest version is a no-arg
+  "Create a block from a content reader. The simplest version is a no-arg
   function which should return a new `InputStream` to read the full block
   content. The block is given the id and size directly, without being checked."
   [id size stored-at content]
@@ -241,7 +238,7 @@
 
 
 (defn load-block
-  "Creates a block by reading a source into memory. The block is given the id
+  "Create a block by reading a source into memory. The block is given the id
   directly, without being checked."
   ([id source]
    (load-block id (now) source))
@@ -253,7 +250,7 @@
 
 
 (defn read-block
-  "Creates a block by reading the source into memory and hashing it."
+  "Create a block by reading the source into memory and hashing it."
   [algorithm source]
   ; OPTIMIZE: calculate the hash while reading the content in one pass.
   (let [hash-fn (or (multihash/functions algorithm)
@@ -267,7 +264,7 @@
 
 
 (defn merge-blocks
-  "Creates a new block by merging together two blocks representing the same
+  "Create a new block by merging together two blocks representing the same
   content. Block ids and sizes must match. The new block's content and
   timestamp come from the second block, and any metadata is merged together."
   [^Block left ^Block right]

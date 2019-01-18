@@ -5,9 +5,7 @@
   (:require
     [blocks.data :as data]
     [clojure.string :as str]
-    [multiformats.hash :as multihash])
-  (:import
-    blocks.data.Block))
+    [multiformats.hash :as multihash]))
 
 
 ;; ## Storage Protocols
@@ -17,61 +15,41 @@
 
   (-stat
     [store id]
-    "Returns a map with an `:id` and `:size` but no content. The returned map
-    may contain additional data like the date stored. Returns nil if the store
+    "Load a block's metadata if the store contains it. Returns a deferred which
+    yields a map with block information but no content, or nil if the store
     does not contain the identified block.")
 
   (-list
     [store opts]
-    "Lists the blocks contained in the store. Returns a lazy sequence of stat
-    metadata about each block. The stats should be returned in order sorted by
-    multihash id. See `list` for the supported options.")
+    "List the blocks contained in the store. Returns a stream of blocks. The
+    stats should be returned in order sorted by multihash id. See
+    `blocks.core/list` for the supported options.")
 
   (-get
     [store id]
-    "Returns the identified block if it is stored, otherwise nil. The block
-    should include stat metadata. Typically clients should use `get` instead,
-    which validates arguments and the returned block record.")
+    "Fetch a block from the store. Returns a deferred which yields the block,
+    or nil if not present.")
 
   (-put!
     [store block]
-    "Saves a block into the store. Returns the block record, updated with stat
-    metadata.")
+    "Persist a block into the store. Returns a deferred which yields the
+    stored block, which may have already been present in the store.")
 
   (-delete!
     [store id]
-    "Removes a block from the store. Returns true if the block was stored."))
-
-
-(defprotocol BatchingStore
-  "Protocol for stores which can perform optimized batch operations on blocks.
-  Note that none of the methods in this protocol guarantee an ordering on the
-  returned collections."
-
-  (-get-batch
-    [store ids]
-    "Retrieves a batch of blocks identified by a collection of multihashes.
-    Returns a sequence of the requested blocks which are found in the store.")
-
-  (-put-batch!
-    [store blocks]
-    "Saves a collection of blocks to the store. Returns a collection of the
-    stored blocks.")
-
-  (-delete-batch!
-    [store ids]
-    "Removes multiple blocks from the store, identified by a collection of
-    multihashes. Returns a collection of multihashes for the deleted blocks."))
+    "Remove a block from the store. Returns a deferred which yields true if the
+    block was stored, false if it was not."))
 
 
 (defprotocol ErasableStore
-  "An erasable store has some notion of being removed in its entirety, usually
-  also atomically. One example would be a file system unlinking the root
-  directory rather than deleting each individual file."
+  "An erasable store has some notion of being removed in its entirety, often
+  atomically. For example, a file system might unlink the root directory rather
+  than deleting each individual file."
 
   (-erase!
     [store]
-    "Completely removes any data associated with the store."))
+    "Completely removes any data associated with the store. Returns a deferred
+    value which yields when the store is erased."))
 
 
 
@@ -132,23 +110,8 @@
 
 ;; ## Utilities
 
-(defmacro check
-  "Utility macro for validating values in a threading fashion. The predicate
-  `pred?` will be called with the current value; if the result is truthy, the
-  value is returned. Otherwise, any forms passed in the `on-err` list are
-  executed with the symbol `value` bound to the value, and the function returns
-  nil."
-  [value pred? & on-err]
-  `(let [value# ~value]
-     (if (~pred? value#)
-       value#
-       (let [~'value value#]
-         ~@on-err
-         nil))))
-
-
-(defn preferred-copy
-  "Chooses among multiple blocks to determine the optimal one to use for
+(defn preferred-block
+  "Choose among multiple blocks to determine the optimal one to use for
   copying into a new store. Returns the first loaded block, if any are
   keeping in-memory content. If none are, returns the first block."
   [& blocks]
@@ -157,9 +120,10 @@
         (first blocks))))
 
 
-(defn select-stats
-  "Selects block stats from a sequence based on the criteria spported in
-  `blocks.core/list`. Helper for block store implementers."
+; FIXME: These don't work on streams
+(defn select
+  "Selects blocks from a sequence based on the criteria spported in `-list`.
+  Helper for block store implementers."
   [opts stats]
   (let [{:keys [algorithm after limit]} opts]
     (cond->> stats
