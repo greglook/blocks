@@ -51,11 +51,9 @@
 (defn clear!
   "Removes all blocks from the buffer. Returns a summary of the deleted blocks."
   [store]
-  (->> (block/list (:buffer store))
-       (map (fn [stats]
-              (block/delete! (:buffer store) (:id stats))
-              stats))
-       (reduce sum/update (sum/init))))
+  (let [summary (reduce sum/update (sum/init) (block/list (:buffer store)))]
+    (block/erase! (:buffer store))
+    summary))
 
 
 (defn flush!

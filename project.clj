@@ -15,7 +15,6 @@
   [[org.clojure/clojure "1.10.0"]
    [org.clojure/data.priority-map "0.0.10"]
    [org.clojure/tools.logging "0.4.1"]
-   [bigml/sketchy "0.4.2"]
    [byte-streams "0.2.4"]
    [com.stuartsierra/component "0.3.2"]
    [commons-io "2.6"]

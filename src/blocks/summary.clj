@@ -1,11 +1,8 @@
 (ns blocks.summary
   "A 'summary' represents a collection of blocks, including certain statistics
-  and an imprecise membership test in the form of a bloom filter. These are
-  useful for returning from certain operations to represent the set of blocks
-  acted upon."
-  (:refer-clojure :exclude [update merge])
-  (:require
-    [bigml.sketchy.bloom :as bloom]))
+  about the aggregate count and sizes. These are useful for returning from
+  certain operations to represent the set of blocks acted upon."
+  (:refer-clojure :exclude [update merge]))
 
 
 (defn init
@@ -16,16 +13,13 @@
   - `:count` is the total number of blocks added to the summary
   - `:size` is the total size of blocks added to the summary, in bytes
   - `:sizes` gives a map from bucket exponent to a count of the blocks in that
-    bucket (see `size->bucket` and `bucket->range`)
-  - `:membership` a bloom filter holding the statistical membership set of
-    block ids"
+    bucket (see `size->bucket` and `bucket->range`)"
   ([]
    (init 10000 0.01))
   ([expected-population false-positive-rate]
    {:count 0
     :size 0
-    :sizes {}
-    :membership (bloom/create expected-population false-positive-rate)}))
+    :sizes {}}))
 
 
 (defn size->bucket
@@ -52,8 +46,7 @@
   (-> summary
       (clojure.core/update :count inc)
       (clojure.core/update :size + (:size block))
-      (clojure.core/update :sizes clojure.core/update (size->bucket (:size block)) (fnil inc 0))
-      (clojure.core/update :membership bloom/insert (:id block))))
+      (clojure.core/update :sizes clojure.core/update (size->bucket (:size block)) (fnil inc 0))))
 
 
 (defn merge
@@ -63,13 +56,4 @@
       (clojure.core/update :count + (:count b))
       (clojure.core/update :size + (:size b))
       (clojure.core/update :sizes (partial merge-with +) (:sizes b))
-      (clojure.core/update :membership bloom/merge (:membership b))
-      (clojure.core/merge (dissoc b :count :size :sizes :membership))))
-
-
-(defn probably-contains?
-  "Uses a summary map to check whether the the store (probably) contains the
-  given block identifier. False positives may be possible, but false negatives
-  are not."
-  [summary id]
-  (bloom/contains? (:membership summary) id))
+      (clojure.core/merge (dissoc b :count :size :sizes))))
