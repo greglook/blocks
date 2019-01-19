@@ -5,6 +5,8 @@
   (:require
     [blocks.data :as data]
     [clojure.string :as str]
+    [manifold.deferred :as d]
+    [manifold.stream :as s]
     [multiformats.hash :as multihash]))
 
 
@@ -108,7 +110,7 @@
 
 
 
-;; ## Utilities
+;; ## Implementation Utilities
 
 (defn preferred-block
   "Choose among multiple blocks to determine the optimal one to use for
@@ -120,62 +122,138 @@
         (first blocks))))
 
 
-; FIXME: These don't work on streams
-(defn select
-  "Selects blocks from a sequence based on the criteria spported in `-list`.
-  Helper for block store implementers."
-  [opts stats]
-  (let [{:keys [algorithm after limit]} opts]
-    (cond->> stats
-      algorithm
-        (filter (comp #{algorithm} :algorithm :id))
-      after
-        (drop-while #(pos? (compare after (multihash/hex (:id %)))))
-      limit
-        (take limit))))
+(defn select-blocks
+  "Select blocks from a stream based on the criteria spported in `-list`.
+  Returns a filtered view of the block streams that will close the source once
+  the relevant blocks have been read."
+  [opts blocks]
+  (let [{:keys [algorithm after before limit]} opts
+        counter (atom 0)
+        out (s/stream)]
+    (s/connect-via
+      blocks
+      (fn test-block
+        [block]
+        (let [id (:id block)
+              hex (multihash/hex id)]
+          (cond
+            ; Ignore any blocks which don't match the algorithm.
+            (and algorithm (not= algorithm (:algorithm id)))
+            (d/success-deferred true)
+
+            ; Drop blocks until an id later than `after`.
+            (and after (pos? (compare after hex)))
+            (d/success-deferred true)
+
+            ; Terminate the stream if block is later than `before` or `limit`
+            ; blocks have already been returned.
+            (or (and before (neg? (compare before hex)))
+                (and (pos-int? limit) (< limit (swap! counter inc))))
+            (do (s/close! out)
+                (d/success-deferred false))
+
+            ; Otherwise, pass the block along.
+            :else
+            (s/put! out block))))
+        out
+        {:description {:op "select-blocks"}})
+    (s/source-only out)))
 
 
-(defn merge-block-lists
-  "Merges multiple lists of block stats (as from `block/list`) and returns a
-  lazy sequence with one entry per unique id, in sorted order. The input
-  sequences are consumed lazily and must already be sorted."
-  [& lists]
-  (lazy-seq
-    (let [lists (remove empty? lists)
-          earliest (first (sort-by :id (map first lists)))]
-      (when earliest
-        (cons earliest
-              (apply
-                merge-block-lists
-                (map #(if (= (:id earliest) (:id (first %)))
-                        (rest %)
-                        %)
-                     lists)))))))
+(defn merge-blocks
+  "Merge multiple streams of blocks and return a stream with one block per
+  unique id, maintaining sorted order. The input streams are consumed
+  incrementally and must already be sorted."
+  [& streams]
+  (if (= 1 (count streams))
+    (first streams)
+    (let [intermediates (repeatedly (count streams) s/stream)
+          out (s/stream)]
+      (doseq [[a b] (map vector streams intermediates)]
+        (s/connect-via a #(s/put! b %) b {:description {:op "merge-blocks"}}))
+      (d/loop [inputs (map vector intermediates (repeat nil))]
+        (d/chain
+          ; Take the head value from each stream we don't already have.
+          (->>
+            inputs
+            (map (fn take-next
+                   [[input head :as pair]]
+                   (if (nil? head)
+                     (d/chain
+                       (s/take! input ::drained)
+                       (partial vector input))
+                     pair)))
+            (apply d/zip))
+          ; Remove drained streams from consideration.
+          (fn remove-drained
+            [inputs]
+            (remove #(identical? ::drained (second %)) inputs))
+          (fn find-next
+            [inputs]
+            (if (empty? inputs)
+              ; Every input is drained.
+              (do (s/close! out) true)
+              ; Determine the next block to output.
+              (let [earliest (first (sort-by :id (map second inputs)))]
+                (d/chain
+                  (s/put! out earliest)
+                  (fn check-put
+                    [result]
+                    (if result
+                      ; Remove any blocks matching the one emitted.
+                      (d/recur (mapv (fn remove-earliest
+                                       [[input head :as pair]]
+                                       (if (= (:id earliest) (:id head))
+                                         [input nil]
+                                         pair))
+                                     inputs))
+                      ; Out was closed on us.
+                      false))))))))
+      (s/source-only out))))
 
 
 (defn missing-blocks
-  "Returns a lazy sequence of stats for the blocks in the list of stats from
-  `source` which are not in `dest` list."
-  [source-blocks dest-blocks]
-  (let [s (first source-blocks)
-        d (first dest-blocks)]
-    (cond
-      ; Source store exhausted; terminate sequence.
-      (empty? source-blocks)
-        nil
+  "Compare two block streams and generate a derived stream of the blocks in
+  `source` which are not present in `dest`."
+  [source dest]
+  (let [out (s/stream)]
+    (d/loop [s nil
+             d nil]
+      (d/chain
+        (d/zip
+          (if (nil? s)
+            (s/take! source ::drained)
+            s)
+          (if (nil? d)
+            (s/take! dest ::drained)
+            d))
+        (fn compare-next
+          [[s d]]
+          (cond
+            ; Source stream exhausted; terminate sequence.
+            (identical? ::drained s)
+            (s/close! out)
 
-      ; Destination store exhausted; return remaining blocks in source.
-      (empty? dest-blocks)
-        source-blocks
+            ; Destination stream exhausted; return remaining blocks in source.
+            (identical? ::drained d)
+            (d/finally
+              (s/drain-into source out)
+              #(s/close! out))
 
-      ; Block is already in both source and dest.
-      (= (:id s) (:id d))
-        (recur (next source-blocks)
-               (next dest-blocks))
+            ; Block is present in both streams; drop and continue.
+            (= (:id s) (:id d))
+            (d/recur nil nil)
 
-      :else
-        (if (neg? (compare (:id s) (:id d)))
-          ; Source has a block not in dest.
-          (cons s (lazy-seq (missing-blocks (next source-blocks) dest-blocks)))
-          ; Next source block comes after some dest blocks; skip forward.
-          (recur source-blocks (next dest-blocks))))))
+            ; Source has a block not in dest.
+            (neg? (compare (:id s) (:id d)))
+            (d/chain
+              (s/put! out s)
+              (fn onwards
+                [result]
+                (when result
+                  (d/recur nil d))))
+
+            ; Next source block comes after some dest blocks; skip forward.
+            :else
+            (d/recur s nil)))))
+    (s/source-only out)))

@@ -419,7 +419,7 @@
   (if (satisfies? store/ErasableStore store)
     (measure-method [:erase! nil]
       (store/-erase! store))
-    (s/consume
+    (s/consume-async
       (comp (partial delete! store) :id)
       (list store))))
 
@@ -456,7 +456,7 @@
         (:filter opts) (s/filter (:filter opts)))
       (->>
         (s/reduce
-          ; TODO: s/reduce expects this to be synchronous
+          ; FIXME: s/reduce expects this to be synchronous
           (fn copy-block
             [summary block]
             (prn summary block)
