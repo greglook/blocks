@@ -1,4 +1,4 @@
-(ns blocks.data
+(ns ^:no-doc blocks.data
   "Block type and constructor functions.
 
   Blocks have two primary attributes, `:id` and `:size`. The block identifier
@@ -217,24 +217,36 @@
   (Instant/now))
 
 
+(defn hasher
+  "Return the hashing function for an algorithm keyword, or throw an exception
+  if no supported function is available."
+  [algorithm]
+  (or (multihash/functions algorithm)
+      (throw (IllegalArgumentException.
+               (str "No digest function found for algorithm "
+                    algorithm)))))
+
+
 (defn create-block
   "Create a block from a content reader. The simplest version is a no-arg
   function which should return a new `InputStream` to read the full block
   content. The block is given the id and size directly, without being checked."
-  [id size stored-at content]
-  (when-not (instance? Multihash id)
-    (throw (ex-info "Block id must be a multihash"
-                    {:id id, :size size, :stored-at stored-at})))
-  (when-not (pos-int? size)
-    (throw (ex-info "Block size must be a positive integer"
-                    {:id id, :size size, :stored-at stored-at})))
-  (when-not stored-at
-    (throw (ex-info "Block must have a stored-at instant"
-                    {:id id, :size size, :stored-at stored-at})))
-  (when-not content
-    (throw (ex-info "Block must have a content reader"
-                    {:id id, :size size, :stored-at stored-at})))
-  (Block. id size stored-at content nil 0))
+  ([id size content]
+   (create-block id size (now) content))
+  ([id size stored-at content]
+   (when-not (instance? Multihash id)
+     (throw (ex-info "Block id must be a multihash"
+                     {:id id, :size size, :stored-at stored-at})))
+   (when-not (pos-int? size)
+     (throw (ex-info "Block size must be a positive integer"
+                     {:id id, :size size, :stored-at stored-at})))
+   (when-not (instance? Instant stored-at)
+     (throw (ex-info "Block must have a stored-at instant"
+                     {:id id, :size size, :stored-at stored-at})))
+   (when-not content
+     (throw (ex-info "Block must have a content reader"
+                     {:id id, :size size, :stored-at stored-at})))
+   (Block. id size stored-at content nil 0)))
 
 
 (defn load-block
@@ -253,10 +265,7 @@
   "Create a block by reading the source into memory and hashing it."
   [algorithm source]
   ; OPTIMIZE: calculate the hash while reading the content in one pass.
-  (let [hash-fn (or (multihash/functions algorithm)
-                    (throw (IllegalArgumentException.
-                             (str "No digest function found for algorithm "
-                                  algorithm))))
+  (let [hash-fn (hasher algorithm)
         content (collect-bytes source)
         size (count content)]
     (when (pos? size)
