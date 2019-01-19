@@ -13,17 +13,17 @@
 (defprotocol BlockStore
   "Protocol for content-addressable storage keyed by multihash identifiers."
 
-  (-stat
-    [store id]
-    "Load a block's metadata if the store contains it. Returns a deferred which
-    yields a map with block information but no content, or nil if the store
-    does not contain the identified block.")
-
   (-list
     [store opts]
     "List the blocks contained in the store. Returns a stream of blocks. The
     stats should be returned in order sorted by multihash id. See
     `blocks.core/list` for the supported options.")
+
+  (-stat
+    [store id]
+    "Load a block's metadata if the store contains it. Returns a deferred which
+    yields a map with block information but no content, or nil if the store
+    does not contain the identified block.")
 
   (-get
     [store id]
