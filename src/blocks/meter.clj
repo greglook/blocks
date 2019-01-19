@@ -11,28 +11,11 @@
   well, and it is up to the receiver to interpret them."
   (:require
     [blocks.data :as data]
-    [clojure.spec.alpha :as s]
-    [clojure.tools.logging :as log])
+    [clojure.tools.logging :as log]
+    [manifold.deferred :as d])
   (:import
     java.io.InputStream
     org.apache.commons.io.input.ProxyInputStream))
-
-
-;; Recording function; called with the store and each metric event.
-(s/def ::recorder ifn?)
-
-;; Metric event type.
-(s/def ::type qualified-keyword?)
-
-;; Custom label to add to events reported to a block store.
-(s/def ::label string?)
-
-;; Metric value.
-(s/def ::value number?)
-
-;; Event map.
-(s/def ::event
-  (s/keys :req-un [::type ::label ::value]))
 
 
 (defn- meter-label
@@ -56,18 +39,17 @@
 (defn- record!
   "Helper to record an event to the metered store if a recording function is
   present."
-  [store metric-type value & {:as attrs}]
-  (let [event (assoc attrs
-                     :type metric-type
-                     :label (meter-label store)
-                     :value value)]
-    (when-not (s/valid? ::event event)
-      (log/warn "Block metric event is invalid:" (s/explain-str ::event event)))
-    (when-let [recorder (::recorder store)]
-      (try
-        (recorder store event)
-        (catch Exception ex
-          (log/warn ex "Failure while recording metric"))))))
+  [store metric-type value attrs]
+  (when-let [recorder (::recorder store)]
+    (try
+      (recorder
+        store
+        (assoc attrs
+               :type metric-type
+               :label (meter-label store)
+               :value value))
+      (catch Exception ex
+        (log/warn ex "Failure while recording metric")))))
 
 
 
@@ -93,7 +75,7 @@
                               (name metric-type) label block-id
                               (format-bytes sum "B")
                               (format-bytes (/ sum elapsed) "Bps"))
-                  (record! store metric-type sum :block block-id)
+                  (record! store metric-type sum {:block block-id})
                   (vreset! meter [(System/nanoTime) 0]))))]
       (proxy [ProxyInputStream] [input-stream]
 
@@ -140,7 +122,7 @@
   [store metric-type block]
   (when block
     (if (::recorder store)
-      (data/wrap-block
+      (data/wrap-content
         block
         (partial ->MeteredContentReader
                  store
@@ -153,7 +135,7 @@
 ;; ## Latency Measurement
 
 (defn- stopwatch
-  "Creates a delay expression which will return the number of milliseconds
+  "Create a delay expression which will return the number of milliseconds
   elapsed between its creation and dereference."
   []
   (let [start (System/nanoTime)]
@@ -164,15 +146,16 @@
   "Helper function for the `measure-method` macro."
   [store method-kw args body-fn]
   (let [elapsed (stopwatch)]
-    (try
-      (body-fn)
-      (finally
-        (when (::recorder store)
+    (cond-> (body-fn)
+      (::recorder store)
+      (d/finally
+        (fn record-elapsed
+          []
           (log/tracef "Method %s of %s block store on %s took %.1f ms"
                       (name method-kw)
                       (meter-label store)
                       args
                       @elapsed)
           (record! store ::method-time @elapsed
-                   :method method-kw
-                   :args args))))))
+                   {:method method-kw
+                    :args args}))))))
