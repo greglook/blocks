@@ -16,7 +16,7 @@
    [org.clojure/data.priority-map "0.0.10"]
    [org.clojure/tools.logging "0.4.1"]
    [byte-streams "0.2.4"]
-   [com.stuartsierra/component "0.3.2"]
+   [com.stuartsierra/component "0.4.0"]
    [commons-io "2.6"]
    [manifold "0.1.8"]
    [mvxcvi/multiformats "0.1.0"]]
@@ -53,6 +53,6 @@
 
    :coverage
    {:plugins [[lein-cloverage "1.0.13"]]
-    :dependencies [[riddley "0.1.15"]]
+    :dependencies [[riddley "0.2.0"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
