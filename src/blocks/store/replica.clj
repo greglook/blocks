@@ -4,7 +4,20 @@
   (:require
     [blocks.core :as block]
     [blocks.store :as store]
-    [com.stuartsierra.component :as component]))
+    [com.stuartsierra.component :as component]
+    [manifold.deferred :as d]))
+
+
+(defn- zip-stores
+  "Run the provided function on each of the identified store keys. Returns a
+  deferred zip over the results against each store."
+  ([replicas f arg]
+   (zip-stores replicas f arg (:store-keys replicas)))
+  ([replicas f arg store-keys]
+   (->>
+     store-keys
+     (map #(f (get replicas %) arg))
+     (apply d/zip))))
 
 
 (defrecord ReplicaBlockStore
@@ -28,39 +41,54 @@
 
   store/BlockStore
 
-  (-stat
-    [this id]
-    (some #(block/stat (get this %) id) store-keys))
-
-
   (-list
     [this opts]
     (->> store-keys
          (map #(block/list (get this %) opts))
-         (apply store/merge-block-lists)))
+         (apply store/merge-blocks)))
+
+
+  (-stat
+    [this id]
+    (d/loop [stores (mapv this store-keys)]
+      (when-let [store (first stores)]
+        (d/chain
+          (block/stat store id)
+          (fn check-result
+            [stats]
+            (or stats (d/recur (next stores))))))))
 
 
   (-get
     [this id]
-    (some #(block/get (get this %) id) store-keys))
+    ; OPTIMIZE: query in parallel, use `d/alt`?
+    (d/loop [stores (mapv this store-keys)]
+      (when-let [store (first stores)]
+        (d/chain
+          (block/get store id)
+          (fn check-result
+            [block]
+            (or block (d/recur (next stores))))))))
 
 
   (-put!
     [this block]
-    (let [stored-block (block/put! (get this (first store-keys)) block)
-          copy-block (store/preferred-copy block stored-block)]
-      (run! #(block/put! (get this %) copy-block) (rest store-keys))
-      stored-block))
+    (d/chain
+      (block/put! (get this (first store-keys)) block)
+      (fn keep-preferred
+        [stored]
+        (let [block (store/preferred-block block stored)]
+          (d/chain
+            (zip-stores this block/put! block (rest store-keys))
+            (constantly stored))))))
 
 
   (-delete!
     [this id]
-    (reduce
-      (fn [existed? store-key]
-        (let [result (block/delete! (get this store-key) id)]
-          (or existed? result)))
-      false
-      store-keys)))
+    (d/chain
+      (zip-stores this block/delete! id)
+      (partial some true?)
+      boolean)))
 
 
 
