@@ -21,13 +21,13 @@
   This implementation tries to match the IPFS fs-repo behavior so that the
   on-disk representations remain compatible."
   (:require
-    [alphabase.hex :as hex]
-    [blocks.core :as block]
     [blocks.data :as data]
     [blocks.store :as store]
     [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
+    [manifold.deferred :as d]
+    [manifold.stream :as s]
     [multiformats.hash :as multihash])
   (:import
     (java.io
@@ -49,7 +49,7 @@
           len (min (count marker) (count fname))
           cmp (compare (subs fname  0 len)
                        (subs marker 0 len))]
-      (if-not (neg? cmp)
+      (when-not (neg? cmp)
         (if (zero? cmp)
           [file (subs marker len)]
           [file nil])))))
@@ -73,7 +73,7 @@
   "Recursively removes a directory of files."
   [^File path]
   (when (.isDirectory path)
-    (dorun (map rm-r (.listFiles path))))
+    (run! rm-r (.listFiles path)))
   (.delete path))
 
 
@@ -86,18 +86,12 @@
 
 
 (defn- file-stats
-  "Calculates storage stats for a block file."
+  "Calculate a map of statistics about a block file."
   [^File file]
-  {:stored-at (Instant/ofEpochMilli (.lastModified file))
-   :source (.toURI file)})
-
-
-(defn- block-stats
-  "Calculates a merged stat map for a block."
-  [id ^File file]
-  (when id
-    (merge (file-stats file)
-           {:id id, :size (.length file)})))
+  (with-meta
+    {:size (.length file)
+     :stored-at (Instant/ofEpochMilli (.lastModified file))})
+    {::source (.toURI file)})
 
 
 (defn- id->file
@@ -115,37 +109,37 @@
 (defn- file->id
   "Reconstructs the hash identifier represented by the given file path."
   [root ^File file]
-  (let [root (str root)]
-    (some->
-      file
-      (.getPath)
-      (store/check #(.startsWith ^String % root)
-        (log/warnf "File %s is not a child of root directory %s" file root))
-      (subs (inc (count root)))
-      (str/replace "/" "")
-      (store/check hex/valid?
-        (log/warnf "File %s did not form valid hex entry: %s" file value))
-      (multihash/decode))))
+  (let [root (str root)
+        path (and file (.getPath file))]
+    (if (or (nil? path) (not (str/starts-with? path root)))
+      (log/warnf "File %s is not a child of root directory %s" file root)
+      (let [hex (str/replace (subs path (inc (count root))) "/" "")]
+        (if (re-matches #"[0-9a-fA-F]+" hex)
+          (multihash/decode hex)
+          (log/warnf "File %s did not form valid hex entry: %s" file hex))))))
 
 
 (defn- file->block
   "Creates a lazy block to read from the given file."
   [id ^File file]
-  (block/with-stats
-    (data/lazy-block
-      id (.length file)
-      (fn file-reader [] (FileInputStream. file)))
-    (file-stats file)))
+  (let [stats (file-stats file)]
+    (with-meta
+      (data/create-block
+        id (:size stats) (:stored-at stats)
+        (fn file-reader
+          []
+          (FileInputStream. file)))
+      (meta stats))))
 
 
-(defmacro ^:private when-block
-  "An anaphoric macro which binds the block file to `file` and executes `body`
-  only if it exists. Assumes that the root directory is bound to `root`."
-  [id & body]
-  `(let [~(with-meta 'file {:tag 'java.io.File})
-         (id->file ~'root ~id)]
-     (when (.exists ~'file)
-       ~@body)))
+(defn- temp-file
+  "Create an empty temporary file to land block data into. Marks the resulting
+  file for automatic cleanup."
+  ^File
+  [^File root]
+  (.mkdirs root)
+  (doto (File/createTempFile "block" ".tmp" root)
+    (.deleteOnExit)))
 
 
 
@@ -158,51 +152,77 @@
 
   store/BlockStore
 
-  (-stat
-    [this id]
-    (when-block id
-      (block-stats id file)))
-
-
   (-list
     [this opts]
-    (->> (find-files root (:after opts))
-         (keep #(block-stats (file->id root %) %))
-         (store/select-stats opts)))
+    (let [out (s/stream)]
+      (d/future
+        (try
+          (loop [files (find-files root (:after opts))]
+            (when-let [file (first files)]
+              (if-let [id (file->id root file)]
+                ; Check that the id is still before the marker, if set.
+                (when (or (nil? (:before opts))
+                          (pos? (compare (:before opts) (multihash/hex id))))
+                  ; Process next block.
+                  (when @(s/put! out (file->block id file))
+                    (recur (next files))))
+                ; Not a valid block file, skip.
+                (recur (next files)))))
+          (catch Exception ex
+            ; TODO: how do errors propagate? put an exception on the stream?
+            (log/error ex "Failure listing file blocks"))
+          (finally
+            (s/close! out))))
+      (s/source-only out)))
+
+
+  (-stat
+    [this id]
+    (d/future
+      (let [file (id->file root id)]
+        (when (.exists file)
+          (assoc (file-stats file) :id id)))))
 
 
   (-get
     [this id]
-    (when-block id
-      (file->block id file)))
+    (d/future
+      (let [file (id->file root id)]
+        (when (.exists file)
+          (file->block id file)))))
 
 
   (-put!
     [this block]
-    (let [id (:id block)
-          file (id->file root id)]
-      (locking this
+    (d/future
+      (let [id (:id block)
+            file (id->file root id)]
         (when-not (.exists file)
           (io/make-parents file)
-          (with-open [content (block/open block)]
-            (io/copy content file))
-          (.setWritable file false false)))
-      (file->block id file)))
+          (let [tmp (temp-file root)]
+            (with-open [content (data/content-stream block nil nil)]
+              (io/copy content tmp))
+            (.setWritable tmp false false)
+            (.renameTo tmp file)))
+        (file->block id file))))
 
 
   (-delete!
     [this id]
-    (boolean (when-block id
-               (locking this
-                 (.delete file)))))
+    (d/future
+      (let [file (id->file root id)]
+        (if (.exists file)
+          (do (.delete file) true)
+          false))))
 
 
   store/ErasableStore
 
   (-erase!
     [this]
-    (locking this
-      (rm-r root))))
+    (d/future
+      (rm-r root)
+      true)))
 
 
 
