@@ -31,8 +31,7 @@
    ^long size
    ^Instant stored-at
    content
-   _meta
-   ^:unsynchronized-mutable _hash]
+   _meta]
 
   :load-ns true
 
@@ -56,12 +55,9 @@
 
   (hashCode
     [this]
-    (let [hc _hash]
-      (if (zero? hc)
-        (let [hc (hash [(class this) id size])]
-          (set! _hash hc)
-          hc)
-        hc)))
+    (-> (hash (class this))
+        (hash-combine (hash id))
+        (hash-combine size)))
 
 
   java.lang.Comparable
@@ -86,7 +82,7 @@
 
   (withMeta
     [this meta-map]
-    (Block. id size content stored-at meta-map _hash))
+    (Block. id size content stored-at meta-map))
 
 
   clojure.lang.ILookup
@@ -246,7 +242,7 @@
    (when-not content
      (throw (ex-info "Block must have a content reader"
                      {:id id, :size size, :stored-at stored-at})))
-   (Block. id size stored-at content nil 0)))
+   (Block. id size stored-at content nil)))
 
 
 (defn load-block
@@ -291,8 +287,7 @@
           (.size right)
           (.stored-at right)
           (.content right)
-          (not-empty (merge (._meta left) (._meta right)))
-          0))
+          (not-empty (merge (._meta left) (._meta right)))))
 
 
 (defn wrap-content
@@ -304,5 +299,4 @@
           (.size block)
           (.stored-at block)
           (f (.content block))
-          (._meta block)
-          0))
+          (._meta block)))
