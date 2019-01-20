@@ -36,10 +36,7 @@
 
   (-list
     [this opts]
-    (->>
-      (vals @memory)
-      (s/->source)
-      (store/select-blocks opts)))
+    (s/->source (vals @memory)))
 
 
   (-stat

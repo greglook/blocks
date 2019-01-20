@@ -17,9 +17,14 @@
 
   (-list
     [store opts]
-    "List the blocks contained in the store. Returns a stream of blocks. The
-    stats should be returned in order sorted by multihash id. See
-    `blocks.core/list` for the supported options.")
+    "List the blocks contained in the store. This method should return a stream
+    of blocks ordered by multihash id. See `blocks.core/list` for the supported
+    options.
+
+    The method must return _at least_ the blocks which match the query options,
+    but may optimize the results by omitting unmatched blocks. The returned
+    stream may be closed preemptively if the consumer is done, which should
+    terminate the list process.")
 
   (-stat
     [store id]

@@ -266,7 +266,7 @@
                           (str "Unknown options passed to list: " (pr-str bad-opts))))))]
     ; TODO: should be metering the stream of blocks somehow, not time-to-stream
     (measure-method [:list opts]
-      (store/-list store opts))))
+      (store/select-blocks opts (store/-list store opts)))))
 
 
 (defn stat
