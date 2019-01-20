@@ -5,7 +5,7 @@
             :url "http://unlicense.org/"}
 
   :aliases
-  {"coverage" ["with-profile" "+test,+coverage" "cloverage"]}
+  {"coverage" ["with-profile" "+coverage" "cloverage"]}
 
   :deploy-branches ["master"]
   :java-source-paths ["src"]
@@ -19,7 +19,7 @@
    [com.stuartsierra/component "0.4.0"]
    [commons-io "2.6"]
    [manifold "0.1.8"]
-   [mvxcvi/multiformats "0.1.0"]]
+   [mvxcvi/multiformats "0.1.1"]]
 
   :test-selectors
   {:default (complement :integration)
@@ -37,19 +37,22 @@
    :output-path "target/doc/api"}
 
   :whidbey
-  {:tag-types {'blocks.data.Block {'blocks.data.Block (partial into {})}
+  {:tag-types {;'blocks.data.Block {'blocks.data.Block (partial into {})}
                'multiformats.hash.Multihash {'multi/hash str}}}
 
   :profiles
-  {:repl
+  {:dev
+   {:dependencies
+    [[org.clojure/test.check "0.9.0"]
+     [commons-logging "1.2"]
+     [mvxcvi/puget "1.1.0"]
+     [mvxcvi/test.carly "0.4.1"]]}
+
+   :repl
    {:source-paths ["dev"]}
 
    :test
-   {:dependencies [[org.clojure/test.check "0.9.0"]
-                   [commons-logging "1.2"]
-                   [mvxcvi/puget "1.1.0"]
-                   [mvxcvi/test.carly "0.4.1"]]
-    :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
+   {:jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
 
    :coverage
    {:plugins [[lein-cloverage "1.0.13"]]
