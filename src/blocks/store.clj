@@ -48,6 +48,17 @@
     block was stored, false if it was not."))
 
 
+(defprotocol BlockReceiver
+  "A block receiver can take a stream of content and persist it into storage
+  without having to fully load the data into memory."
+
+  (-store!
+    [store source algorithm]
+    "Efficiently persist the byte content from the source into the store.
+    Returns a deferred which yields the stored block, or nil if the source was
+    empty."))
+
+
 (defprotocol ErasableStore
   "An erasable store has some notion of being removed in its entirety, often
   atomically. For example, a file system might unlink the root directory rather

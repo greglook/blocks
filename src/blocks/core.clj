@@ -330,16 +330,18 @@
   ([store source]
    (store! store source default-algorithm))
   ([store source algorithm]
-   ; OPTIMIZE: `BlockReceiver` protocol
-   (d/chain
-     (d/future
-       (if (instance? File source)
-         (from-file source algorithm)
-         (read! source algorithm)))
-     (fn put-block
-       [block]
-       (when (and block (pos? (:size block)))
-         (put! store block))))))
+   (if (satisfies? store/BlockReceiver store)
+     ; TODO: metering?
+     (store/-store! store source algorithm)
+     (d/chain
+       (d/future
+         (if (instance? File source)
+           (from-file source algorithm)
+           (read! source algorithm)))
+       (fn put-block
+         [block]
+         (when (and block (pos? (:size block)))
+           (put! store block)))))))
 
 
 (defn delete!
