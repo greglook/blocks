@@ -12,15 +12,16 @@
     [clojure.test.check.generators :as gen]
     [clojure.test.check.properties :as prop]
     [com.stuartsierra.component :as component]
-    [multihash.core :as multihash]
-    [multihash.digest :as digest]
+    [manifold.deferred :as d]
+    [manifold.stream :as s]
+    [multiformats.hash :as multihash]
     [puget.color.ansi :as ansi]
     [puget.printer :as puget]
     [test.carly.core :as carly :refer [defop]])
   (:import
     blocks.data.Block
     blocks.data.PersistentBytes
-    multihash.core.Multihash))
+    multiformats.hash.Multihash))
 
 
 ;; ## Block Utilities
@@ -30,7 +31,7 @@
   [max-size]
   (block/read!
     (random-bytes (inc (rand-int max-size)))
-    (rand-nth (keys digest/functions))))
+    (rand-nth (keys multihash/functions))))
 
 
 (defn generate-blocks!
@@ -111,22 +112,24 @@
     [blocks]
     [(gen/bind
        (gen/hash-map
-         :algorithm (gen/elements (keys digest/functions))
+         :algorithm (gen/elements (keys multihash/functions))
          :after (gen/fmap hex/encode (gen/not-empty gen/bytes)) ; TODO: pick prefixes
          :limit (gen/large-integer* {:min 1, :max (inc (count blocks))}))
        gen-sub-map)])
 
   (apply-op
     [this store]
-    (doall (block/list store query)))
+    (doall (s/stream->seq (block/list store query))))
 
   (check
     [this model result]
     (let [expected-ids (cond->> (keys model)
-                         (:after query)
-                           (filter #(pos? (compare (multihash/hex %) (:after query))))
                          (:algorithm query)
                            (filter #(= (:algorithm query) (:algorithm %)))
+                         (:after query)
+                           (filter #(pos? (compare (multihash/hex %) (:after query))))
+                         (:before query)
+                           (filter #(neg? (compare (multihash/hex %) (:before query))))
                          true
                            (sort)
                          (:limit query)
@@ -270,7 +273,7 @@
 
   (apply-op
     [this store]
-    (block/erase!! store))
+    (block/erase! store))
 
   (update-model
     [this model]
@@ -288,7 +291,6 @@
 
   (apply-op
     [this store]
-    ; TODO: bloom filter prints... poorly.
     (block/scan store p))
 
   (check
@@ -298,8 +300,7 @@
       (is (= (reduce + (map :size blocks)) (:size result)))
       (is (map? (:sizes result)))
       (is (every? integer? (keys (:sizes result))))
-      (is (= (count blocks) (reduce + (vals (:sizes result)))))
-      (is (every? (partial sum/probably-contains? result) (map :id blocks))))))
+      (is (= (count blocks) (reduce + (vals (:sizes result))))))))
 
 
 (defop OpenBlock
@@ -386,7 +387,7 @@
 (defn- join-generators
   [ks]
   (let [op-gens (keep {:basic basic-op-generators
-                       :batch batch-op-generators
+                       ;:batch batch-op-generators
                        :erase erasable-op-generators}
                       ks)]
     (fn [ctx]
@@ -409,7 +410,7 @@
 
 (defn- stop-store
   [store]
-  (block/erase!! store)
+  (block/erase! store)
   (is (empty? (block/list store)) "ends empty")
   (component/stop store))
 
@@ -423,8 +424,8 @@
 
 
 (def ^:private print-handlers
-  {Multihash (puget/tagged-handler 'data/hash multihash/base58)
-   Block (puget/tagged-handler 'data/block (partial into {}))
+  {Multihash (puget/tagged-handler 'multi/hash str)
+   ;Block (puget/tagged-handler 'blocks.data.Block (partial into {}))
    (class (byte-array 0)) (puget/tagged-handler 'data/bytes alphabase.hex/encode)})
 
 

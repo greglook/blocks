@@ -20,6 +20,7 @@
     args))
 
 
+#_
 (deftest store-construction
   (is (thrown? IllegalArgumentException (caching-block-store nil)))
   (is (thrown? IllegalArgumentException (caching-block-store 0)))
@@ -28,6 +29,7 @@
   (is (satisfies? store/BlockStore (caching-block-store 512 :max-block-size 128))))
 
 
+#_
 (deftest store-lifecycle
   (let [store (new-cache 1024)]
     (is (thrown? IllegalStateException
@@ -42,6 +44,7 @@
         "stopping cache store is a no-op")))
 
 
+#_
 (deftest uninitialized-store
   (let [store (new-cache 1024)]
     (testing "no primary store"
@@ -52,6 +55,7 @@
       (is (thrown? IllegalStateException (block/list store))))))
 
 
+#_
 (deftest extant-cache-contents
   (let [store (new-cache 1024)
         blocks (test-harness/populate-blocks! (:cache store) :max-size 64)
@@ -62,6 +66,7 @@
         "all blocks should have an entry in the priority map")))
 
 
+#_
 (deftest space-reaping
   (let [store (new-cache 1024)
         blocks (test-harness/populate-blocks! (:cache store) :n 32)
@@ -73,6 +78,7 @@
         "reap cleans up at least the desired free space")))
 
 
+#_
 (deftest size-limits
   (testing "block without limit"
     (let [store (component/start (new-cache 512))
@@ -96,6 +102,7 @@
       (is (nil? (block/stat (:cache store) (:id block))) "cache should not store block"))))
 
 
+#_
 (deftest ^:integration check-behavior
   (test-harness/check-store
     #(caching-block-store 2048

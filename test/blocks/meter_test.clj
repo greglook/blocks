@@ -3,7 +3,6 @@
     [blocks.core :as block]
     [blocks.meter :as meter]
     [blocks.store.memory :refer [memory-block-store]]
-    [blocks.store.tests :as tests]
     [clojure.test :refer :all]))
 
 
@@ -17,13 +16,13 @@
                        (swap! (::events store) conj event)))
         a (block/read! "foo bar baz")
         b (block/read! "abracadabra")]
-    (block/put! store a)
+    @(block/put! store a)
     (testing "basic event attributes"
       (is (= 1 (count @events)))
       (let [event (first @events)]
         (is (= "MemoryBlockStore" (:label event)))
         (is (= ::meter/method-time (:type event)))
-        (is (= ::block/put! (:method event)))
+        (is (= "put!" (:method event)))
         (is (= a (:args event)))
         (is (number? (:value event)))))
     (reset! events [])
@@ -35,21 +34,21 @@
                            [store event]
                            (swap! (::events store) conj event)
                            (throw (ex-info "Bang!" {}))))]
-        (block/put! store b)
+        @(block/put! store b)
         (is (= 1 (count @events)))
         (let [event (first @events)]
           (is (= "memory" (:label event)))
           (is (= ::meter/method-time (:type event)))
-          (is (= ::block/put! (:method event)))
+          (is (= "put!" (:method event)))
           (is (= b (:args event)))
           (is (number? (:value event))))))
     (reset! events [])
     (testing "more gets"
-      (is (= a (block/get store (:id a))))
+      (is (= a @(block/get store (:id a))))
       (is (= 1 (count @events)))
       (let [event (first @events)]
         (is (= ::meter/method-time (:type event)))
-        (is (= ::block/get (:method event)))
+        (is (= "get" (:method event)))
         (is (= (:id a) (:args event)))
         (is (number? (:value event)))))))
 
@@ -63,7 +62,7 @@
                        [store event]
                        (swap! (::events store) conj event)))
         content "the quick fox jumped over the lazy brown dog"
-        abc (block/store! store content)]
+        abc @(block/store! store content)]
     (binding [meter/*io-report-period* 0]
       (testing "read one byte"
         (reset! events [])

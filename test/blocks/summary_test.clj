@@ -6,10 +6,10 @@
 
 
 (deftest bucket-histogram
-  (let [in-range (fn [s] (let [[a b] (sum/bucket->range (sum/size->bucket s))]
-                           (and (<= a s) (< s b))))]
-    (dotimes [i 16]
-      (is (in-range i)))))
+  (dotimes [i 16]
+    (let [[a b] (sum/bucket->range (sum/size->bucket i))]
+      (is (<= a i))
+      (is (< i b)))))
 
 
 (deftest storage-summaries
@@ -28,7 +28,4 @@
     (is (= (+ (:size block-a) (:size block-b)) (:size summary-ab)))
     (is (not (empty? (:sizes summary-ab))))
     (is (= (sum/merge summary-ab summary-c)
-           (sum/update summary-ab block-c)))
-    (is (sum/probably-contains? summary-ab (:id block-a)))
-    (is (sum/probably-contains? summary-ab (:id block-b)))
-    (is (not (sum/probably-contains? summary-ab (:id block-c))))))
+           (sum/update summary-ab block-c)))))

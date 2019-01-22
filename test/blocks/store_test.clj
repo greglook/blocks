@@ -3,36 +3,22 @@
     [blocks.core :as block]
     [blocks.store :as store]
     [clojure.test :refer :all]
-    [multihash.core :as multihash]))
-
-
-(deftest check-macro
-  (testing "check with true predicate"
-    (let [effects (atom [])]
-      (is (= :foo (store/check :foo some?
-                    (swap! effects conj [:> value])))
-          "should return value")
-      (is (empty? @effects) "should not cause side effects")))
-  (testing "check with false predicate"
-    (let [effects (atom [])]
-      (is (nil? (store/check :foo (constantly false)
-                  (swap! effects conj [:> value])))
-          "should return nil")
-      (is (= [[:> :foo]] @effects) "should cause side effects"))))
+    [multiformats.hash :as multihash]))
 
 
 (deftest block-preference
-  (is (nil? (store/preferred-copy nil))
+  (is (nil? (store/preferred-block nil))
       "returns nil with no block arguments")
   (let [loaded (block/read! "foo")
         lazy-a (block/from-file "project.clj")
         lazy-b (block/from-file "README.md")]
-    (is (= loaded (store/preferred-copy lazy-a loaded lazy-b))
+    (is (= loaded (store/preferred-block lazy-a loaded lazy-b))
         "returns loaded block if present")
-    (is (= lazy-a (store/preferred-copy lazy-a lazy-b))
+    (is (= lazy-a (store/preferred-block lazy-a lazy-b))
         "returns first block if all lazy")))
 
 
+#_
 (deftest stat-selection
   (let [a (multihash/create :sha1 "37b51d194a7513e45b56f6524f2d51f200000000")
         b (multihash/create :sha1 "73fcffa4b7f6bb68e44cf984c85f6e888843d7f9")
@@ -43,12 +29,13 @@
         ids [a b c d e f]
         stats (map #(hash-map :id % :size 1) ids)]
     (are [result opts] (= result (map :id (store/select-stats opts stats)))
-         ids        {}
-         [f]        {:algorithm :sha2-256}
-         [c d e f]  {:after "111473fd2"}
-         [a b c]    {:limit 3})))
+         ids       {}
+         [f]       {:algorithm :sha2-256}
+         [c d e f] {:after "111473fd2"}
+         [a b c]   {:limit 3})))
 
 
+#_
 (deftest stat-list-merging
   (let [list-a (list {:id "aaa", :foo :bar}
                      {:id "abb", :baz :qux}

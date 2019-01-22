@@ -8,11 +8,13 @@
     [com.stuartsierra.component :as component]))
 
 
+#_
 (deftest store-construction
   (is (thrown-with-msg? Exception #"missing configured keys"
         (component/start (replica-block-store [:a :b])))))
 
 
+#_
 (deftest replica-behavior
   (let [replica-1 (memory-block-store)
         replica-2 (memory-block-store)
@@ -38,6 +40,7 @@
         "replica lists all available blocks")))
 
 
+#_
 (deftest ^:integration check-behavior
   (test-harness/check-store
     #(replica-block-store

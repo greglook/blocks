@@ -7,6 +7,7 @@
     [clojure.test :refer :all]))
 
 
+#_
 (deftest buffer-behavior
   (let [backer (memory-block-store)
         store (buffer-block-store
@@ -37,6 +38,7 @@
     (is (= 2 (count (block/list store))))))
 
 
+#_
 (deftest buffer-size-limits
   (let [backer (memory-block-store)
         buffer (memory-block-store)
@@ -56,6 +58,7 @@
     (is (= (:id c) (:id (first (block/list backer)))))))
 
 
+#_
 (deftest ^:integration check-behavior
   (test-harness/check-store
     #(buffer-block-store
