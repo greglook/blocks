@@ -8,18 +8,6 @@
     [manifold.deferred :as d]))
 
 
-(defn- zip-stores
-  "Run the provided function on each of the identified store keys. Returns a
-  deferred zip over the results against each store."
-  ([replicas f arg]
-   (zip-stores replicas f arg (:store-keys replicas)))
-  ([replicas f arg store-keys]
-   (->>
-     store-keys
-     (map #(f (get replicas %) arg))
-     (apply d/zip))))
-
-
 (defrecord ReplicaBlockStore
   [store-keys]
 
@@ -43,32 +31,20 @@
 
   (-list
     [this opts]
-    (->> store-keys
-         (map #(block/list (get this %) opts))
+    (->> (map this store-keys)
+         (map #(block/list % opts))
          (apply store/merge-blocks)))
 
 
   (-stat
     [this id]
-    (d/loop [stores (mapv this store-keys)]
-      (when-let [store (first stores)]
-        (d/chain
-          (block/stat store id)
-          (fn check-result
-            [stats]
-            (or stats (d/recur (next stores))))))))
+    (store/some-store (mapv this store-keys) block/stat id))
 
 
   (-get
     [this id]
     ; OPTIMIZE: query in parallel, use `d/alt`?
-    (d/loop [stores (mapv this store-keys)]
-      (when-let [store (first stores)]
-        (d/chain
-          (block/get store id)
-          (fn check-result
-            [block]
-            (or block (d/recur (next stores))))))))
+    (store/some-store (mapv this store-keys) block/get id))
 
 
   (-put!
@@ -79,14 +55,14 @@
         [stored]
         (let [block (store/preferred-block block stored)]
           (d/chain
-            (zip-stores this block/put! block (rest store-keys))
+            (store/zip-stores (mapv this (rest store-keys)) block/put! block)
             (constantly stored))))))
 
 
   (-delete!
     [this id]
     (d/chain
-      (zip-stores this block/delete! id)
+      (store/zip-stores (mapv this store-keys) block/delete! id)
       (partial some true?)
       boolean)))
 
