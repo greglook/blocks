@@ -82,7 +82,7 @@
 
   (withMeta
     [this meta-map]
-    (Block. id size content stored-at meta-map))
+    (Block. id size stored-at content meta-map))
 
 
   clojure.lang.ILookup

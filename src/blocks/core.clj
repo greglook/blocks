@@ -198,7 +198,7 @@
   "Anophoric macro to measure a store method."
   [[method-kw args] & body]
   `(meter/measure-method*
-     ~'store ~(keyword "blocks.store" (name method-kw)) ~args
+     ~'store ~(name method-kw) ~args
      (fn body# [] ~@body)))
 
 
