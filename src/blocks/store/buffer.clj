@@ -1,8 +1,9 @@
 (ns blocks.store.buffer
   "Logical block storage which uses two backing stores to implement a buffer.
+
   New blocks are written to the _buffer_ store, which can be flushed to write
-  all of the blocks to the _destination_ store. Reads return a unified view of
-  the existing and buffered blocks."
+  all of the blocks to the _primary_ store. Reads return a unified view of the
+  existing and buffered blocks."
   (:require
     [blocks.core :as block]
     [blocks.store :as store]
@@ -12,7 +13,10 @@
 
 
 (defrecord BufferBlockStore
-  [max-block-size buffer destination]
+  [max-block-size buffer primary]
+
+  ; TODO: support generalized buffer predicate?
+  ; TODO: check that buffer and primary are set on start?
 
   store/BlockStore
 
@@ -20,37 +24,30 @@
     [this opts]
     (store/merge-blocks
       (block/list buffer opts)
-      (block/list destination opts)))
+      (block/list primary opts)))
 
 
   (-stat
     [this id]
-    (d/chain
-      (block/stat buffer id)
-      (fn fallback
-        [stats]
-        (or stats (block/stat destination id)))))
+    (store/some-store [buffer primary] block/stat id))
 
 
   (-get
     [this id]
-    (d/chain
-      (block/get buffer id)
-      (fn fallback
-        [block]
-        (or block (block/get destination id)))))
+    (store/some-store [buffer primary] block/get id))
 
 
   (-put!
     [this block]
     (d/chain
-      (block/get destination (:id block))
+      (block/get primary (:id block))
       (fn store-block
         [block]
-        (or block (if (or (nil? max-block-size)
-                          (<= (:size block) max-block-size))
-                    (block/put! buffer block)
-                    (block/put! destination block))))))
+        (or block
+            (if (or (nil? max-block-size)
+                    (<= (:size block) max-block-size))
+              (block/put! buffer block)
+              (block/put! primary block))))))
 
 
   (-delete!
@@ -58,7 +55,7 @@
     (d/chain
       (d/zip
         (block/delete! buffer id)
-        (block/delete! destination id))
+        (block/delete! primary id))
       (fn result
         [[buffered? stored?]]
         (boolean (or buffered? stored?))))))
@@ -88,7 +85,7 @@
     (s/map (fn copy
              [block]
              (d/chain
-               (block/put! (:destination store) block)
+               (block/put! (:primary store) block)
                (fn delete
                  [block']
                  (d/chain
@@ -109,10 +106,10 @@
 
   - `:buffer`
     Block store to use for new writes.
-  - `:destination`
+  - `:primary`
     Block store to use for flushed blocks.
   - `:max-block-size`
     Blocks over this size will not be buffered and will be written to the
-    destination directly."
+    primary directly."
   [& {:as opts}]
   (map->BufferBlockStore opts))

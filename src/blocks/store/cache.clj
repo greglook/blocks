@@ -132,11 +132,9 @@
   (-list
     [this opts]
     (ensure-initialized! this)
-    (store/select-stats
-      opts
-      (store/merge-block-lists
-        (block/list cache opts)
-        (block/list primary opts))))
+    (store/merge-blocks
+      (block/list cache opts)
+      (block/list primary opts)))
 
 
   (-get
@@ -153,7 +151,7 @@
     (ensure-initialized! this)
     (when-let [id (:id block)]
       (let [cached (maybe-cache! this block)
-            preferred (store/preferred-copy cached block)
+            preferred (store/preferred-block cached block)
             stored (block/put! primary preferred)]
         (or cached stored))))
 
