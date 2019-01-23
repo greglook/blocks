@@ -10,26 +10,27 @@
     [blocks.store.file :refer [file-block-store]]
     [blocks.store.memory :refer [memory-block-store]]
     [blocks.store.replica :refer [replica-block-store]]
+    [blocks.store.test-harness :as tests]
     [clojure.java.io :as io]
     [clojure.repl :refer :all]
     [clojure.stacktrace :refer [print-cause-trace]]
     [clojure.string :as str]
-    [clojure.test.check :as check]
-    [clojure.test.check.generators :as gen]
-    [clojure.test.check.properties :as prop]
+    ;[clojure.test.check :as check]
+    ;[clojure.test.check.generators :as gen]
+    ;[clojure.test.check.properties :as prop]
     [clojure.tools.namespace.repl :refer [refresh]]
-    [multiformats.hash :as mhash])
+    [manifold.deferred :as d]
+    [manifold.stream :as s]
+    [multiformats.hash :as multihash])
   (:import
     blocks.data.Block
     multiformats.hash.Multihash))
 
 
-#_
 (def test-blocks
   (tests/generate-blocks! 10 1024))
 
 
-#_
 (def tbs
   "Temporary block store in target."
   (file-block-store "target/blocks"))
