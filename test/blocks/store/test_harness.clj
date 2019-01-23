@@ -21,6 +21,7 @@
   (:import
     blocks.data.Block
     blocks.data.PersistentBytes
+    java.time.Instant
     multiformats.hash.Multihash))
 
 
@@ -84,27 +85,6 @@
   (gen/fmap (partial into {}) (gen-sub-seq (seq m))))
 
 
-(defop StatBlock
-  [id]
-
-  (gen-args
-    [ctx]
-    [(choose-id ctx)])
-
-  (apply-op
-    [this store]
-    (block/stat store id))
-
-  (check
-    [this model result]
-    (if-let [block (get model id)]
-      (do (is (map? result))
-          (is (= (:id block) (:id result)))
-          (is (= (:size block) (:size result)))
-          (is (some? (:stored-at result))))
-      (is (nil? result)))))
-
-
 (defop ListBlocks
   [query]
 
@@ -119,6 +99,7 @@
 
   (apply-op
     [this store]
+    ; TODO: timeout? be more deliberate here.
     (doall (s/stream->seq (block/list store query))))
 
   (check
@@ -136,13 +117,34 @@
                            (take (:limit query)))]
       (is (sequential? result))
       (is (= (count expected-ids) (count result)))
-      (doseq [[id stat] (zipmap expected-ids result)]
+      (doseq [[id result] (zipmap expected-ids result)]
         (if-let [block (get model id)]
-          (do (is (map? stat))
-              (is (= (:id block) (:id stat)))
-              (is (= (:size block) (:size stat)))
-              (is (some? (:stored-at stat))))
-          (is (nil? stat)))))))
+          (do (is (instance? Block result))
+              (is (= (:id block) (:id result)))
+              (is (= (:size block) (:size result)))
+              (is (instance? Instant (:stored-at result))))
+          (is (nil? result)))))))
+
+
+(defop StatBlock
+  [id]
+
+  (gen-args
+    [ctx]
+    [(choose-id ctx)])
+
+  (apply-op
+    [this store]
+    @(block/stat store id))
+
+  (check
+    [this model result]
+    (if-let [block (get model id)]
+      (do (is (map? result))
+          (is (= (:id block) (:id result)))
+          (is (= (:size block) (:size result)))
+          (is (instance? Instant (:stored-at result))))
+      (is (nil? result)))))
 
 
 (defop GetBlock
@@ -154,7 +156,7 @@
 
   (apply-op
     [this store]
-    (block/get store id))
+    @(block/get store id))
 
   (check
     [this model result]
@@ -175,7 +177,7 @@
 
   (apply-op
     [this store]
-    (block/put! store block))
+    @(block/put! store block))
 
   (check
     [this model result]
@@ -195,7 +197,7 @@
 
   (apply-op
     [this store]
-    (block/delete! store id))
+    @(block/delete! store id))
 
   (check
     [this model result]
@@ -217,7 +219,7 @@
 
   (apply-op
     [this store]
-    (block/get-batch store ids))
+    @(block/get-batch store ids))
 
   (check
     [this model result]
@@ -235,7 +237,7 @@
 
   (apply-op
     [this store]
-    (block/put-batch! store blocks))
+    @(block/put-batch! store blocks))
 
   (check
     [this model result]
@@ -256,7 +258,7 @@
 
   (apply-op
     [this store]
-    (block/delete-batch! store ids))
+    @(block/delete-batch! store ids))
 
   (check
     [this model result]
@@ -273,7 +275,7 @@
 
   (apply-op
     [this store]
-    (block/erase! store))
+    @(block/erase! store))
 
   (update-model
     [this model]
@@ -291,7 +293,7 @@
 
   (apply-op
     [this store]
-    (block/scan store p))
+    @(block/scan store p))
 
   (check
     [this model result]
@@ -312,7 +314,7 @@
 
   (apply-op
     [this store]
-    (when-let [block (block/get store id)]
+    (when-let [block @(block/get store id)]
       (let [baos (java.io.ByteArrayOutputStream.)]
         (with-open [content (block/open block)]
           (io/copy content baos))
@@ -345,9 +347,9 @@
 
   (apply-op
     [this store]
-    (when-let [block (block/get store id)]
+    (when-let [block @(block/get store id)]
       (let [baos (java.io.ByteArrayOutputStream.)]
-        (with-open [content (block/open block start end)]
+        (with-open [content (block/open block {:start start, :end end})]
           (io/copy content baos))
         (.toByteArray baos))))
 
@@ -364,9 +366,9 @@
 
 
 (def ^:private basic-op-generators
-  (juxt gen->StatBlock
-        gen->ListBlocks
+  (juxt gen->ListBlocks
         ;gen->ScanStore
+        gen->StatBlock
         gen->GetBlock
         gen->OpenBlock
         gen->OpenBlockRange
@@ -400,18 +402,18 @@
 (defn- start-store
   [constructor]
   (let [store (component/start (constructor))]
-    (when-not (empty? (block/list store))
+    (when-not (empty? (s/stream->seq (block/list store)))
       (throw (IllegalStateException.
                (str "Cannot run integration test on " (pr-str store)
                     " as it already contains blocks!"))))
-    (is (zero? (:count (block/scan store))))
+    (is (zero? (:count @(block/scan store))))
     store))
 
 
 (defn- stop-store
   [store]
   (block/erase! store)
-  (is (empty? (block/list store)) "ends empty")
+  (is (empty? (s/stream->seq (block/list store))) "ends empty")
   (component/stop store))
 
 

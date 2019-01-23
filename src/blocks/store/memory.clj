@@ -36,14 +36,16 @@
 
   (-list
     [this opts]
-    (s/->source (vals @memory)))
+    (s/->source (or (vals @memory) [])))
 
 
   (-stat
     [this id]
     (d/success-deferred
       (when-let [block (get @memory id)]
-        (select-keys block [:id :size :stored-at]))))
+        {:id (:id block)
+         :size (:size block)
+         :stored-at (:stored-at block)})))
 
 
   (-get

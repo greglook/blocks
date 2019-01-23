@@ -112,7 +112,7 @@
                 (format "Range start must be an integer within block size %d: %s"
                         (:size block) start))))
      (when (and end (or (not (pos-int? end))
-                        (<= (:size block) end)))
+                        (< (:size block) end)))
        (throw (IllegalArgumentException.
                 (format "Range end must be an integer within block size %d: %s"
                         (:size block) end))))
