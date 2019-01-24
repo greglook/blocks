@@ -143,27 +143,33 @@
       blocks
       (fn test-block
         [block]
-        (let [id (:id block)
-              hex (multihash/hex id)]
-          (cond
-            ; Ignore any blocks which don't match the algorithm.
-            (and algorithm (not= algorithm (:algorithm id)))
-            (d/success-deferred true)
+        (if (instance? Throwable block)
+          ; Propagate error on the stream.
+          (do (s/put! out block)
+              (s/close! out)
+              (d/success-deferred false))
+          ; Determine if block matches query criteria.
+          (let [id (:id block)
+                hex (multihash/hex id)]
+            (cond
+              ; Ignore any blocks which don't match the algorithm.
+              (and algorithm (not= algorithm (:algorithm id)))
+              (d/success-deferred true)
 
-            ; Drop blocks until an id later than `after`.
-            (and after (pos? (compare after hex)))
-            (d/success-deferred true)
+              ; Drop blocks until an id later than `after`.
+              (and after (pos? (compare after hex)))
+              (d/success-deferred true)
 
-            ; Terminate the stream if block is later than `before` or `limit`
-            ; blocks have already been returned.
-            (or (and before (neg? (compare before hex)))
-                (and (pos-int? limit) (< limit (swap! counter inc))))
-            (do (s/close! out)
-                (d/success-deferred false))
+              ; Terminate the stream if block is later than `before` or `limit`
+              ; blocks have already been returned.
+              (or (and before (neg? (compare before hex)))
+                  (and (pos-int? limit) (< limit (swap! counter inc))))
+              (do (s/close! out)
+                  (d/success-deferred false))
 
-            ; Otherwise, pass the block along.
-            :else
-            (s/put! out block))))
+              ; Otherwise, pass the block along.
+              :else
+              (s/put! out block)))))
         out
         {:description {:op "select-blocks"}})
     (s/source-only out)))
@@ -197,27 +203,34 @@
           (fn remove-drained
             [inputs]
             (remove #(identical? ::drained (second %)) inputs))
+          ; Find the next earliest block to return.
           (fn find-next
             [inputs]
             (if (empty? inputs)
               ; Every input is drained.
               (do (s/close! out) true)
-              ; Determine the next block to output.
-              (let [earliest (first (sort-by :id (map second inputs)))]
-                (d/chain
-                  (s/put! out earliest)
-                  (fn check-put
-                    [result]
-                    (if result
-                      ; Remove any blocks matching the one emitted.
-                      (d/recur (mapv (fn remove-earliest
-                                       [[input head :as pair]]
-                                       (if (= (:id earliest) (:id head))
-                                         [input nil]
-                                         pair))
-                                     inputs))
-                      ; Out was closed on us.
-                      false))))))))
+              ; Check inputs for errors.
+              (if-let [error (->> (map second inputs)
+                                  (filter #(instance? Throwable %))
+                                  (first))]
+                ; Propagate error.
+                (do (s/put! out error) false)
+                ; Determine the next block to output.
+                (let [earliest (first (sort-by :id (map second inputs)))]
+                  (d/chain
+                    (s/put! out earliest)
+                    (fn check-put
+                      [result]
+                      (if result
+                        ; Remove any blocks matching the one emitted.
+                        (d/recur (mapv (fn remove-earliest
+                                         [[input head :as pair]]
+                                         (if (= (:id earliest) (:id head))
+                                           [input nil]
+                                           pair))
+                                       inputs))
+                        ; Out was closed on us.
+                        false)))))))))
       (s/source-only out))))
 
 
@@ -247,6 +260,18 @@
             (identical? ::drained d)
             (d/finally
               (s/drain-into source out)
+              #(s/close! out))
+
+            ; Source threw an error; propagate it.
+            (instance? Throwable s)
+            (d/finally
+              (s/put! out s)
+              #(s/close! out))
+
+            ; Dest threw an error; propagate it.
+            (instance? Throwable d)
+            (d/finally
+              (s/put! out d)
               #(s/close! out))
 
             ; Block is present in both streams; drop and continue.
