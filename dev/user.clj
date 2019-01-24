@@ -15,10 +15,8 @@
     [clojure.repl :refer :all]
     [clojure.stacktrace :refer [print-cause-trace]]
     [clojure.string :as str]
-    ;[clojure.test.check :as check]
-    ;[clojure.test.check.generators :as gen]
-    ;[clojure.test.check.properties :as prop]
     [clojure.tools.namespace.repl :refer [refresh]]
+    [com.stuartsierra.component :as component]
     [manifold.deferred :as d]
     [manifold.stream :as s]
     [multiformats.hash :as multihash])
@@ -33,4 +31,4 @@
 
 (def tbs
   "Temporary block store in target."
-  (file-block-store "target/blocks"))
+  (component/start (file-block-store "target/blocks")))

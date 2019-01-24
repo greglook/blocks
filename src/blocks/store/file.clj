@@ -16,10 +16,12 @@
   Thus, a block containing the content `foobar` would have the sha1 digest
   `97df3501149...` and be stored under the root directory at:
 
-  `root/111497df/35011497df3588b5a3...`
+      root/111497df/35011497df3588b5a3...
 
-  This implementation tries to match the IPFS fs-repo behavior so that the
-  on-disk representations remain compatible."
+  In addition to the blocks, a `meta.properties` file at the root holds
+  information about the current storage layout for future-proofing. This
+  currently holds a single property, the layout version, which is always
+  `\"1\"`."
   (:require
     [blocks.data :as data]
     [blocks.store :as store]
@@ -40,6 +42,41 @@
 
 
 ;; ## FileSystem Utilities
+
+(def ^:private meta-properties-file
+  "Name of the properties file holding store-level metadata."
+  "meta.properties")
+
+
+(defn- initialize-meta
+  "Initialize the store by inspecting the metadata file for the current layout
+  version. If the version is not recognized, an error is thrown, otherwise this
+  returns the metadata properties as a map. If the metadata file does not
+  exist, it is created with the current version."
+  [^File root]
+  (let [meta-file (io/file root meta-properties-file)
+        supported "1"]
+    (if (.exists meta-file)
+      ; Check for correct format/version.
+      (let [props (doto (java.util.Properties.)
+                    (.load (io/reader meta-file)))
+            version (.getProperty props "version")]
+        (when (not= version supported)
+          (throw (ex-info
+                   (str "Unknown storage layout version " (pr-str version)
+                        " does not match supported version "
+                        (pr-str supported))
+                   {:supported supported
+                    :meta props})))
+        {:version version})
+      ; No file yet, probably a new store.
+      (let [version supported
+            props (doto (java.util.Properties.)
+                    (.setProperty "version" version))]
+        (with-open [out (io/writer meta-file)]
+          (.store props out " blocks.store.file"))
+        {:version version}))))
+
 
 (defn- seek-marker
   "Given a marker string, determine whether the file should be skipped, recursed
@@ -98,7 +135,7 @@
 
 
 (defn- id->file
-  "Determines the filesystem path for a block of content with the given hash
+  "Determine the filesystem path for a block of content with the given hash
   identifier."
   ^java.io.File
   [root id]
@@ -110,12 +147,19 @@
 
 
 (defn- file->id
-  "Reconstructs the hash identifier represented by the given file path."
+  "Reconstruct the hash identifier represented by the given file path. Returns
+  nil if the file is not a proper block."
   [root ^File file]
   (let [root (str root)
-        path (and file (.getPath file))]
-    (if (or (nil? path) (not (str/starts-with? path root)))
+        path (.getPath file)]
+    (cond
+      (= meta-properties-file (.getName file))
+      nil
+
+      (not (str/starts-with? path root))
       (log/warnf "File %s is not a child of root directory %s" file root)
+
+      :else
       (let [hex (str/replace (subs path (inc (count root))) "/" "")]
         (if (re-matches #"[0-9a-fA-F]+" hex)
           (multihash/decode (hex/parse hex))
@@ -152,6 +196,21 @@
 ;; root directory.
 (defrecord FileBlockStore
   [^File root]
+
+  component/Lifecycle
+
+  (start
+    [this]
+    (let [meta-props (initialize-meta root)
+          version (:version meta-props)]
+      (log/debug "Using storage layout version" version)
+      (assoc this :version version)))
+
+
+  (stop
+    [this]
+    this)
+
 
   store/BlockStore
 

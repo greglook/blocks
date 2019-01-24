@@ -40,7 +40,6 @@
     (is (empty? (block/list store :after "122064")))))
 
 
-#_
 (deftest ^:integration check-behavior
   (let [tmpdir (mk-tmpdir!)]
     (test-harness/check-store
