@@ -325,23 +325,20 @@
   "Store content from a byte source in a block store. Returns a deferred which
   yields the stored block, or nil if the source was empty.
 
-  If the source is a file, it will be streamed into the store. Otherwise, the
-  content is read into memory, so this may not be suitable for large sources."
+  If the source is a file, it will be streamed into the store, otherwise the
+  content is read into memory."
   ([store source]
    (store! store source default-algorithm))
   ([store source algorithm]
-   (if (satisfies? store/BlockReceiver store)
-     ; TODO: metering?
-     (store/-store! store source algorithm)
-     (d/chain
-       (d/future
-         (if (instance? File source)
-           (from-file source algorithm)
-           (read! source algorithm)))
-       (fn put-block
-         [block]
-         (when (and block (pos? (:size block)))
-           (put! store block)))))))
+   (d/chain
+     (d/future
+       (if (instance? File source)
+         (from-file source algorithm)
+         (read! source algorithm)))
+     (fn put-block
+       [block]
+       (when block
+         (put! store block))))))
 
 
 (defn delete!
