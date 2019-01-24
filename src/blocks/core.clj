@@ -204,7 +204,7 @@
 
 (defn list
   "Enumerate the stored blocks, returning a stream of blocks ordered by their
-  multihash id. The store will continue reading blocks until the stream is
+  multihash id. The store will continue listing blocks until the stream is
   closed or there are no more matching blocks to return.
 
   - `:algorithm`

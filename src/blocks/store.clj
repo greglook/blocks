@@ -22,9 +22,13 @@
     options.
 
     The method must return _at least_ the blocks which match the query options,
-    but may optimize the results by omitting unmatched blocks. The returned
-    stream may be closed preemptively if the consumer is done, which should
-    terminate the list process.")
+    and _should_ optimize the results by omitting unmatched blocks. The
+    returned stream may be closed preemptively if the consumer is done, which
+    should terminate the list thread.
+
+    If the listing thread encounters an exception, the error should be placed
+    on the stream and the stream should be closed to indicate no further blocks
+    will be coming. Consumers must handle exceptions propagated on the stream.")
 
   (-stat
     [store id]
