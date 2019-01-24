@@ -23,11 +23,14 @@
   (:require
     [blocks.data :as data]
     [blocks.store :as store]
+    [byte-streams :as bytes]
     [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
+    [com.stuartsierra.component :as component]
     [manifold.deferred :as d]
     [manifold.stream :as s]
+    [multiformats.base.b16 :as hex]
     [multiformats.hash :as multihash])
   (:import
     (java.io
@@ -36,7 +39,7 @@
     java.time.Instant))
 
 
-;; ## File System Utilities
+;; ## FileSystem Utilities
 
 (defn- seek-marker
   "Given a marker string, determine whether the file should be skipped, recursed
@@ -90,8 +93,8 @@
   [^File file]
   (with-meta
     {:size (.length file)
-     :stored-at (Instant/ofEpochMilli (.lastModified file))})
-    {::source (.toURI file)})
+     :stored-at (Instant/ofEpochMilli (.lastModified file))}
+    {::source (.toURI file)}))
 
 
 (defn- id->file
@@ -115,7 +118,7 @@
       (log/warnf "File %s is not a child of root directory %s" file root)
       (let [hex (str/replace (subs path (inc (count root))) "/" "")]
         (if (re-matches #"[0-9a-fA-F]+" hex)
-          (multihash/decode hex)
+          (multihash/decode (hex/parse hex))
           (log/warnf "File %s did not form valid hex entry: %s" file hex))))))
 
 
@@ -169,8 +172,8 @@
                 ; Not a valid block file, skip.
                 (recur (next files)))))
           (catch Exception ex
-            ; TODO: how do errors propagate? put an exception on the stream?
-            (log/error ex "Failure listing file blocks"))
+            (log/error ex "Failure listing file blocks")
+            (s/put! out ex))
           (finally
             (s/close! out))))
       (s/source-only out)))

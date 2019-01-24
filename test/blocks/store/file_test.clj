@@ -30,9 +30,9 @@
         a (block/read! "larry")
         b (block/read! "curly")
         c (block/read! "moe")]
-    (block/put! store a)
-    (block/put! store b)
-    (block/put! store c)
+    @(block/put! store a)
+    @(block/put! store b)
+    @(block/put! store c)
     (is (= 3 (count (block/list store :after "12200c"))))
     (is (= 3 (count (block/list store :after "12200d0980"))))
     (is (= 1 (count (block/list store :after "12204b6f51"))))
