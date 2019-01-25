@@ -13,7 +13,6 @@
     [clojure.test.check.properties :as prop]
     [com.stuartsierra.component :as component]
     [manifold.deferred :as d]
-    [manifold.stream :as s]
     [multiformats.hash :as multihash]
     [puget.color.ansi :as ansi]
     [puget.printer :as puget]
@@ -99,8 +98,7 @@
 
   (apply-op
     [this store]
-    ; TODO: timeout? be more deliberate here.
-    (doall (s/stream->seq (block/list store query))))
+    (doall (block/list-seq store query)))
 
   (check
     [this model result]
@@ -402,10 +400,11 @@
 (defn- start-store
   [constructor]
   (let [store (component/start (constructor))]
-    (when-not (empty? (s/stream->seq (block/list store)))
+    (when-let [extant (seq (block/list-seq store))]
       (throw (IllegalStateException.
                (str "Cannot run integration test on " (pr-str store)
-                    " as it already contains blocks!"))))
+                    " as it already contains blocks: "
+                    (pr-str extant)))))
     (is (zero? (:count @(block/scan store))))
     store))
 
@@ -413,7 +412,8 @@
 (defn- stop-store
   [store]
   (block/erase! store)
-  (is (empty? (s/stream->seq (block/list store))) "ends empty")
+  (is (empty? (block/list-seq store))
+      "ends empty")
   (component/stop store))
 
 

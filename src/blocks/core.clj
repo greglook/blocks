@@ -273,6 +273,36 @@
       (store/select-blocks opts (store/-list store opts)))))
 
 
+(defn list-seq
+  "Enumerate the stored blocks, returning a sequence of blocks ordered by their
+  multihash id. This wraps the `list` method and consumes the stream lazily,
+  terminating when the stream is drained, a timeout is encountered, or a list
+  exception is observed on the stream.
+
+  Accepts the same options as `list`, plus:
+
+  - `:timeout`
+    Millisecond duration to wait for new blocks to arrive on the stream.
+    (default: 10000)"
+  [store & opts]
+  (let [opts (args->map opts)
+        timeout (:timeout opts 10000)]
+    (letfn [(stream->seq
+              [s]
+              (lazy-seq
+                (let [x @(s/try-take! s ::drained timeout ::timeout)]
+                  (when (instance? Throwable x)
+                    (throw x))
+                  (when (identical? ::timeout x)
+                    (throw (ex-info
+                             (format "Block stream consumption timed out after %d ms"
+                                     timeout)
+                             {:opts opts})))
+                  (when-not (identical? ::drained x)
+                    (cons x (stream->seq s))))))]
+      (stream->seq (list store (dissoc opts :timeout))))))
+
+
 (defn stat
   "Load metadata about a block if the store contains it. Returns a deferred
   which yields a map with block information but no content, or nil if the store
