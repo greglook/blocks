@@ -168,8 +168,6 @@
   ^java.io.InputStream
   [^Block block start end]
   (let [content (.content block)]
-    (when-not content
-      (throw (IOException. (str "Cannot open empty block " block))))
     (if (or start end)
       (read-range content start end)
       (read-all content))))
@@ -185,16 +183,6 @@
   "True if the block has content loaded into memory as persistent bytes."
   [^Block block]
   (persistent-bytes? (.content block)))
-
-
-(defn- collect-bytes
-  "Collect bytes from a data source into a `PersistentBytes` object. If the
-  source is already persistent, it will be reused directly."
-  ^PersistentBytes
-  [source]
-  (if (persistent-bytes? source)
-    source
-    (PersistentBytes/wrap (bytes/to-byte-array source))))
 
 
 
@@ -242,27 +230,14 @@
    (when-not content
      (throw (ex-info "Block must have a content reader"
                      {:id id, :size size, :stored-at stored-at})))
-   (Block. id size stored-at content nil)))
-
-
-(defn load-block
-  "Create a block by reading a source into memory. The block is given the id
-  directly, without being checked."
-  ([id source]
-   (load-block id (now) source))
-  ([id stored-at source]
-   (let [content (collect-bytes source)
-         size (count content)]
-     (when (pos? size)
-       (create-block id size stored-at content)))))
+   (->Block id size stored-at content nil)))
 
 
 (defn read-block
   "Create a block by reading the source into memory and hashing it."
   [algorithm source]
-  ; OPTIMIZE: calculate the hash while reading the content in one pass.
   (let [hash-fn (hasher algorithm)
-        content (collect-bytes source)
+        content (PersistentBytes/wrap (bytes/to-byte-array source))
         size (count content)]
     (when (pos? size)
       (create-block (hash-fn (read-all content)) size (now) content))))
@@ -283,11 +258,12 @@
              (str "Cannot merge blocks with differing sizes " (.size left)
                   " and " (.size right))
              {:left left, :right right})))
-  (Block. (.id right)
-          (.size right)
-          (.stored-at right)
-          (.content right)
-          (not-empty (merge (._meta left) (._meta right)))))
+  (->Block
+    (.id right)
+    (.size right)
+    (.stored-at right)
+    (.content right)
+    (not-empty (merge (._meta left) (._meta right)))))
 
 
 (defn wrap-content
@@ -295,8 +271,9 @@
   same id and size."
   ^blocks.data.Block
   [^Block block f]
-  (Block. (.id block)
-          (.size block)
-          (.stored-at block)
-          (f (.content block))
-          (._meta block)))
+  (->Block
+    (.id block)
+    (.size block)
+    (.stored-at block)
+    (f (.content block))
+    (._meta block)))

@@ -23,8 +23,8 @@
       (:id block)
       (:size block)
       (.content block))
-    (data/load-block
-      (:id block)
+    (data/read-block
+      (:algorithm (:id block))
       (data/read-all (.content block)))))
 
 

@@ -148,7 +148,11 @@
   block will have the same metadata as the one given."
   [block]
   (if (lazy? block)
-    (with-meta (data/load-block (:id block) (open block)) (meta block))
+    (with-meta
+      (data/read-block
+        (:algorithm (:id block))
+        (data/content-stream block nil nil))
+      (meta block))
     block))
 
 
