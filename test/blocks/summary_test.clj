@@ -1,6 +1,6 @@
 (ns blocks.summary-test
   (:require
-    [blocks.core :as block]
+    [blocks.data :as data]
     [blocks.summary :as sum]
     [clojure.test :refer :all]))
 
@@ -13,9 +13,9 @@
 
 
 (deftest storage-summaries
-  (let [block-a (block/read! "foo")
-        block-b (block/read! "bar")
-        block-c (block/read! "baz")
+  (let [block-a (data/read-block :sha1 "foo")
+        block-b (data/read-block :sha1 "bar")
+        block-c (data/read-block :sha1 "baz")
         summary-a (sum/update (sum/init) block-a)
         summary-ab (sum/update summary-a block-b)
         summary-c (sum/update (sum/init) block-c)]
