@@ -85,12 +85,13 @@
   ([file algorithm]
    (let [file (io/file file)
          hash-fn (data/hasher algorithm)]
-     (when (and (.exists file) (pos? (.length file)))
-       (data/create-block
-         (hash-fn (FileInputStream. file))
-         (.length file)
-         (Instant/ofEpochMilli (.lastModified file))
-         (fn reader [] (FileInputStream. file)))))))
+     (io!
+       (when (and (.exists file) (pos? (.length file)))
+         (data/create-block
+           (hash-fn (FileInputStream. file))
+           (.length file)
+           (Instant/ofEpochMilli (.lastModified file))
+           (fn reader [] (FileInputStream. file))))))))
 
 
 (defn open
@@ -120,7 +121,7 @@
        (throw (IllegalArgumentException.
                 (format "Range start %d must be less than range end %d"
                         start end))))
-     (data/content-stream block start end))))
+     (io! (data/content-stream block start end)))))
 
 
 (defn read!
@@ -129,7 +130,7 @@
   ([source]
    (read! source default-algorithm))
   ([source algorithm]
-   (data/read-block algorithm source)))
+   (io! (data/read-block algorithm source))))
 
 
 (defn write!
@@ -147,13 +148,14 @@
   block. If the block is already loaded, it is returned unchanged. The returned
   block will have the same metadata as the one given."
   [block]
-  (if (lazy? block)
-    (with-meta
-      (data/read-block
-        (:algorithm (:id block))
-        (data/content-stream block nil nil))
-      (meta block))
-    block))
+  (io!
+    (if (lazy? block)
+      (with-meta
+        (data/read-block
+          (:algorithm (:id block))
+          (data/content-stream block nil nil))
+        (meta block))
+      block)))
 
 
 (defn validate!
@@ -201,9 +203,9 @@
 (defmacro ^:private measure-method
   "Anophoric macro to measure a store method."
   [[method-kw args] & body]
-  `(meter/measure-method*
-     ~'store ~(name method-kw) ~args
-     (fn body# [] ~@body)))
+  `(io! (meter/measure-method*
+          ~'store ~(name method-kw) ~args
+          (fn body# [] ~@body))))
 
 
 (defn list
@@ -270,7 +272,7 @@
                           (str "Unknown options passed to list: " (pr-str bad-opts))))))]
     ; TODO: should be metering the stream of blocks somehow, not time-to-stream
     (measure-method [:list opts]
-      (store/select-blocks opts (store/-list store opts)))))
+      (io! (store/select-blocks opts (store/-list store opts))))))
 
 
 (defn list-seq
@@ -287,6 +289,10 @@
   [store & opts]
   (let [opts (args->map opts)
         timeout (:timeout opts 10000)]
+    (when-not (pos-int? timeout)
+      (throw (IllegalArgumentException.
+               (str "Option :timeout is not a positive integer: "
+                     (pr-str timeout)))))
     (letfn [(stream->seq
               [s]
               (lazy-seq
@@ -365,10 +371,11 @@
    (store! store source default-algorithm))
   ([store source algorithm]
    (d/chain
-     (d/future
-       (if (instance? File source)
-         (from-file source algorithm)
-         (read! source algorithm)))
+     (io!
+       (d/future
+         (if (instance? File source)
+           (from-file source algorithm)
+           (read! source algorithm))))
      (fn put-block
        [block]
        (when block
@@ -449,12 +456,14 @@
   This is not guaranteed to be atomic; readers may see the store in a partially
   erased state."
   [store]
-  (if (satisfies? store/ErasableStore store)
-    (measure-method [:erase! nil]
-      (store/-erase! store))
-    (s/consume-async
-      (comp (partial delete! store) :id)
-      (list store))))
+  (io!
+    (if (satisfies? store/ErasableStore store)
+      (measure-method [:erase! nil]
+        (store/-erase! store))
+      ; TODO: should be able to parallelize this, actually - how to communicate errors?
+      (s/consume-async
+        (comp (partial delete! store) :id)
+        (list store)))))
 
 
 (defn scan
@@ -465,11 +474,11 @@
    (scan store nil))
   ([store p]
    (->
-     (store/-list store nil)
+     (list-seq store)
      (cond->>
-       p (s/filter p))
+       p (filter p))
      (->>
-       (s/reduce sum/update (sum/init))))))
+       (reduce sum/update (sum/init))))))
 
 
 (defn sync!
@@ -482,9 +491,10 @@
   [source dest & opts]
   (let [opts (args->map opts)]
     (->
-      (store/missing-blocks
-        (store/-list source nil)
-        (store/-list dest nil))
+      (io!
+        (store/missing-blocks
+          (store/-list source nil)
+          (store/-list dest nil)))
       (cond->>
         (:filter opts) (s/filter (:filter opts)))
       (->>
