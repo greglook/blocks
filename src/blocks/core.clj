@@ -199,15 +199,6 @@
   (store/initialize uri))
 
 
-; TODO: rethink this
-(defmacro ^:private measure-method
-  "Anophoric macro to measure a store method."
-  [[method-kw args] & body]
-  `(io! (meter/measure-method*
-          ~'store ~(name method-kw) ~args
-          (fn body# [] ~@body))))
-
-
 (defn list
   "Enumerate the stored blocks, returning a stream of blocks ordered by their
   multihash id. The store will continue listing blocks until the stream is
@@ -270,8 +261,8 @@
                (when-let [bad-opts (not-empty (dissoc opts :algorithm :after :before :limit))]
                  (throw (IllegalArgumentException.
                           (str "Unknown options passed to list: " (pr-str bad-opts))))))]
-    ; TODO: should be metering the stream of blocks somehow, not time-to-stream
-    (measure-method [:list opts]
+    (meter/measure-stream
+      store :list nil
       (io! (store/select-blocks opts (store/-list store opts))))))
 
 
@@ -321,8 +312,10 @@
   (when-not (multihash? id)
     (throw (IllegalArgumentException.
              (str "Block id must be a multihash, got: " (pr-str id)))))
-  (measure-method [:stat id]
-    (store/-stat store id)))
+  (meter/measure-method
+    store :stat
+    {:block-id id}
+    (io! (store/-stat store id))))
 
 
 (defn get
@@ -333,8 +326,10 @@
     (throw (IllegalArgumentException.
              (str "Block id must be a multihash, got: " (pr-str id)))))
   (d/chain
-    (measure-method [:get id]
-      (store/-get store id))
+    (meter/measure-method
+      store :get
+      {:block-id id}
+      (io! (store/-get store id)))
     (fn validate-block
       [block]
       (when block
@@ -352,10 +347,14 @@
     (throw (IllegalArgumentException.
              (str "Argument must be a block, got: " (pr-str block)))))
   (d/chain
-    (measure-method [:put! block]
+    (meter/measure-method
+      store :put!
+      {:block-id (:id block)
+       :block-size (:size block)}
       (->> block
            (meter/metered-block store ::meter/io-write)
-           (store/-put! store)))
+           (store/-put! store)
+           (io!)))
     (fn meter-block
       [block]
       (meter/metered-block store ::meter/io-read block))))
@@ -389,7 +388,9 @@
   (when-not (multihash? id)
     (throw (IllegalArgumentException.
              (str "Block id must be a multihash, got: " (pr-str id)))))
-  (measure-method [:delete! id]
+  (meter/measure-method
+    store :delete!
+    {:block-id id}
     (store/-delete! store id)))
 
 
@@ -458,7 +459,8 @@
   [store]
   (io!
     (if (satisfies? store/ErasableStore store)
-      (measure-method [:erase! nil]
+      (meter/measure-method
+        store :erase! nil
         (store/-erase! store))
       ; TODO: should be able to parallelize this, actually - how to communicate errors?
       (s/consume-async

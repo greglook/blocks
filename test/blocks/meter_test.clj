@@ -6,14 +6,21 @@
     [clojure.test :refer :all]))
 
 
+(defn- recording-store
+  []
+  (let [events (atom [])]
+    (assoc (memory-block-store)
+           ::events events
+           ::meter/recorder
+           (fn record!
+             [store event]
+             (swap! (::events store) conj event)))))
+
+
+; TODO: rewrite this not to use blocks.core ns
 (deftest store-behavior
-  (let [events (atom [])
-        store (assoc (memory-block-store)
-                     ::events events
-                     ::meter/recorder
-                     (fn record!
-                       [store event]
-                       (swap! (::events store) conj event)))
+  (let [store (recording-store)
+        events (::events store)
         a (block/read! "foo bar baz")
         b (block/read! "abracadabra")]
     @(block/put! store a)
@@ -22,8 +29,9 @@
       (let [event (first @events)]
         (is (= "MemoryBlockStore" (:label event)))
         (is (= ::meter/method-time (:type event)))
-        (is (= "put!" (:method event)))
-        (is (= a (:args event)))
+        (is (= :put! (:method event)))
+        (is (= (:id a) (:block-id event)))
+        (is (= (:size a) (:block-size event)))
         (is (number? (:value event)))))
     (reset! events [])
     (testing "misbehaved recorder"
@@ -39,8 +47,9 @@
         (let [event (first @events)]
           (is (= "memory" (:label event)))
           (is (= ::meter/method-time (:type event)))
-          (is (= "put!" (:method event)))
-          (is (= b (:args event)))
+          (is (= :put! (:method event)))
+          (is (= (:id b) (:block-id event)))
+          (is (= (:size b) (:block-size event)))
           (is (number? (:value event))))))
     (reset! events [])
     (testing "more gets"
@@ -48,19 +57,14 @@
       (is (= 1 (count @events)))
       (let [event (first @events)]
         (is (= ::meter/method-time (:type event)))
-        (is (= "get" (:method event)))
-        (is (= (:id a) (:args event)))
+        (is (= :get (:method event)))
+        (is (= (:id a) (:block-id event)))
         (is (number? (:value event)))))))
 
 
 (deftest metered-stream
-  (let [events (atom [])
-        store (assoc (memory-block-store)
-                     ::events events
-                     ::meter/recorder
-                     (fn record!
-                       [store event]
-                       (swap! (::events store) conj event)))
+  (let [store (recording-store)
+        events (::events store)
         content "the quick fox jumped over the lazy brown dog"
         abc @(block/store! store content)]
     (binding [meter/*io-report-period* 0]

@@ -12,16 +12,22 @@
   (:require
     [blocks.data :as data]
     [clojure.tools.logging :as log]
-    [manifold.deferred :as d])
+    [manifold.deferred :as d]
+    [manifold.stream :as s])
   (:import
     java.io.InputStream
+    java.util.concurrent.atomic.AtomicLong
     org.apache.commons.io.input.ProxyInputStream))
 
 
-(defn- meter-label
-  "Construct a string to label the metered store."
-  [store]
-  (or (::label store) (.getSimpleName (class store))))
+;; ## Utilities
+
+(defn- stopwatch
+  "Create a delay expression which will return the number of milliseconds
+  elapsed between its creation and dereference."
+  []
+  (let [start (System/nanoTime)]
+    (delay (/ (- (System/nanoTime) start) 1e6))))
 
 
 (defn- format-bytes
@@ -31,9 +37,21 @@
          prefixes ["" "K" "M" "G"]]
     (if (and (< 1024 value) (seq prefixes))
       (recur (/ value 1024) (next prefixes))
-      (if (integer? value)
+      (if (nat-int? value)
         (format "%d %s%s" value (first prefixes) unit)
         (format "%.1f %s%s" (double value) (first prefixes) unit)))))
+
+
+(defn- meter-label
+  "Construct a string to label the metered store."
+  [store]
+  (str (or (::label store) (.getSimpleName (class store)))))
+
+
+(defn- enabled?
+  "True if the store has metering enabled and a valid recorder."
+  [store]
+  (boolean (::recorder store)))
 
 
 (defn- record!
@@ -58,6 +76,34 @@
 (def ^:dynamic *io-report-period*
   "Record incremental IO metrics every N seconds."
   10)
+
+
+(defn- metering-block-stream
+  "Wrap the given stream in an intermediate stream which will record metric
+  events with the number of blocks which passed through the stream."
+  [store metric-type attrs stream]
+  (let [counter (AtomicLong. 0)
+        period *io-report-period*
+        label (meter-label store)
+        out (s/map #(do (.incrementAndGet counter) %) stream)
+        reporter (s/periodically
+                   (* period 1000)
+                   #(.getAndSet counter 0))
+        flush! (fn flush!
+                 [sum]
+                 (when (pos? sum)
+                   (log/tracef "Metered %s of %d blocks through stream %s (%.2f/sec)"
+                               (name metric-type) sum label
+                               (double (/ sum period)))
+                   (record! store metric-type sum nil)))]
+    (s/consume flush! reporter)
+    (s/on-closed
+      out
+      (fn report-final
+        []
+        (flush! (.getAndSet counter 0))
+        (s/close! reporter)))
+    (s/source-only out)))
 
 
 (defn- metering-input-stream
@@ -93,6 +139,9 @@
           (.close input-stream))))))
 
 
+
+;; ## Metered Content
+
 (deftype MeteredContentReader
   [store metric-type block-id content]
 
@@ -121,7 +170,7 @@
   block will be returned unchanged."
   [store metric-type block]
   (when block
-    (if (::recorder store)
+    (if (enabled? store)
       (data/wrap-content
         block
         (partial ->MeteredContentReader
@@ -132,30 +181,34 @@
 
 
 
-;; ## Latency Measurement
+;; ## Method Wrappers
 
-(defn- stopwatch
-  "Create a delay expression which will return the number of milliseconds
-  elapsed between its creation and dereference."
-  []
-  (let [start (System/nanoTime)]
-    (delay (/ (- (System/nanoTime) start) 1e6))))
+(defn measure-stream
+  "Measure the flow of blocks through a manifold stream. Returns the wrapped
+  stream, or the original if the store does not have metering enabled."
+  [store method-kw attrs stream]
+  (cond->> stream
+    (enabled? store)
+    (metering-block-stream
+      store ::list-stream
+      (assoc attrs :method method-kw))))
 
 
-(defn measure-method*
-  "Helper function for the `measure-method` macro."
-  [store method-kw args body-fn]
+(defn measure-method
+  "Measure the end-to-end elapsed time for a block store method. Returns a
+  deferred with a final report hook if the store has metering enabled."
+  [store method-kw attrs body-deferred]
   (let [elapsed (stopwatch)]
-    (cond-> (body-fn)
-      (::recorder store)
+    (cond-> body-deferred
+      (enabled? store)
       (d/finally
         (fn record-elapsed
           []
           (log/tracef "Method %s of %s block store on %s took %.1f ms"
                       (name method-kw)
                       (meter-label store)
-                      args
+                      attrs
                       @elapsed)
-          (record! store ::method-time @elapsed
-                   {:method method-kw
-                    :args args}))))))
+          (record!
+            store ::method-time @elapsed
+            (assoc attrs :method method-kw)))))))
