@@ -86,9 +86,9 @@
         period *io-report-period*
         label (meter-label store)
         out (s/map #(do (.incrementAndGet counter) %) stream)
-        reporter (s/periodically
-                   (* period 1000)
-                   #(.getAndSet counter 0))
+        reports (s/periodically
+                  (* period 1000)
+                  #(.getAndSet counter 0))
         flush! (fn flush!
                  [sum]
                  (when (pos? sum)
@@ -96,14 +96,14 @@
                                (name metric-type) sum label
                                (double (/ sum period)))
                    (record! store metric-type sum nil)))]
-    (s/consume flush! reporter)
+    (s/consume flush! reports)
     (s/on-closed
-      out
+      stream
       (fn report-final
         []
         (flush! (.getAndSet counter 0))
-        (s/close! reporter)))
-    (s/source-only out)))
+        (s/close! reports)))
+    out))
 
 
 (defn- metering-input-stream
