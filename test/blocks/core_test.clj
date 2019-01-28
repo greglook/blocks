@@ -12,93 +12,96 @@
     blocks.data.Block
     (java.io
       ByteArrayOutputStream
+      File
       InputStream
       IOException)))
 
 
 ;; ## IO Tests
 
-#_
-(deftest block-input-stream
+(deftest block-io
+  (testing "from-file"
+    (is (thrown? IllegalStateException
+          (dosync (block/from-file "README.md"))))
+    (is (nil? (block/from-file "not/a-real/file.txt")))
+    (let [tmp-dir (doto (io/file "target" "test" "tmp")
+                    (.mkdirs))
+          tmp (doto (File/createTempFile "input" ".tmp" tmp-dir)
+                (.deleteOnExit))]
+      (is (nil? (block/from-file tmp))
+          "empty file should return nil"))
+    (let [block (block/from-file "README.md")]
+      (is (pos? (:size block)))
+      (is (block/lazy? block))))
+  (testing "reading"
+    (is (thrown? IllegalStateException
+          (dosync (block/read! "foo bar baz"))))
+    (is (nil? (block/read! (byte-array 0)))
+        "empty content reads into nil block"))
+  (testing "writing"
+    (let [block (block/read! "frobblenitz")
+          baos (ByteArrayOutputStream.)]
+      (is (thrown? IllegalStateException
+            (dosync (block/write! block baos))))
+      (block/write! block baos)
+      (is (bytes= "frobblenitz" (.toByteArray baos)))))
+  (testing "loading"
+    (let [lazy-readme (block/from-file "README.md")
+          loaded-readme (block/load! lazy-readme)]
+      (is (thrown? IllegalStateException
+            (dosync (block/load! lazy-readme))))
+      (is (block/loaded? loaded-readme)
+          "load returns loaded block for lazy block")
+      (is (identical? loaded-readme (block/load! loaded-readme))
+          "load returns loaded block unchanged")
+      (is (bytes= (block/open loaded-readme)
+                  (block/open lazy-readme))
+          "loaded block content should match lazy block"))))
+
+
+(deftest block-opening
   (testing "ranged open validation"
     (let [block (block/read! "abcdefg")]
-      (is (thrown? IllegalArgumentException (block/open block nil 4)))
-      (is (thrown? IllegalArgumentException (block/open block -1 4)))
-      (is (thrown? IllegalArgumentException (block/open block 0 nil)))
-      (is (thrown? IllegalArgumentException (block/open block 0 -1)))
-      (is (thrown? IllegalArgumentException (block/open block 3 1)))
-      (is (thrown? IllegalArgumentException (block/open block 0 10)))))
-  (testing "empty block"
-    (let [block (empty (block/read! "abc"))]
-      (is (thrown? IOException (block/open block))
-          "full open should throw exception")
-      (is (thrown? IOException (block/open block 0 3))
-          "ranged open should throw exception")))
+      (is (thrown? IllegalArgumentException (block/open block {:start -1, :end 4})))
+      (is (thrown? IllegalArgumentException (block/open block {:start 0, :end -1})))
+      (is (thrown? IllegalArgumentException (block/open block {:start 3, :end 1})))
+      (is (thrown? IllegalArgumentException (block/open block {:start 0, :end 10})))))
   (testing "loaded block"
     (let [block (block/read! "the old dog jumped")]
       (is (= "the old dog jumped" (slurp (block/open block))))
-      (is (= "old dog" (slurp (block/open block 4 11))))))
+      (is (= "the old" (slurp (block/open block {:end 7}))))
+      (is (= "old dog" (slurp (block/open block {:start 4, :end 11}))))
+      (is (= "jumped" (slurp (block/open block {:start 12}))))))
   (testing "lazy block"
     (let [block (block/from-file "README.md")
           readme (slurp (block/open block))]
       (is (true? (block/lazy? block)) "file blocks should be lazy")
       (is (string? readme))
-      (is (= (subs readme 10 20) (slurp (block/open block 10 20)))))))
+      (is (= (subs readme 10 20) (slurp (block/open block {:start 10, :end 20})))))))
 
 
-#_
-(deftest block-reading
-  (testing "block construction"
-    (is (nil? (block/read! (byte-array 0)))
-        "empty content reads into nil block")))
-
-
-#_
-(deftest block-writing
-  (let [block (block/read! "frobblenitz")
-        baos (ByteArrayOutputStream.)]
-    (block/write! block baos)
-    (is (bytes= "frobblenitz" (.toByteArray baos)))))
-
-
-#_
-(deftest block-loading
-  (let [lazy-readme (block/from-file "README.md")
-        loaded-readme (block/load! lazy-readme)]
-    (is (not (block/lazy? loaded-readme))
-        "load returns loaded block for lazy block")
-    (is (identical? loaded-readme (block/load! loaded-readme))
-        "load returns loaded block unchanged")
-    (is (bytes= (block/open loaded-readme)
-                (block/open lazy-readme))
-        "loaded block content should match lazy block")))
-
-
-#_
 (deftest block-validation
   (let [base (block/read! "foo bar baz")
         fix (fn [b k v]
               (Block. (if (= k :id)      v (:id b))
                       (if (= k :size)    v (:size b))
+                      (:stored-at b)
                       (if (= k :content) v (.content b))
-                      nil nil))]
+                      nil))]
     (testing "non-multihash id"
-      (is (thrown? IllegalStateException
-                   (block/validate! (fix base :id "foo")))))
+      (is (thrown-with-msg? Exception #"id is not a multihash"
+            (block/validate! (fix base :id "foo")))))
     (testing "negative size"
-      (is (thrown? IllegalStateException
-                   (block/validate! (fix base :size -1)))))
+      (is (thrown-with-msg? Exception #"has an invalid size"
+            (block/validate! (fix base :size -1)))))
     (testing "invalid size"
-      (is (thrown? IllegalStateException
-                   (block/validate! (fix base :size 123)))))
+      (is (thrown-with-msg? Exception #"reports size 123 but has actual size 11"
+            (block/validate! (fix base :size 123)))))
     (testing "incorrect identifier"
-      (is (thrown? IllegalStateException
-                   (block/validate! (fix base :id (multihash/sha1 "qux"))))))
-    (testing "empty block"
-      (is (thrown? IOException
-                   (block/validate! (empty base)))))
+      (is (thrown-with-msg? Exception #"has mismatched id and content"
+            (block/validate! (fix base :id (multihash/sha1 "qux"))))))
     (testing "valid block"
-      (is (nil? (block/validate! base))))))
+      (is (true? (block/validate! base))))))
 
 
 
