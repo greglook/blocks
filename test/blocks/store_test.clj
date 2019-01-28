@@ -2,7 +2,7 @@
   (:require
     [blocks.data :as data]
     [blocks.store :as store]
-    [blocks.test-utils :refer [quiet-exception]]
+    [blocks.test-utils :refer [quiet-exception quiet-error-deferred]]
     [clojure.test :refer :all]
     [manifold.deferred :as d]
     [manifold.stream :as s]
@@ -155,7 +155,7 @@
     (is (thrown? RuntimeException
           @(store/zip-stores
              [{:result (d/success-deferred :a)}
-              {:result (d/error-deferred (quiet-exception))}
+              {:result (quiet-error-deferred)}
               {:result (d/success-deferred :c)}]
              :result))))
   (testing "some-store"
@@ -181,10 +181,10 @@
     (testing "errors"
       (is (= :a @(store/some-store
                    [{:result (d/success-deferred :a)}
-                    {:result (d/error-deferred (quiet-exception))}]
+                    {:result (quiet-error-deferred)}]
                    :result)))
       (is (thrown? RuntimeException
             @(store/some-store
                [{:result (d/success-deferred nil)}
-                {:result (d/error-deferred (quiet-exception))}]
+                {:result (quiet-error-deferred)}]
                :result))))))

@@ -1,4 +1,6 @@
-(ns blocks.test-utils)
+(ns blocks.test-utils
+  (:require
+    [manifold.deferred :as d]))
 
 
 (defn quiet-exception
@@ -9,3 +11,9 @@
   ([message]
    (doto (RuntimeException. ^String message)
      (.setStackTrace (into-array StackTraceElement [])))))
+
+
+(defn quiet-error-deferred
+  []
+  (doto (d/error-deferred (quiet-exception))
+    (d/error-value nil)))
