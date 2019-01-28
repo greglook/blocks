@@ -182,10 +182,16 @@
   [& streams]
   (if (= 1 (count streams))
     (first streams)
-    (let [intermediates (repeatedly (count streams) s/stream)
+    (let [intermediates (mapv
+                          (fn hook-up
+                            [a]
+                            (let [b (s/stream)]
+                              (s/connect-via
+                                a #(s/put! b %) b
+                                {:description {:op "merge-blocks"}})
+                              b))
+                          streams)
           out (s/stream)]
-      (doseq [[a b] (map vector streams intermediates)]
-        (s/connect-via a #(s/put! b %) b {:description {:op "merge-blocks"}}))
       (d/loop [inputs (map vector intermediates (repeat nil))]
         (d/chain
           ; Take the head value from each stream we don't already have.
@@ -208,13 +214,15 @@
             [inputs]
             (if (empty? inputs)
               ; Every input is drained.
-              (do (s/close! out) true)
+              (s/close! out)
               ; Check inputs for errors.
               (if-let [error (->> (map second inputs)
                                   (filter #(instance? Throwable %))
                                   (first))]
                 ; Propagate error.
-                (do (s/put! out error) false)
+                (d/finally
+                  (s/put! out error)
+                  #(s/close! out))
                 ; Determine the next block to output.
                 (let [earliest (first (sort-by :id (map second inputs)))]
                   (d/chain
@@ -238,41 +246,55 @@
   "Compare two block streams and generate a derived stream of the blocks in
   `source` which are not present in `dest`."
   [source dest]
-  (let [out (s/stream)]
+  (let [src (s/stream)
+        dst (s/stream)
+        out (s/stream)
+        close-all! (fn close-all!
+                     []
+                     (s/close! src)
+                     (s/close! dst)
+                     (s/close! out))]
+    (s/connect-via
+      source #(s/put! src %) src
+      {:description {:op "missing-blocks"}})
+    (s/connect-via
+      dest #(s/put! dst %) dst
+      {:description {:op "missing-blocks"}})
     (d/loop [s nil
              d nil]
       (d/chain
         (d/zip
           (if (nil? s)
-            (s/take! source ::drained)
+            (s/take! src ::drained)
             s)
           (if (nil? d)
-            (s/take! dest ::drained)
+            (s/take! dst ::drained)
             d))
         (fn compare-next
           [[s d]]
           (cond
             ; Source stream exhausted; terminate sequence.
             (identical? ::drained s)
-            (s/close! out)
+            (close-all!)
 
             ; Destination stream exhausted; return remaining blocks in source.
             (identical? ::drained d)
-            (d/finally
-              (s/drain-into source out)
-              #(s/close! out))
+            (-> (s/put! out s)
+                (d/chain
+                  (fn [_] (s/drain-into src out)))
+                (d/finally close-all!))
 
             ; Source threw an error; propagate it.
             (instance? Throwable s)
             (d/finally
               (s/put! out s)
-              #(s/close! out))
+              close-all!)
 
             ; Dest threw an error; propagate it.
             (instance? Throwable d)
             (d/finally
               (s/put! out d)
-              #(s/close! out))
+              close-all!)
 
             ; Block is present in both streams; drop and continue.
             (= (:id s) (:id d))

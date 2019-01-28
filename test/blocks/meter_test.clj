@@ -2,6 +2,7 @@
   (:require
     [blocks.data :as data]
     [blocks.meter :as meter]
+    [blocks.test-utils :refer [quiet-exception]]
     [clojure.test :refer :all]
     [manifold.deferred :as d]
     [manifold.stream :as s]))
@@ -66,13 +67,13 @@
     (let [store (recording-store)
           events (::events store)
           stream (s/stream 10)
-          metered (binding [meter/*io-report-period* 0.01]
+          metered (binding [meter/*io-report-period* 0.02]
                     (meter/measure-stream store ::flow {} stream))]
       (is (empty? @events))
       (s/consume any? metered)
       @(s/put! stream :x)
       @(s/put! stream :x)
-      (Thread/sleep 15)
+      (Thread/sleep 30)
       (is (= [{:type ::meter/list-stream
                :label "TestStore"
                :value 2}]
@@ -115,5 +116,5 @@
     (let [store (map->TestStore
                   {::meter/recorder
                    (fn [_ event]
-                     (throw (RuntimeException. "BOOM")))})]
+                     (throw (quiet-exception)))})]
       (is (nil? (#'meter/record! store :boom! 1 nil))))))
