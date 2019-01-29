@@ -157,12 +157,12 @@
               (d/success-deferred true)
 
               ; Drop blocks until an id later than `after`.
-              (and after (pos? (compare after hex)))
+              (and after (not (neg? (compare after hex))))
               (d/success-deferred true)
 
               ; Terminate the stream if block is later than `before` or `limit`
               ; blocks have already been returned.
-              (or (and before (neg? (compare before hex)))
+              (or (and before (not (pos? (compare before hex))))
                   (and (pos-int? limit) (< limit (swap! counter inc))))
               (do (s/close! out)
                   (d/success-deferred false))

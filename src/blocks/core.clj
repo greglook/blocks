@@ -391,7 +391,7 @@
   (meter/measure-method
     store :delete!
     {:block-id id}
-    (store/-delete! store id)))
+    (io! (store/-delete! store id))))
 
 
 
@@ -405,7 +405,7 @@
   omitted from the result."
   [store ids]
   (d/chain
-    (->> (set ids)
+    (->> (distinct ids)
          (map (partial get store))
          (apply d/zip))
     (fn omit-missing
