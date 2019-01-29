@@ -449,6 +449,25 @@
 
 ;; ## Storage Utilities
 
+(defn scan
+  "Scan blocks in the store, building up a summary. Returns a deferred which
+  yields the summary map when the scan is complete.
+
+  Accepts the same arguments as `list`, plus:
+
+  - `:filter`
+    A predicate function which will be used to filter blocks listed by the
+    store. By default, all blocks are included."
+  [store & opts]
+  (let [opts (args->map opts)]
+   (->
+     (list store (dissoc opts :filter))
+     (cond->>
+       (:filter opts) (s/filter (:filter opts)))
+     (->>
+       (s/reduce sum/update (sum/init))))))
+
+
 (defn erase!
   "Completely remove all data associated with the store. After this call, the
   store will be empty. Returns a deferred which yields true once the store has
@@ -468,21 +487,6 @@
         (list store)))))
 
 
-(defn scan
-  "Scan all the blocks in the store, building up a store-level summary. If
-  given, the predicate function will be called with each block in the store.
-  By default, all blocks are scanned."
-  ([store]
-   (scan store nil))
-  ([store p]
-   (->
-     (list-seq store)
-     (cond->>
-       p (filter p))
-     (->>
-       (reduce sum/update (sum/init))))))
-
-
 (defn sync!
   "Synchronize blocks from the `source` store to the `dest` store. Returns a
   summary of the copied blocks. Options may include:
@@ -491,23 +495,20 @@
     A function to run on every block before it is synchronized. The block will
     only be copied if the filter returns a truthy value."
   [source dest & opts]
-  (let [opts (args->map opts)]
-    (->
-      (io!
-        (store/missing-blocks
-          (store/-list source nil)
-          (store/-list dest nil)))
-      (cond->>
-        (:filter opts) (s/filter (:filter opts)))
-      (->>
-        (s/reduce
-          ; FIXME: s/reduce expects this to be synchronous
-          (fn copy-block
-            [summary block]
-            (prn summary block)
+  (let [opts (args->map opts)
+        stream (cond->> (io! (store/missing-blocks
+                               (store/-list source nil)
+                               (store/-list dest nil)))
+                 (:filter opts) (s/filter (:filter opts)))]
+    (d/loop [summary (sum/init)]
+      (d/chain'
+        (s/take! stream ::drained)
+        (fn copy-next
+          [block]
+          (if (identical? ::drained block)
+            summary
             (d/chain
               (put! dest block)
               (fn update-sum
                 [block']
-                (sum/update summary block'))))
-          (sum/init))))))
+                (d/recur (sum/update summary block'))))))))))

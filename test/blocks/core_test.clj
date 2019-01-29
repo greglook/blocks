@@ -3,7 +3,6 @@
     [blocks.core :as block]
     [blocks.data :as data]
     [blocks.store :as store]
-    [blocks.store.memory :refer [memory-block-store]]
     [blocks.test-utils :refer [quiet-exception quiet-error-deferred]]
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.java.io :as io]
@@ -109,6 +108,11 @@
 
 
 ;; ## Storage API
+
+(deftest store-construction
+  (is (satisfies? store/BlockStore (block/->store "mem:-")))
+  (is (thrown? Exception (block/->store "foo://x?z=1"))))
+
 
 (deftest list-wrapper
   (let [a (multihash/create :sha1 "37b51d194a7513e45b56f6524f2d51f200000000")
@@ -316,66 +320,102 @@
 
 
 
-;; ## Utility Tests
+;; ## Storage Utilities
 
-(deftest store-construction
-  (is (satisfies? store/BlockStore (block/->store "mem:-")))
-  (is (thrown? Exception (block/->store "foo://x?z=1"))))
+(deftest store-scan
+  (let [a (block/read! "foo")
+        b (block/read! "baz")
+        c (block/read! "bar")
+        d (block/read! "abcdef")
+        store (reify store/BlockStore
+                (-list
+                  [_ opts]
+                  (s/->source [a b c d])))]
+    (is (thrown? IllegalStateException
+          (dosync (block/scan store))))
+    (is (= {:count 4
+            :size 15
+            :sizes {2 3, 3 1}}
+           @(block/scan store)))
+    (is (= {:count 1
+            :size 6
+            :sizes {3 1}}
+           @(block/scan store :filter #(< 3 (:size %)))))))
 
 
-#_
+(deftest store-erasure
+  (let [a (block/read! "foo")
+        b (block/read! "baz")
+        c (block/read! "bar")
+        deleted (atom #{})
+        store (reify store/BlockStore
+                (-list
+                  [_ opts]
+                  (s/->source [a b c]))
+                (-delete!
+                  [_ id]
+                  (swap! deleted conj id)
+                  (d/success-deferred true)))]
+    (is (thrown? IllegalStateException
+          (dosync (block/erase! store))))
+    (is (true? @(block/erase! store)))
+    (is (= #{(:id a) (:id b) (:id c)} @deleted))))
+
+
 (deftest block-syncing
-  (let [block-a (block/read! "789")  ; 35a9
-        block-b (block/read! "123")  ; a665
-        block-c (block/read! "456")  ; b3a8
-        block-d (block/read! "ABC")] ; b5d4
+  (let [a (block/read! "789")  ; 35a9
+        b (block/read! "123")  ; a665
+        c (block/read! "456")  ; b3a8
+        d (block/read! "ABC")  ; b5d4
+        source-store (fn [& blocks]
+                       (reify store/BlockStore
+                         (-list
+                           [_ opts]
+                           (s/->source blocks))))
+        sink-store (fn [target & blocks]
+                     (reify store/BlockStore
+                       (-list
+                         [_ opts]
+                         (s/->source (vec blocks)))
+                       (-put!
+                         [_ block]
+                         (swap! target conj block)
+                         (d/success-deferred block))))]
+    (testing "io check"
+      (is (thrown? IllegalStateException
+            (dosync (block/sync! {} {})))))
     (testing "empty dest"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-b)
-                     (block/put! block-c))
-            dest (memory-block-store)]
-        (is (= 3 (count (block/list source))))
-        (is (empty? (block/list dest)))
-        (let [sync-summary (block/sync! source dest)]
+      (let [transferred (atom #{})
+            source (source-store a b c)
+            dest (sink-store transferred)]
+        (is (= 3 (count (block/list-seq source))))
+        (is (empty? @transferred))
+        (let [sync-summary @(block/sync! source dest)]
           (is (= 3 (:count sync-summary)))
           (is (= 9 (:size sync-summary))))
-        (is (= 3 (count (block/list source))))
-        (is (= 3 (count (block/list dest))))))
+        (is (= 3 (count (block/list-seq source))))
+        (is (= 3 (count @transferred)))))
     (testing "subset source"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-c))
-            dest (doto (memory-block-store)
-                   (block/put! block-a)
-                   (block/put! block-b)
-                   (block/put! block-c))
-            summary (block/sync! source dest)]
+      (let [transferred (atom #{})
+            source (source-store a c)
+            dest (sink-store transferred a b c)
+            summary @(block/sync! source dest)]
         (is (zero? (:count summary)))
         (is (zero? (:size summary)))
-        (is (= 2 (count (block/list source))))
-        (is (= 3 (count (block/list dest))))))
+        (is (= #{} @transferred))))
     (testing "mixed blocks"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-c))
-            dest (doto (memory-block-store)
-                   (block/put! block-b)
-                   (block/put! block-d))
-            summary (block/sync! source dest)]
+      (let [transferred (atom #{})
+            source (source-store a c)
+            dest (sink-store transferred b d)
+            summary @(block/sync! source dest)]
         (is (= 2 (:count summary)))
         (is (= 6 (:size summary)))
-        (is (= 2 (count (block/list source))))
-        (is (= 4 (count (block/list dest))))))
+        (is (= #{a c} @transferred))))
     (testing "filter logic"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-c))
-            dest (doto (memory-block-store)
-                   (block/put! block-b)
-                   (block/put! block-d))
-            summary (block/sync! source dest :filter (comp #{(:id block-c)} :id))]
+      (let [transferred (atom #{})
+            source (source-store a c)
+            dest (sink-store transferred b d)
+            summary @(block/sync! source dest :filter #(= (:id c) (:id %)))]
         (is (= 1 (:count summary)))
         (is (= 3 (:size summary)))
-        (is (= 2 (count (block/list source))))
-        (is (= 3 (count (block/list dest))))))))
+        (is (= #{c} @transferred))))))
