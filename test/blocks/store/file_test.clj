@@ -13,17 +13,6 @@
            (str "file-block-store." (System/currentTimeMillis))))
 
 
-(deftest conversion-tests
-  (testing "file->id"
-    (let [file->id @#'file/file->id]
-      (is (nil? (file->id nil nil))
-          "should return nil for nil files")
-      (is (nil? (file->id "foo/bar" (io/file "foo" "baz" "abc")))
-          "should return nil for non-child files")
-      (is (nil? (file->id "foo/bar" (io/file "foo" "bar" "1220" "ab" "0x" "123abc")))
-          "should return nil for non-hex files"))))
-
-
 #_
 (deftest file-listing
   (let [store (file-block-store (mk-tmpdir!))
@@ -43,5 +32,6 @@
 (deftest ^:integration check-behavior
   (let [tmpdir (mk-tmpdir!)]
     (test-harness/check-store
-      #(doto (file-block-store tmpdir)
-         (block/erase!)))))
+      #(let [store (file-block-store tmpdir)]
+         @(block/erase! store)
+         store))))
