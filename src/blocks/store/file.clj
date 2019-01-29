@@ -39,13 +39,14 @@
     java.time.Instant))
 
 
+;; ## Storage Layout
+
 (def layout-version
   "The current supported storage layout version."
-  "1")
+  "v1")
 
 
-
-;; ## Metadata
+;; ### Metadata
 
 (defn- meta-file
   "Construct the store-level metadata properties file from the store root."
@@ -77,8 +78,7 @@
     {:version layout-version}))
 
 
-
-;; ## Landing Area
+;; ### Landing Area
 
 (defn- landing-dir
   "Construct the landing directory from the store root."
@@ -98,16 +98,7 @@
       (.deleteOnExit))))
 
 
-(defn- rm-r
-  "Recursively removes a directory of files."
-  [^File path]
-  (when (.isDirectory path)
-    (run! rm-r (.listFiles path)))
-  (.delete path))
-
-
-
-;; ## Block Files
+;; ### Block Files
 
 (def ^:private prefix-length
   "Number of characters to use as a prefix for top-level directory names."
@@ -184,6 +175,81 @@
       (meta stats))))
 
 
+;; ### Initialization
+
+(defn- v0-subdir?
+  "True if the given directory is a v0 block subdirectory."
+  [^File subdir]
+  (and (.isDirectory subdir)
+       (= prefix-length (count (.getName subdir)))
+       (re-matches #"[0-9a-f]+" (.getName subdir))))
+
+
+(defn- migrate-v0!
+  "Migrate an existing v0 layout to v1."
+  [^File root]
+  (let [blocks (blocks-dir root)]
+    (.mkdirs blocks)
+    (run!
+      (fn move-block-dir
+        [^File subdir]
+        (when (v0-subdir? subdir)
+          (.renameTo subdir (io/file blocks (.getName subdir)))))
+      (.listFiles root))))
+
+
+(defn- initialize-layout!
+  "Initialize the block store layout by writing out metadata and pre-creating
+  some directories. Returns the layout meta-properties."
+  [store]
+  (let [^File root (:root store)]
+    (if (empty? (.listFiles root))
+      ; Root doesn't exist or is empty, so initialize the storage layout.
+      (do (.mkdirs (blocks-dir root))
+          (.mkdirs (landing-dir root))
+          (write-meta-properties root))
+      ; Try loading store metadata.
+      (let [properties (read-meta-properties root)]
+        (if (nil? properties)
+          ; No meta-properties file; check for v0 layout.
+          (do
+            ; Check for unknown file content in root.
+            (when-not (every? v0-subdir? (.listFiles root))
+              (throw (ex-info
+                       (str "Detected unknown files in block store at " root)
+                       {:files (vec (.listFiles root))})))
+            ; Possible v0 store. Abort unless configured to migrate.
+            (when-not (:auto-migrate? store)
+              (throw (ex-info
+                       (str "Detected v0 file block store layout at " root)
+                       {:root root})))
+            ; Migrate to v1 layout.
+            (log/warn "Automatically migrating file block store layout at"
+                      root "from v0 ->" layout-version)
+            (migrate-v0! root)
+            (.mkdirs (landing-dir root))
+            (write-meta-properties root))
+          ; Check for known layout version.
+          (let [version (:version properties)]
+            (when (not= layout-version version)
+              (throw (ex-info
+                       (str "Unknown storage layout version " (pr-str version)
+                            " does not match supported version "
+                            (pr-str layout-version))
+                       {:supported layout-version
+                        :properties properties})))
+            ; Layout matches the expected version.
+            properties))))))
+
+
+(defn- rm-r
+  "Recursively removes a directory of files."
+  [^File path]
+  (when (.isDirectory path)
+    (run! rm-r (.listFiles path)))
+  (.delete path))
+
+
 
 ;; ## File Store
 
@@ -196,18 +262,9 @@
 
   (start
     [this]
-    ; TODO: auto-migrate v0 layouts?
-    (let [properties (or (read-meta-properties root)
-                         (write-meta-properties root))
+    (let [properties (initialize-layout! this)
           version (:version properties)]
-      (when (not= layout-version version)
-        (throw (ex-info
-                 (str "Unknown storage layout version " (pr-str version)
-                      " does not match supported version "
-                      (pr-str layout-version))
-                 {:supported layout-version
-                  :properties properties})))
-      (log/debug "Using storage layout version" version)
+      ;(log/debug "Using storage layout version" version)
       (assoc this :version version)))
 
 
@@ -287,8 +344,8 @@
   (-erase!
     [this]
     (d/future
-      (rm-r (landing-dir root))
-      (rm-r (blocks-dir root))
+      (run! rm-r (.listFiles (landing-dir root)))
+      (run! rm-r (.listFiles (blocks-dir root)))
       true)))
 
 
