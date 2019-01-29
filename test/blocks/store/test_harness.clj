@@ -48,7 +48,7 @@
   of multihash ids to blocks."
   [store & {:keys [n max-size], :or {n 10, max-size 1024}}]
   (let [blocks (generate-blocks! n max-size)]
-    (block/put-batch! store (vals blocks))
+    @(block/put-batch! store (vals blocks))
     blocks))
 
 
@@ -208,66 +208,6 @@
     (dissoc model id)))
 
 
-(defop GetBlockBatch
-  [ids]
-
-  (gen-args
-    [blocks]
-    [(gen/fmap (comp set keys) (gen-sub-map blocks))])
-
-  (apply-op
-    [this store]
-    @(block/get-batch store ids))
-
-  (check
-    [this model result]
-    (is (coll? result))
-    (is (= (set (keep model ids))
-           (set result)))))
-
-
-(defop PutBlockBatch
-  [blocks]
-
-  (gen-args
-    [blocks]
-    [(gen/fmap (comp set vals) (gen-sub-map blocks))])
-
-  (apply-op
-    [this store]
-    @(block/put-batch! store blocks))
-
-  (check
-    [this model result]
-    (is (coll? result))
-    (is (= (set blocks) (set result))))
-
-  (update-model
-    [this model]
-    (into model (map (juxt :id identity) blocks))))
-
-
-(defop DeleteBlockBatch
-  [ids]
-
-  (gen-args
-    [blocks]
-    [(gen/fmap (comp set keys) (gen-sub-map blocks))])
-
-  (apply-op
-    [this store]
-    @(block/delete-batch! store ids))
-
-  (check
-    [this model result]
-    (is (set? result))
-    (is (= (set (filter (set ids) (keys model))) result)))
-
-  (update-model
-    [this model]
-    (apply dissoc model ids)))
-
-
 (defop EraseStore
   []
 
@@ -291,7 +231,7 @@
 
   (apply-op
     [this store]
-    @(block/scan store p))
+    @(block/scan store :filter p))
 
   (check
     [this model result]
@@ -365,19 +305,13 @@
 
 (def ^:private basic-op-generators
   (juxt gen->ListBlocks
-        ;gen->ScanStore
+        gen->ScanStore
         gen->StatBlock
         gen->GetBlock
         gen->OpenBlock
         gen->OpenBlockRange
         gen->PutBlock
         gen->DeleteBlock))
-
-
-(def ^:private batch-op-generators
-  (juxt gen->GetBlockBatch
-        gen->PutBlockBatch
-        gen->DeleteBlockBatch))
 
 
 (def ^:private erasable-op-generators
@@ -387,7 +321,6 @@
 (defn- join-generators
   [ks]
   (let [op-gens (keep {:basic basic-op-generators
-                       ;:batch batch-op-generators
                        :erase erasable-op-generators}
                       ks)]
     (fn [ctx]
@@ -447,7 +380,7 @@
   - `max-size`
     Maximum block size to generate, in bytes.
   - `operations`
-    Kinds of operations to test - vector of `:basic`, `:batch`, `:erase`.
+    Kinds of operations to test - vector of `:basic`, `:erase`.
   - `concurrency`
     Maximum number of threads of operations to generate.
   - `iterations`
