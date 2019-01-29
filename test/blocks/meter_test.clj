@@ -74,10 +74,17 @@
       @(s/put! stream :x)
       @(s/put! stream :x)
       (Thread/sleep 30)
-      (is (= [{:type ::meter/list-stream
-               :label "TestStore"
-               :value 2}]
-             @events))
+      (is (or (= [{:type ::meter/list-stream
+                   :label "TestStore"
+                   :value 2}]
+                 @events)
+              (= [{:type ::meter/list-stream
+                   :label "TestStore"
+                   :value 1}
+                  {:type ::meter/list-stream
+                   :label "TestStore"
+                   :value 1}]
+                 @events)))
       (reset! events [])
       @(s/put! stream :x)
       (s/close! stream)
