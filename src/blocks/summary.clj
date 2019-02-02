@@ -43,6 +43,8 @@
 (defn update
   "Update the storage summary with the stats from the given block."
   [summary block]
+  (when (instance? Throwable block)
+    (throw block))
   (-> summary
       (clojure.core/update :count inc)
       (clojure.core/update :size + (:size block))

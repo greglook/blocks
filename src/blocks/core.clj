@@ -460,12 +460,12 @@
     store. By default, all blocks are included."
   [store & opts]
   (let [opts (args->map opts)]
-   (->
-     (list store (dissoc opts :filter))
-     (cond->>
-       (:filter opts) (s/filter (:filter opts)))
-     (->>
-       (s/reduce sum/update (sum/init))))))
+    (->
+      (list store (dissoc opts :filter))
+      (cond->>
+        (:filter opts) (s/filter (:filter opts)))
+      (->>
+        (s/reduce sum/update (sum/init))))))
 
 
 (defn erase!
@@ -481,15 +481,19 @@
       (meter/measure-method
         store :erase! nil
         (store/-erase! store))
-      ; TODO: should be able to parallelize this, actually - how to communicate errors?
+      ; TODO: should be able to parallelize this - how to communicate errors?
       (s/consume-async
-        (comp (partial delete! store) :id)
+        (fn erase-block
+          [block]
+          (when (instance? Throwable block)
+            (throw block))
+          (delete! store (:id block)))
         (list store)))))
 
 
 (defn sync!
   "Synchronize blocks from the `source` store to the `dest` store. Returns a
-  summary of the copied blocks. Options may include:
+  deferred which yields a summary of the copied blocks. Options may include:
 
   - `:filter`
     A function to run on every block before it is synchronized. The block will
@@ -505,8 +509,14 @@
         (s/take! stream ::drained)
         (fn copy-next
           [block]
-          (if (identical? ::drained block)
+          (cond
+            (identical? ::drained block)
             summary
+
+            (instance? Throwable block)
+            (throw block)
+
+            :else
             (d/chain
               (put! dest block)
               (fn update-sum
