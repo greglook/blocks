@@ -25,6 +25,9 @@
   {:default (complement :integration)
    :integration :integration}
 
+  :cloverage
+  {:ns-exclude-regex [#"blocks\.store\.test"]}
+
   :hiera
   {:cluster-depth 2
    :vertical false
@@ -42,7 +45,8 @@
 
   :profiles
   {:dev
-   {:dependencies
+   {:source-paths ["blocks-test/src"]
+    :dependencies
     [[org.clojure/test.check "0.9.0"]
      [commons-logging "1.2"]
      [mvxcvi/puget "1.1.0"]

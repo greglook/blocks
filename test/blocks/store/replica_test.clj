@@ -3,7 +3,7 @@
     [blocks.core :as block]
     [blocks.store.memory :refer [memory-block-store]]
     [blocks.store.replica :refer [replica-block-store]]
-    [blocks.store.test-harness :as test-harness]
+    [blocks.store.test :as bst]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]))
 
@@ -42,7 +42,7 @@
 
 #_
 (deftest ^:integration check-behavior
-  (test-harness/check-store
+  (bst/check-store
     #(replica-block-store
        [:a :b]
        :a (memory-block-store)

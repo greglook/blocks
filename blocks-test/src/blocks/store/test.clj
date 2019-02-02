@@ -1,6 +1,6 @@
-(ns blocks.store.test-harness
-  "Suite of tests to verify that a given block store implementation conforms to
-  the spec."
+(ns blocks.store.test
+  "Suite of generative behavioral tests to verify that a given block store
+  implementation conforms to the spec."
   (:require
     [alphabase.bytes :refer [bytes= random-bytes]]
     [alphabase.hex :as hex]
@@ -360,7 +360,7 @@
 
 (def ^:private print-handlers
   {Multihash (puget/tagged-handler 'multi/hash str)
-   ;Block (puget/tagged-handler 'blocks.data.Block (partial into {}))
+   Block (puget/tagged-handler 'blocks/block (juxt :id :size :stored-at))
    (class (byte-array 0)) (puget/tagged-handler 'data/bytes alphabase.hex/encode)})
 
 
@@ -422,6 +422,6 @@
   [constructor]
   (check-store*
     constructor
-    {:operations [:basic :batch :erase]
+    {:operations [:basic :erase]
      :concurrency 1
      :repetitions 1}))
