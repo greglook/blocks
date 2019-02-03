@@ -59,7 +59,7 @@
    {:jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
 
    :coverage
-   {:plugins [[lein-cloverage "1.0.13"]]
-    :dependencies [[riddley "0.2.0"]]
+   {:plugins [[org.clojure/clojure "1.10.0"]
+              [lein-cloverage "1.0.13"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
