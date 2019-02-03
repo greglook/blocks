@@ -26,7 +26,7 @@
    :integration :integration}
 
   :cloverage
-  {:ns-exclude-regex [#"blocks\.store\.test"]}
+  {:ns-exclude-regex [#"blocks\.store\.tests"]}
 
   :hiera
   {:cluster-depth 2

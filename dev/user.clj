@@ -10,7 +10,7 @@
     [blocks.store.file :refer [file-block-store]]
     [blocks.store.memory :refer [memory-block-store]]
     [blocks.store.replica :refer [replica-block-store]]
-    [blocks.store.test-harness :as tests]
+    [blocks.store.tests :as tests]
     [clojure.java.io :as io]
     [clojure.repl :refer :all]
     [clojure.stacktrace :refer [print-cause-trace]]
@@ -31,4 +31,4 @@
 
 (def tbs
   "Temporary block store in target."
-  (component/start (file-block-store "target/blocks")))
+  (component/start (file-block-store "target/blocks" :auto-migrate? true)))
