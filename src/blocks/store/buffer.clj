@@ -8,15 +8,33 @@
     [blocks.core :as block]
     [blocks.store :as store]
     [blocks.summary :as sum]
+    [com.stuartsierra.component :as component]
     [manifold.deferred :as d]
     [manifold.stream :as s]))
 
 
 (defrecord BufferBlockStore
-  [max-block-size buffer primary]
+  [primary buffer predicate]
 
-  ; TODO: support generalized buffer predicate?
-  ; TODO: check that buffer and primary are set on start?
+  component/Lifecycle
+
+  (start
+    [this]
+    (when-not (satisfies? store/BlockStore primary)
+      (throw (IllegalStateException.
+               (str "Buffer block store cannot start without a primary block store: "
+                    (pr-str primary)))))
+    (when-not (satisfies? store/BlockStore buffer)
+      (throw (IllegalStateException.
+               (str "Buffer block store cannot start without a buffer block store: "
+                    (pr-str buffer)))))
+    this)
+
+
+  (stop
+    [this]
+    this)
+
 
   store/BlockStore
 
@@ -42,10 +60,9 @@
     (d/chain
       (block/get primary (:id block))
       (fn store-block
-        [block]
-        (or block
-            (if (or (nil? max-block-size)
-                    (<= (:size block) max-block-size))
+        [stored]
+        (or stored
+            (if (or (nil? predicate) (predicate block))
               (block/put! buffer block)
               (block/put! primary block))))))
 
@@ -108,8 +125,8 @@
     Block store to use for new writes.
   - `:primary`
     Block store to use for flushed blocks.
-  - `:max-block-size`
-    Blocks over this size will not be buffered and will be written to the
-    primary directly."
+  - `:predicate` (optional)
+    A predicate function which should return false for blocks which should not
+    be buffered; instead, they will be written directly to the primary store."
   [& {:as opts}]
   (map->BufferBlockStore opts))
