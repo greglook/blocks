@@ -122,7 +122,10 @@
     (sort)
     (cond->>
       after
-      (drop-while #(nat-int? (compare after (.getName ^File %)))))
+      (drop-while
+        #(let [subdirname (.getName ^File %)
+               len (min (count after) (count subdirname))]
+           (pos? (compare (subs after 0 len) (subs subdirname 0 len))))))
     (->>
       (mapcat
         (fn list-blocks
@@ -223,7 +226,7 @@
                        {:root root})))
             ; Migrate to v1 layout.
             (log/warn "Automatically migrating file block store layout at"
-                      root "from v0 ->" layout-version)
+                      (.getPath root) "from v0 ->" layout-version)
             (migrate-v0! root)
             (write-meta-properties root))
           ; Check for known layout version.
@@ -274,7 +277,7 @@
 
   (-list
     [this opts]
-    (let [out (s/stream)]
+    (let [out (s/stream 1000)]
       (store/future'
         (try
           (loop [files (block-files root (:after opts))]
