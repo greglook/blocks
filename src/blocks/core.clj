@@ -371,7 +371,7 @@
   ([store source algorithm]
    (d/chain
      (io!
-       (d/future
+       (store/future'
          (if (instance? File source)
            (from-file source algorithm)
            (read! source algorithm))))
@@ -485,9 +485,9 @@
       (s/consume-async
         (fn erase-block
           [block]
-          (when (instance? Throwable block)
-            (throw block))
-          (delete! store (:id block)))
+          (if (instance? Throwable block)
+            (d/error-deferred block)
+            (delete! store (:id block))))
         (list store)))))
 
 
@@ -514,7 +514,7 @@
             summary
 
             (instance? Throwable block)
-            (throw block)
+            (d/error-deferred block)
 
             :else
             (d/chain
