@@ -22,11 +22,11 @@
     [this]
     (when-not (satisfies? store/BlockStore primary)
       (throw (IllegalStateException.
-               (str "Buffer block store cannot start without a primary block store: "
+               (str "Cannot start buffer block store without a backing primary store: "
                     (pr-str primary)))))
     (when-not (satisfies? store/BlockStore buffer)
       (throw (IllegalStateException.
-               (str "Buffer block store cannot start without a buffer block store: "
+               (str "Cannot start buffer block store without a backing buffer store: "
                     (pr-str buffer)))))
     this)
 
@@ -79,7 +79,8 @@
 
 
 (defn clear!
-  "Removes all blocks from the buffer. Returns a summary of the deleted blocks."
+  "Remove all blocks from the buffer. Returns a deferred which yields a summary
+  of the deleted blocks."
   [store]
   (d/chain
     (s/reduce
@@ -94,8 +95,8 @@
 
 
 (defn flush!
-  "Flushes the store, writing all buffered blocks to the backing store. Returns
-  a summary of the flushed blocks."
+  "Flush the store, writing all buffered blocks to the primary store. Returns a
+  deferred which yields a summary of the flushed blocks."
   [store]
   (->>
     (block/list (:buffer store))
@@ -119,7 +120,7 @@
 
 
 (defn buffer-block-store
-  "Creates a new buffering block store.
+  "Create a new buffering block store.
 
   - `:buffer`
     Block store to use for new writes.
