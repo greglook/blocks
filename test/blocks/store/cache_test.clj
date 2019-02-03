@@ -4,7 +4,7 @@
     [blocks.store :as store]
     [blocks.store.cache :as cache :refer [caching-block-store]]
     [blocks.store.memory :refer [memory-block-store]]
-    [blocks.store.test :as bst]
+    [blocks.store.tests :as bst]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]))
 

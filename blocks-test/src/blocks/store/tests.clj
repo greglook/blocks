@@ -1,4 +1,4 @@
-(ns blocks.store.test
+(ns blocks.store.tests
   "Suite of generative behavioral tests to verify that a given block store
   implementation conforms to the spec."
   (:require

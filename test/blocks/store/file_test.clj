@@ -2,7 +2,7 @@
   (:require
     [blocks.core :as block]
     [blocks.store.file :as file :refer [file-block-store]]
-    [blocks.store.test :as bst]
+    [blocks.store.tests :as bst]
     [clojure.java.io :as io]
     [clojure.test :refer :all]))
 

@@ -3,7 +3,7 @@
     [blocks.core :as block]
     [blocks.store.memory :refer [memory-block-store]]
     [blocks.store.replica :refer [replica-block-store]]
-    [blocks.store.test :as bst]
+    [blocks.store.tests :as bst]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]))
 
