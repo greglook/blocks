@@ -119,7 +119,54 @@
 
 
 
-;; ## Implementation Utilities
+;; ## Async Utilities
+
+(defn ^:no-doc schedule-future!
+  "A helper for the `future` macro which wraps some submission logic in a
+  common function."
+  [d body-fn]
+  (manifold.utils/future-with
+    (manifold.executor/execute-pool)
+    (when-not (d/realized? d)
+      (try
+        (d/success! d (body-fn))
+        (catch Throwable ex
+          (d/error! d ex))))))
+
+
+(defmacro future'
+  "Alternative to `d/future` that has better coverage."
+  [& body]
+  `(let [d# (d/deferred)]
+     (schedule-future! d# (fn future# [] ~@body))
+     d#))
+
+
+(defn zip-stores
+  "Apply a function to each of the given block stores in parallel. Returns a
+  deferred which yields the vector of results."
+  [stores f & args]
+  (apply d/zip (map #(apply f % args) stores)))
+
+
+(defn some-store
+  "Apply a function to each of the given block stores in order until one
+  returns a non-nil result. Returns a deferred which yields the result, or nil
+  if all stores returned nil."
+  [stores f & args]
+  (d/loop [stores stores]
+    (when-let [store (first stores)]
+      (d/chain
+        (apply f store args)
+        (fn check-result
+          [result]
+          (if (nil? result)
+            (d/recur (rest stores))
+            result))))))
+
+
+
+;; ## Stream Utilities
 
 (defn preferred-block
   "Choose among multiple blocks to determine the optimal one to use for
@@ -313,26 +360,3 @@
             :else
             (d/recur s nil)))))
     (s/source-only out)))
-
-
-(defn zip-stores
-  "Apply a function to each of the given block stores in parallel. Returns a
-  deferred which yields the vector of results."
-  [stores f & args]
-  (apply d/zip (map #(apply f % args) stores)))
-
-
-(defn some-store
-  "Apply a function to each of the given block stores in order until one
-  returns a non-nil result. Returns a deferred which yields the result, or nil
-  if all stores returned nil."
-  [stores f & args]
-  (d/loop [stores stores]
-    (when-let [store (first stores)]
-      (d/chain
-        (apply f store args)
-        (fn check-result
-          [result]
-          (if (nil? result)
-            (d/recur (rest stores))
-            result))))))

@@ -205,9 +205,7 @@
   (let [^File root (:root store)]
     (if (empty? (.listFiles root))
       ; Root doesn't exist or is empty, so initialize the storage layout.
-      (do (.mkdirs (blocks-dir root))
-          (.mkdirs (landing-dir root))
-          (write-meta-properties root))
+      (write-meta-properties root)
       ; Try loading store metadata.
       (let [properties (read-meta-properties root)]
         (if (nil? properties)
@@ -227,7 +225,6 @@
             (log/warn "Automatically migrating file block store layout at"
                       root "from v0 ->" layout-version)
             (migrate-v0! root)
-            (.mkdirs (landing-dir root))
             (write-meta-properties root))
           ; Check for known layout version.
           (let [version (:version properties)]
@@ -278,7 +275,7 @@
   (-list
     [this opts]
     (let [out (s/stream)]
-      (d/future
+      (store/future'
         (try
           (loop [files (block-files root (:after opts))]
             (when-let [file (first files)]
@@ -301,7 +298,7 @@
 
   (-stat
     [this id]
-    (d/future
+    (store/future'
       (let [file (id->file root id)]
         (when (.exists file)
           (assoc (file-stats file) :id id)))))
@@ -309,7 +306,7 @@
 
   (-get
     [this id]
-    (d/future
+    (store/future'
       (let [file (id->file root id)]
         (when (.exists file)
           (file->block id file)))))
@@ -317,7 +314,7 @@
 
   (-put!
     [this block]
-    (d/future
+    (store/future'
       (let [id (:id block)
             file (id->file root id)]
         (when-not (.exists file)
@@ -332,7 +329,7 @@
 
   (-delete!
     [this id]
-    (d/future
+    (store/future'
       (let [file (id->file root id)]
         (if (.exists file)
           (do (.delete file) true)
@@ -343,9 +340,9 @@
 
   (-erase!
     [this]
-    (d/future
-      (run! rm-r (.listFiles (landing-dir root)))
-      (run! rm-r (.listFiles (blocks-dir root)))
+    (store/future'
+      (rm-r (landing-dir root))
+      (rm-r (blocks-dir root))
       true)))
 
 

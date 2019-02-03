@@ -57,7 +57,7 @@
   (-put!
     [this block]
     (let [id (:id block)]
-      (d/future
+      (store/future'
         (dosync
           (if-let [extant (get @memory id)]
             extant
@@ -68,7 +68,7 @@
 
   (-delete!
     [this id]
-    (d/future
+    (store/future'
       (dosync
         (let [existed? (contains? @memory id)]
           (alter memory dissoc id)
@@ -79,7 +79,7 @@
 
   (-erase!
     [this]
-    (d/future
+    (store/future'
       (dosync
         (alter memory empty)
         true))))
