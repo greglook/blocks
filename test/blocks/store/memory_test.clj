@@ -1,9 +1,9 @@
 (ns blocks.store.memory-test
   (:require
     [blocks.store.memory :refer [memory-block-store]]
-    [blocks.store.tests :as bst]
+    [blocks.store.tests :as tests]
     [clojure.test :refer :all]))
 
 
 (deftest ^:integration check-behavior
-  (bst/check-store memory-block-store))
+  (tests/check-store memory-block-store))

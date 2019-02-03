@@ -3,7 +3,7 @@
     [blocks.core :as block]
     [blocks.store.buffer :refer [buffer-block-store] :as buffer]
     [blocks.store.memory :refer [memory-block-store]]
-    [blocks.store.tests :as bst]
+    [blocks.store.tests :as tests]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]))
 
@@ -69,7 +69,7 @@
 
 
 (deftest ^:integration check-behavior
-  (bst/check-store
+  (tests/check-store
     #(buffer-block-store
        :primary (memory-block-store)
        :buffer (memory-block-store))))

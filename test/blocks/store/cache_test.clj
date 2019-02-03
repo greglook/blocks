@@ -4,7 +4,7 @@
     [blocks.store :as store]
     [blocks.store.cache :as cache :refer [caching-block-store]]
     [blocks.store.memory :refer [memory-block-store]]
-    [blocks.store.tests :as bst]
+    [blocks.store.tests :as tests]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]))
 
@@ -43,7 +43,7 @@
 
 (deftest extant-cache-contents
   (let [store (new-cache 1024)
-        blocks (bst/populate-blocks! (:cache store) :max-size 64)
+        blocks (tests/populate-blocks! (:cache store) :max-size 64)
         store' (component/start store)]
     (is (every? #(deref (block/stat (:cache store) %)) (keys blocks))
         "all blocks should still be present in store")
@@ -53,7 +53,7 @@
 
 (deftest space-reaping
   (let [store (new-cache 1024)
-        blocks (bst/populate-blocks! (:cache store) :n 32)
+        blocks (tests/populate-blocks! (:cache store) :n 32)
         store (component/start store)]
     (is (< 1024 (:total-size @(:state store)))
         "has more than size-limit blocks cached")
@@ -91,7 +91,7 @@
 
 
 (deftest ^:integration check-behavior
-  (bst/check-store
+  (tests/check-store
     #(caching-block-store 2048
        :predicate (fn [block] (< (:size block) 512))
        :primary (memory-block-store)

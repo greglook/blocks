@@ -2,7 +2,7 @@
   (:require
     [blocks.core :as block]
     [blocks.store.file :as file :refer [file-block-store]]
-    [blocks.store.tests :as bst]
+    [blocks.store.tests :as tests]
     [clojure.java.io :as io]
     [clojure.test :refer :all]))
 
@@ -31,7 +31,7 @@
 
 (deftest ^:integration check-behavior
   (let [tmpdir (mk-tmpdir!)]
-    (bst/check-store
+    (tests/check-store
       #(let [store (file-block-store tmpdir)]
          @(block/erase! store)
          store))))
