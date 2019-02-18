@@ -7,24 +7,26 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-**This is a major release with a rewritten storage interface.** As a result,
-much of the library's API has shifted to accommodate - the core concepts are the
-same, but now stores and IO are represented as asynchronous processes using
+**This is a major release with a rewritten storage interface.** Much of the
+library's API has changed slightly - the core concepts are the same, but now
+storage interactions are represented as asynchronous processes using
 [manifold](//github.com/ztellman/manifold). Please read the notes here
-carefully.
+carefully!
 
 ### Block Changes
 
-The first major change is that block values are no longer map-like! They behave
-more like opaque types now. Mixing in extra attributes led to some confusing
-usage in practice; for example, the extra attributes affected equality like a
-record, meaning you couldn't check blocks for equality simply.  Blocks do still
-support metadata, so any additional information can be associated that way.
+The first major change is that block values are no longer open maps - they
+behave more like opaque types now. Mixing in extra attributes led to some
+confusing usage in practice; one example was the way extra attributes affected
+equality, meaning you could not test blocks directly for content matches.
+Blocks do still support metadata, so any additional information can still be
+associated that way.
 
 Second, this version upgrades from the `mvxcvi/multihash` library to the unified
-`mvxcvi/multiformats` code. This changes the type of a block `:id` to
-`multiformats.hash.Multihash`, but otherwise the multihashes have the same
-semantics and should behave the same way they did before.
+`mvxcvi/multiformats` code. This changes the type of a block `:id` from
+`multihash.core.Multihash` to `multiformats.hash.Multihash`, but otherwise the
+identifiers have the same semantics and should behave the same way they did
+before.
 
 Blocks also have a new first-class attribute `:stored-at` which is a
 `java.time.Instant` reflecting the time they were persisted. This does not
@@ -32,13 +34,13 @@ affect block equality or hashing, but is generally useful for auditing. It
 _does_ impact sorting, so that earlier copies of the same block sort before
 older ones.
 
-Finally, block content is no longer represented by separate `reader` or
-`content` fields on the block. Now the `content` field is expected to contain an
-implementation of the new `blocks.data/ContentReader` protocol. This has been
-extended by default to the current `PersistentBytes` values and the "reader
-function" approach for lazy blocks. The protocol provides block stores to
-provide an efficient mechanism for reading a sub-range of the block content, and
-will be useful for any future extensions.
+Finally, block content is no longer represented by separate `reader` and
+`content` fields on the block. Now the `content` field contains an
+implementation of the new `blocks.data/ContentReader` protocol. This is
+implemented for the current `PersistentBytes` values and the "reader function"
+approach for lazy blocks. The protocol allows block stores to provide an
+efficient mechanism for reading a sub-range of the block content, and will be
+useful for any future customizations.
 
 ### Storage API Changes
 
@@ -50,10 +52,12 @@ manifold deferred values instead of blocking.
 Similarly, the `list` store method now returns a manifold stream instead of a
 lazy sequence. An asynchronous process places _blocks_ on this stream for
 consumption - previously, this was simple stat metadata. If an error occurs, the
-store should place the exception on the stream and close it. The `list-seq`
-wrapper returns a lazy sequence consuming from this stream. The `list` and
-`list-seq` query also accepts a `:before` hex string now to halt enumeration at
-a certain point.
+store should place the exception on the stream and close it. Existing consumers
+can use the `list-seq` wrapper, which returns a lazy sequence consuming from
+this stream and behaves similarly to the old list method.
+The `list` and `list-seq` query parameters now also accept a `:before` hex
+string (in addition to the current `:after`) to halt enumeration at a certain
+point.
 
 The `blocks.store/BatchStore` protocol has been removed. It was never used in
 practice and few backends could ensure atomicity. Instead, the batch methods are
