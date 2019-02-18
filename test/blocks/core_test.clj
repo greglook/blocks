@@ -3,72 +3,83 @@
     [blocks.core :as block]
     [blocks.data :as data]
     [blocks.store :as store]
-    [blocks.store.memory :refer [memory-block-store]]
+    [blocks.test-utils :refer [quiet-exception quiet-error-deferred]]
     [byte-streams :as bytes :refer [bytes=]]
     [clojure.java.io :as io]
     [clojure.test :refer :all]
-    [multihash.core :as multihash]
-    [multihash.digest :as digest])
+    [manifold.deferred :as d]
+    [manifold.stream :as s]
+    [multiformats.hash :as multihash])
   (:import
     blocks.data.Block
     (java.io
       ByteArrayOutputStream
+      File
       InputStream
       IOException)))
 
 
 ;; ## IO Tests
 
-(deftest block-input-stream
+(deftest block-io
+  (testing "from-file"
+    (is (thrown? IllegalStateException
+          (dosync (block/from-file "README.md"))))
+    (is (nil? (block/from-file "not/a-real/file.txt")))
+    (let [tmp-dir (doto (io/file "target" "test" "tmp")
+                    (.mkdirs))
+          tmp (doto (File/createTempFile "input" ".tmp" tmp-dir)
+                (.deleteOnExit))]
+      (is (nil? (block/from-file tmp))
+          "empty file should return nil"))
+    (let [block (block/from-file "README.md")]
+      (is (pos? (:size block)))
+      (is (block/lazy? block))))
+  (testing "reading"
+    (is (thrown? IllegalStateException
+          (dosync (block/read! "foo bar baz"))))
+    (is (nil? (block/read! (byte-array 0)))
+        "empty content reads into nil block"))
+  (testing "writing"
+    (let [block (block/read! "frobblenitz")
+          baos (ByteArrayOutputStream.)]
+      (is (thrown? IllegalStateException
+            (dosync (block/write! block baos))))
+      (block/write! block baos)
+      (is (bytes= "frobblenitz" (.toByteArray baos)))))
+  (testing "loading"
+    (let [lazy-readme (block/from-file "README.md")
+          loaded-readme (block/load! lazy-readme)]
+      (is (thrown? IllegalStateException
+            (dosync (block/load! lazy-readme))))
+      (is (block/loaded? loaded-readme)
+          "load returns loaded block for lazy block")
+      (is (identical? loaded-readme (block/load! loaded-readme))
+          "load returns loaded block unchanged")
+      (is (bytes= (block/open loaded-readme)
+                  (block/open lazy-readme))
+          "loaded block content should match lazy block"))))
+
+
+(deftest block-opening
   (testing "ranged open validation"
     (let [block (block/read! "abcdefg")]
-      (is (thrown? IllegalArgumentException (block/open block nil 4)))
-      (is (thrown? IllegalArgumentException (block/open block -1 4)))
-      (is (thrown? IllegalArgumentException (block/open block 0 nil)))
-      (is (thrown? IllegalArgumentException (block/open block 0 -1)))
-      (is (thrown? IllegalArgumentException (block/open block 3 1)))
-      (is (thrown? IllegalArgumentException (block/open block 0 10)))))
-  (testing "empty block"
-    (let [block (empty (block/read! "abc"))]
-      (is (thrown? IOException (block/open block))
-          "full open should throw exception")
-      (is (thrown? IOException (block/open block 0 3))
-          "ranged open should throw exception")))
+      (is (thrown? IllegalArgumentException (block/open block {:start -1, :end 4})))
+      (is (thrown? IllegalArgumentException (block/open block {:start 0, :end -1})))
+      (is (thrown? IllegalArgumentException (block/open block {:start 3, :end 1})))
+      (is (thrown? IllegalArgumentException (block/open block {:start 0, :end 10})))))
   (testing "loaded block"
     (let [block (block/read! "the old dog jumped")]
       (is (= "the old dog jumped" (slurp (block/open block))))
-      (is (= "old dog" (slurp (block/open block 4 11))))))
+      (is (= "the old" (slurp (block/open block {:end 7}))))
+      (is (= "old dog" (slurp (block/open block {:start 4, :end 11}))))
+      (is (= "jumped" (slurp (block/open block {:start 12}))))))
   (testing "lazy block"
     (let [block (block/from-file "README.md")
           readme (slurp (block/open block))]
       (is (true? (block/lazy? block)) "file blocks should be lazy")
       (is (string? readme))
-      (is (= (subs readme 10 20) (slurp (block/open block 10 20)))))))
-
-
-(deftest block-reading
-  (testing "block construction"
-    (is (nil? (block/read! (byte-array 0)))
-        "empty content reads into nil block")))
-
-
-(deftest block-writing
-  (let [block (block/read! "frobblenitz")
-        baos (ByteArrayOutputStream.)]
-    (block/write! block baos)
-    (is (bytes= "frobblenitz" (.toByteArray baos)))))
-
-
-(deftest block-loading
-  (let [lazy-readme (block/from-file "README.md")
-        loaded-readme (block/load! lazy-readme)]
-    (is (not (block/lazy? loaded-readme))
-        "load returns loaded block for lazy block")
-    (is (identical? loaded-readme (block/load! loaded-readme))
-        "load returns loaded block unchanged")
-    (is (bytes= (block/open loaded-readme)
-                (block/open lazy-readme))
-        "loaded block content should match lazy block")))
+      (is (= (subs readme 10 20) (slurp (block/open block {:start 10, :end 20})))))))
 
 
 (deftest block-validation
@@ -76,39 +87,45 @@
         fix (fn [b k v]
               (Block. (if (= k :id)      v (:id b))
                       (if (= k :size)    v (:size b))
+                      (:stored-at b)
                       (if (= k :content) v (.content b))
-                      nil nil))]
+                      nil))]
     (testing "non-multihash id"
-      (is (thrown? IllegalStateException
-                   (block/validate! (fix base :id "foo")))))
+      (is (thrown-with-msg? Exception #"id is not a multihash"
+            (block/validate! (fix base :id "foo")))))
     (testing "negative size"
-      (is (thrown? IllegalStateException
-                   (block/validate! (fix base :size -1)))))
+      (is (thrown-with-msg? Exception #"has an invalid size"
+            (block/validate! (fix base :size -1)))))
     (testing "invalid size"
-      (is (thrown? IllegalStateException
-                   (block/validate! (fix base :size 123)))))
+      (is (thrown-with-msg? Exception #"reports size 123 but has actual size 11"
+            (block/validate! (fix base :size 123)))))
     (testing "incorrect identifier"
-      (is (thrown? IllegalStateException
-                   (block/validate! (fix base :id (digest/sha1 "qux"))))))
-    (testing "empty block"
-      (is (thrown? IOException
-                   (block/validate! (empty base)))))
+      (is (thrown-with-msg? Exception #"has mismatched id and content"
+            (block/validate! (fix base :id (multihash/sha1 "qux"))))))
     (testing "valid block"
-      (is (nil? (block/validate! base))))))
+      (is (true? (block/validate! base))))))
 
 
 
-;; ## Storage Tests
+;; ## Storage API
+
+(deftest store-construction
+  (is (satisfies? store/BlockStore (block/->store "mem:-")))
+  (is (thrown? Exception (block/->store "foo://x?z=1"))))
+
 
 (deftest list-wrapper
-  (let [store (reify store/BlockStore (-list [_ opts] opts))]
-    (testing "opts-map conversion"
-      (is (nil? (block/list store))
-          "no arguments should return nil options map")
-      (is (= {:limit 20} (block/list store {:limit 20}))
-          "single map argument should pass map")
-      (is (= {:limit 20} (block/list store :limit 20))
-          "multiple args should convert into hash map"))
+  (let [a (multihash/create :sha1 "37b51d194a7513e45b56f6524f2d51f200000000")
+        b (multihash/create :sha1 "73fcffa4b7f6bb68e44cf984c85f6e888843d7f9")
+        c (multihash/create :sha1 "acbd18db4cc2f856211de9ecedef654fccc4a4d8")
+        d (multihash/create :sha2-256 "285c3c23d662b5ef7172373df0963ff4ce003206")
+        store (reify store/BlockStore
+                (-list
+                  [_ opts]
+                  (s/->source [{:id a} {:id b} {:id c} {:id d}])))]
+    (testing "io check"
+      (is (thrown? IllegalStateException
+            (dosync (block/list store)))))
     (testing "option validation"
       (is (thrown-with-msg?
             IllegalArgumentException #":foo"
@@ -123,68 +140,154 @@
             IllegalArgumentException #":after .+ hex string.+ \"123abx\""
             (block/list store :after "123abx")))
       (is (thrown-with-msg?
+            IllegalArgumentException #":before .+ hex string.+ 123"
+            (block/list store :before 123)))
+      (is (thrown-with-msg?
+            IllegalArgumentException #":before .+ hex string.+ \"123abx\""
+            (block/list store :before "123abx")))
+      (is (thrown-with-msg?
             IllegalArgumentException #":limit .+ positive integer.+ :xyz"
             (block/list store :limit :xyz)))
       (is (thrown-with-msg?
             IllegalArgumentException #":limit .+ positive integer.+ 0"
-            (block/list store :limit 0)))
-      (is (= {:algorithm :sha1, :after "012abc", :limit 10}
-             (block/list store :algorithm :sha1, :after "012abc", :limit 10))))))
+            (block/list store :limit 0))))
+    (testing "filtered behavior"
+      (is (= [{:id b} {:id c}]
+             (s/stream->seq
+               (block/list store {:algorithm :sha1
+                                  :after "111450"
+                                  :before "1300"
+                                  :limit 10}))))
+      (is (= [{:id b}]
+             (s/stream->seq
+               (block/list store {:after a, :before c}))))
+      (is (= [{:id c}]
+             (s/stream->seq
+               (block/list store {:after b, :limit 1})))))
+    (testing "seq wrapper"
+      (is (thrown-with-msg?
+            IllegalArgumentException #":timeout is not a positive integer"
+            (block/list-seq store :timeout 0)))
+      (is (= [{:id a} {:id b} {:id c} {:id d}]
+             (block/list-seq store)))
+      (is (thrown? RuntimeException
+            (doall
+              (block/list-seq
+                (reify store/BlockStore
+                  (-list
+                    [_ opts]
+                    (s/->source [{:id a} (quiet-exception)]))))))
+          "rethrows stream exceptions")
+      (is (thrown-with-msg? Exception #"stream consumption timed out"
+            (doall
+              (block/list-seq
+                (reify store/BlockStore
+                  (-list
+                    [_ opts]
+                    (s/stream)))
+                :timeout 10)))))))
 
 
 (deftest stat-wrapper
+  (testing "io check"
+    (is (thrown? IllegalStateException
+          (dosync (block/stat {} (multihash/sha1 "foo"))))))
   (testing "non-multihash id"
-    (is (thrown? IllegalArgumentException (block/stat {} "foo")))))
+    (is (thrown? IllegalArgumentException
+          (block/stat {} "foo"))))
+  (testing "normal operation"
+    (let [id (multihash/sha1 "foo")
+          now (java.time.Instant/now)]
+      (is (= {:id id, :size 123, :stored-at now}
+             @(block/stat
+                (reify store/BlockStore
+                  (-stat
+                    [_ id]
+                    (d/success-deferred
+                      {:id id, :size 123, :stored-at now})))
+                id))))))
 
 
 (deftest get-wrapper
+  (testing "io check"
+    (is (thrown? IllegalStateException
+          (dosync (block/get {} (multihash/sha1 "foo"))))))
   (testing "non-multihash id"
-    (is (thrown? IllegalArgumentException (block/get {} "foo"))))
+    (is (thrown? IllegalArgumentException
+          (block/get {} "foo"))))
   (testing "no block result"
-    (let [store (reify store/BlockStore (-get [_ id] nil))]
-      (is (nil? (block/get store (digest/sha1 "foo bar"))))))
+    (let [store (reify store/BlockStore
+                  (-get
+                    [_ id]
+                    (d/success-deferred nil)))]
+      (is (nil? @(block/get store (multihash/sha1 "foo bar"))))))
   (testing "invalid block result"
-    (let [store (reify store/BlockStore (-get [_ id] (block/read! "foo")))
-          other-id (digest/sha1 "baz")]
-      (is (thrown? RuntimeException (block/get store other-id)))))
+    (let [store (reify store/BlockStore
+                  (-get
+                    [_ id]
+                    (d/success-deferred (block/read! "foo"))))
+          other-id (multihash/sha1 "baz")]
+      (is (thrown? RuntimeException
+            @(block/get store other-id)))))
   (testing "valid block result"
     (let [block (block/read! "foo")
-          store (reify store/BlockStore (-get [_ id] block))]
-      (is (= block (block/get store (:id block)))))))
+          store (reify store/BlockStore
+                  (-get
+                    [_ id]
+                    (d/success-deferred block)))]
+      (is (= block @(block/get store (:id block)))))))
 
 
 (deftest put-wrapper
-  (let [store (reify store/BlockStore (-put! [_ block] (data/clean-block block)))]
+  (let [original (block/read! "a block")
+        store (reify store/BlockStore
+                (-put!
+                  [_ block]
+                  (d/success-deferred block)))]
+    (testing "io check"
+      (is (thrown? IllegalStateException
+            (dosync (block/put! store original)))))
     (testing "with non-block arg"
       (is (thrown? IllegalArgumentException
             (block/put! store :foo))))
-    (testing "block attributes"
-      (let [original (-> (block/read! "a block with some extras")
-                         (assoc :foo "bar")
-                         (vary-meta assoc ::thing :baz))
-            stored (block/put! store original)]
-        (is (= (:id original) (:id stored))
-            "Stored block id should match original")
-        (is (= (:size original) (:size stored))
-            "Stored block size should match original")
-        (is (= "bar" (:foo stored))
-            "Stored block should retain extra attributes")
-        (is (= :baz (::thing (meta stored)))
-            "Stored block should retain extra metadata")
-        (is (= original stored)
-            "Stored block should test equal to original")))))
+    (testing "block handling"
+      (let [stored @(block/put! store original)]
+        (is (= original stored))))))
 
 
 (deftest store-wrapper
-  (let [store (reify store/BlockStore (-put! [_ block] block))]
+  (let [store (reify store/BlockStore
+                (-put!
+                  [_ block]
+                  (d/success-deferred block)))]
+    (testing "io check"
+      (is (thrown? IllegalStateException
+            (dosync (block/store! store "foo")))))
     (testing "file source"
-      (let [block (block/store! store (io/file "README.md"))]
+      (let [block @(block/store! store (io/file "README.md"))]
         (is (block/lazy? block)
             "should create lazy block from file")))
     (testing "other source"
-      (let [block (block/store! store "foo bar baz")]
-        (is (not (block/lazy? block))
+      (let [block @(block/store! store "foo bar baz")]
+        (is (block/loaded? block)
             "should be read into memory")))))
+
+
+(deftest delete-wrapper
+  (let [id (multihash/sha1 "foo")
+        store (reify store/BlockStore
+                (-delete!
+                  [_ id']
+                  (d/success-deferred (= id id'))))]
+    (testing "io check"
+      (is (thrown? IllegalStateException
+            (dosync (block/delete! store id)))))
+    (testing "non-multihash id"
+      (is (thrown? IllegalArgumentException
+            (block/delete! store "foo"))))
+    (testing "normal operation"
+      (is (true? @(block/delete! store id)))
+      (is (false? @(block/delete! store (multihash/sha1 "bar")))))))
 
 
 (deftest batch-operations
@@ -193,163 +296,126 @@
         c (block/read! "baz")
         test-blocks {(:id a) a
                      (:id b) b
-                     (:id c) c}]
+                     (:id c) c}
+        store (reify store/BlockStore
+                (-get
+                  [_ id]
+                  (d/success-deferred (get test-blocks id)))
+                (-put!
+                  [_ block]
+                  (d/success-deferred block))
+                (-delete!
+                  [_ id]
+                  (d/success-deferred (contains? test-blocks id))))]
     (testing "get-batch"
-      (testing "validation"
-        (is (thrown? IllegalArgumentException
-                     (block/get-batch nil :foo))
-            "with non-collection throws error")
-        (is (thrown? IllegalArgumentException
-                     (block/get-batch nil [(digest/sha1 "foo") :foo]))
-            "with non-multihash entry throws error"))
-      (let [store (reify
-                    store/BlockStore
-                    (-get
-                      [_ id]
-                      [:get id])
-                    store/BatchingStore
-                    (-get-batch
-                      [_ ids]
-                      [:batch ids]))
-            ids [(:id a) (:id b) (:id c)]]
-        (is (= [:batch ids] (block/get-batch store ids))
-            "should use optimized method where available"))
-      (let [store (reify
-                    store/BlockStore
-                    (-get
-                      [_ id]
-                      (get test-blocks id)))
-            ids [(:id a) (:id b) (:id c) (digest/sha1 "frobble")]]
-        (is (= [a b c] (block/get-batch store ids))
-            "should fall back to normal get method")))
+      (let [ids [(:id a) (:id b) (:id c) (multihash/sha1 "frobble")]]
+        (is (= [a b c] @(block/get-batch store ids)))))
     (testing "put-batch!"
-      (testing "validation"
-        (is (thrown? IllegalArgumentException
-                     (block/put-batch! nil :foo))
-            "with non-collection throws error")
-        (is (thrown? IllegalArgumentException
-                     (block/put-batch! nil [(block/read! "foo") :foo]))
-            "with non-block entry throws error"))
-      (let [store (reify
-                    store/BlockStore
-                    (-put!
-                      [_ block]
-                      (assoc block :put? true))
-                    store/BatchingStore
-                    (-put-batch!
-                      [_ blocks]
-                      [:batch blocks]))]
-        (is (= [:batch [a b c]]
-               (block/put-batch! store [a b c]))
-            "should use optimized method where available"))
-      (let [store (reify
-                    store/BlockStore
-                    (-put!
-                      [_ block]
-                      (assoc block :put? true)))]
-        (is (every? :put? (block/put-batch! store [a b c]))
-            "should fall back to normal put method")))
+      (is (= [] @(block/put-batch! store [])))
+      (is (= [a b] @(block/put-batch! store [a b]))))
     (testing "delete-batch!"
-      (testing "validation"
-        (is (thrown? IllegalArgumentException
-                     (block/delete-batch! nil :foo))
-            "with non-collection throws error")
-        (is (thrown? IllegalArgumentException
-                     (block/delete-batch! nil [(digest/sha1 "foo") :foo]))
-            "with non-multihash entry throws error"))
-      (let [store (reify
-                    store/BlockStore
-                    (-delete!
-                      [_ id]
-                      (contains? test-blocks id))
-                    store/BatchingStore
-                    (-delete-batch!
-                      [_ ids]
-                      (filter test-blocks ids)))]
-        (is (= (set (map :id [a b c]))
-               (block/delete-batch! store (map :id [a b c])))
-            "should use optimized method where available"))
-      (let [store (reify
-                    store/BlockStore
-                    (-delete!
-                      [_ id]
-                      (contains? test-blocks id)))]
-        (is (= #{(:id a) (:id b)}
-               (block/delete-batch! store [(:id a) (digest/sha1 "qux") (:id b)]))
-            "should fall back to normal delete method")))))
+      (is (= #{} @(block/delete-batch! store [])))
+      (is (= #{(:id a) (:id b)}
+             @(block/delete-batch! store [(:id a) (multihash/sha1 "qux") (:id b)]))))))
 
 
 
-;; ## Utility Tests
+;; ## Storage Utilities
 
-(deftest store-construction
-  (is (satisfies? store/BlockStore (block/->store "mem:-")))
-  (is (thrown? Exception (block/->store "foo://x?z=1"))))
+(deftest store-scan
+  (let [a (block/read! "foo")
+        b (block/read! "baz")
+        c (block/read! "bar")
+        d (block/read! "abcdef")
+        store (reify store/BlockStore
+                (-list
+                  [_ opts]
+                  (s/->source [a b c d])))]
+    (is (thrown? IllegalStateException
+          (dosync (block/scan store))))
+    (is (= {:count 4
+            :size 15
+            :sizes {2 3, 3 1}}
+           @(block/scan store)))
+    (is (= {:count 1
+            :size 6
+            :sizes {3 1}}
+           @(block/scan store :filter #(< 3 (:size %)))))))
 
 
-(deftest stat-metadata
-  (let [block {:id "foo"}
-        block' (block/with-stats block {:stored-at 123})]
-    (testing "with-stats"
-      (is (= block block') "shoudn't affect equality")
-      (is (not (empty? (meta block'))) "should add metadata"))
-    (testing "meta-stats"
-      (is (= {:stored-at 123} (block/meta-stats block'))
-          "should return the stored stats"))))
+(deftest store-erasure
+  (let [a (block/read! "foo")
+        b (block/read! "baz")
+        c (block/read! "bar")
+        deleted (atom #{})
+        store (reify store/BlockStore
+                (-list
+                  [_ opts]
+                  (s/->source [a b c]))
+                (-delete!
+                  [_ id]
+                  (swap! deleted conj id)
+                  (d/success-deferred true)))]
+    (is (thrown? IllegalStateException
+          (dosync (block/erase! store))))
+    (is (true? @(block/erase! store)))
+    (is (= #{(:id a) (:id b) (:id c)} @deleted))))
 
 
 (deftest block-syncing
-  (let [block-a (block/read! "789")  ; 35a9
-        block-b (block/read! "123")  ; a665
-        block-c (block/read! "456")  ; b3a8
-        block-d (block/read! "ABC")] ; b5d4
+  (let [a (block/read! "789")  ; 35a9
+        b (block/read! "123")  ; a665
+        c (block/read! "456")  ; b3a8
+        d (block/read! "ABC")  ; b5d4
+        source-store (fn [& blocks]
+                       (reify store/BlockStore
+                         (-list
+                           [_ opts]
+                           (s/->source blocks))))
+        sink-store (fn [target & blocks]
+                     (reify store/BlockStore
+                       (-list
+                         [_ opts]
+                         (s/->source (vec blocks)))
+                       (-put!
+                         [_ block]
+                         (swap! target conj block)
+                         (d/success-deferred block))))]
+    (testing "io check"
+      (is (thrown? IllegalStateException
+            (dosync (block/sync! {} {})))))
     (testing "empty dest"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-b)
-                     (block/put! block-c))
-            dest (memory-block-store)]
-        (is (= 3 (count (block/list source))))
-        (is (empty? (block/list dest)))
-        (let [sync-summary (block/sync! source dest)]
+      (let [transferred (atom #{})
+            source (source-store a b c)
+            dest (sink-store transferred)]
+        (is (= 3 (count (block/list-seq source))))
+        (is (empty? @transferred))
+        (let [sync-summary @(block/sync! source dest)]
           (is (= 3 (:count sync-summary)))
           (is (= 9 (:size sync-summary))))
-        (is (= 3 (count (block/list source))))
-        (is (= 3 (count (block/list dest))))))
+        (is (= 3 (count (block/list-seq source))))
+        (is (= 3 (count @transferred)))))
     (testing "subset source"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-c))
-            dest (doto (memory-block-store)
-                   (block/put! block-a)
-                   (block/put! block-b)
-                   (block/put! block-c))
-            summary (block/sync! source dest)]
+      (let [transferred (atom #{})
+            source (source-store a c)
+            dest (sink-store transferred a b c)
+            summary @(block/sync! source dest)]
         (is (zero? (:count summary)))
         (is (zero? (:size summary)))
-        (is (= 2 (count (block/list source))))
-        (is (= 3 (count (block/list dest))))))
+        (is (= #{} @transferred))))
     (testing "mixed blocks"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-c))
-            dest (doto (memory-block-store)
-                   (block/put! block-b)
-                   (block/put! block-d))
-            summary (block/sync! source dest)]
+      (let [transferred (atom #{})
+            source (source-store a c)
+            dest (sink-store transferred b d)
+            summary @(block/sync! source dest)]
         (is (= 2 (:count summary)))
         (is (= 6 (:size summary)))
-        (is (= 2 (count (block/list source))))
-        (is (= 4 (count (block/list dest))))))
+        (is (= #{a c} @transferred))))
     (testing "filter logic"
-      (let [source (doto (memory-block-store)
-                     (block/put! block-a)
-                     (block/put! block-c))
-            dest (doto (memory-block-store)
-                   (block/put! block-b)
-                   (block/put! block-d))
-            summary (block/sync! source dest :filter (comp #{(:id block-c)} :id))]
+      (let [transferred (atom #{})
+            source (source-store a c)
+            dest (sink-store transferred b d)
+            summary @(block/sync! source dest :filter #(= (:id c) (:id %)))]
         (is (= 1 (:count summary)))
         (is (= 3 (:size summary)))
-        (is (= 2 (count (block/list source))))
-        (is (= 3 (count (block/list dest))))))))
+        (is (= #{c} @transferred))))))

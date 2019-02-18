@@ -8,9 +8,11 @@
     [com.stuartsierra.component :as component]))
 
 
-(deftest store-construction
+(deftest lifecycle
   (is (thrown-with-msg? Exception #"missing configured keys"
-        (component/start (replica-block-store [:a :b])))))
+        (component/start (replica-block-store [:a :b]))))
+  (let [store (replica-block-store [:a])]
+    (is (identical? store (component/stop store)))))
 
 
 (deftest replica-behavior
@@ -20,21 +22,21 @@
         a (block/read! "foo bar baz")
         b (block/read! "abracadabra")
         c (block/read! "123 xyz")]
-    (block/put! store a)
-    (block/put! store b)
-    (block/put! store c)
-    (is (= 3 (count (block/list replica-1))))
-    (is (every? (partial block/get replica-1)
+    @(block/put! store a)
+    @(block/put! store b)
+    @(block/put! store c)
+    (is (= 3 (count (block/list-seq replica-1))))
+    (is (every? (comp deref (partial block/get replica-1))
                 (map :id [a b c]))
         "all blocks are stored in replica-1")
-    (is (= 3 (count (block/list replica-2))))
-    (is (every? (partial block/get replica-2)
+    (is (= 3 (count (block/list-seq replica-2))))
+    (is (every? (comp deref (partial block/get replica-2))
                 (map :id [a b c]))
         "all blocks are stored in replica-2")
-    (is (= 3 (count (block/list store))))
+    (is (= 3 (count (block/list-seq store))))
     (block/delete! replica-1 (:id a))
     (block/delete! replica-2 (:id c))
-    (is (= 3 (count (block/list store)))
+    (is (= 3 (count (block/list-seq store)))
         "replica lists all available blocks")))
 
 

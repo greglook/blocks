@@ -33,9 +33,11 @@ Leiningen, add the following dependency to your project definition:
 ## Block Values
 
 A _block_ is a sequence of bytes identified by the cryptographic digest of its
-content. All blocks have an `:id` and `:size`. The block identifier is a
-[multihash](//github.com/greglook/clj-multihash) value, and the size is the
-number of bytes in the block content.
+content. All blocks have an `:id` and `:size`, and optionally a `:stored-at`.
+The block identifier is a [multihash](//github.com/greglook/clj-multiformats)
+value, and the size is the number of bytes in the block content. Blocks may also
+have a `:stored-at` value, which is the instant the backing store received the
+block.
 
 ```clojure
 => (require '[blocks.core :as block])
@@ -46,11 +48,12 @@ number of bytes in the block content.
 
 => hello
 #blocks.data.Block
-{:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
- :size 14}
+{:id #multi/hash "hash:sha2-256:d2eef339d508c69fb6e3e99c11c11fc4fc8c035d028973057980d41c7d162684",
+ :size 14,
+ :stored-at #inst "2019-02-18T07:02:28.751Z"}
 
 => (:id hello)
-#data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR"
+#multi/hash "hash:sha2-256:d2eef339d508c69fb6e3e99c11c11fc4fc8c035d028973057980d41c7d162684",
 
 => (:size hello)
 14
@@ -91,23 +94,18 @@ block's content using `open`:
 "hello, blocks!"
 
 ; You can also provide a start/end index to get a range of bytes:
-=> (with-open [content (block/open readme 0 32)]
+=> (with-open [content (block/open readme {:start 0, :end 32})]
      (slurp content))
 "Block Storage\n=============\n\n[!["
 ```
 
-A block's `:id`, `:size`, and content cannot be changed after construction, so
-clients can be relatively certain that the block's id is valid. Blocks support
-metadata and may have additional attributes associated with them, similar to
-Clojure records.
+A block's properties and content cannot be changed after construction, but
+blocks do support metadata. In order to guard against the content changing in
+the underlying storage layer, blocks can be validated by re-reading their
+content:
 
 ```clojure
-; The block id and size are not changeable:
-=> (assoc hello :id :foo)
-; IllegalArgumentException Block :id cannot be changed
-;   blocks.data.Block (data.clj:151)
-
-; If you're paranoid, you can validate blocks by rehashing the content:
+; In-memory blocks will never change:
 => (block/validate! hello)
 nil
 
@@ -115,16 +113,6 @@ nil
 => (block/validate! readme)
 ; IllegalStateException Block hash:sha2-256:515c169aa0d95... has mismatched content
 ;   blocks.core/validate! (core.clj:115)
-
-; Other attributes are associative:
-=> (assoc hello :foo "bar")
-#blocks.data.Block
-{:foo "bar",
- :id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
- :size 14}
-
-=> (:foo *1)
-"bar"
 
 ; Metadata can be set and queried:
 => (meta (with-meta readme {:baz 123}))
@@ -141,7 +129,7 @@ backed by a map in memory. Another basic example is a store backed by a local
 filesystem, where blocks are stored as files in a directory.
 
 The block storage protocol is comprised of five methods:
-- `list` - enumerate the stored blocks
+- `list` - enumerate the stored blocks as a stream
 - `stat` - get metadata about a stored block
 - `get` - retrieve a block from the store
 - `put!` - add a block to the store
@@ -153,63 +141,65 @@ The block storage protocol is comprised of five methods:
 #'user/store
 
 => store
-#blocks.store.memory.MemoryBlockStore {:memory #<Atom@2573332e {}>}
+#blocks.store.memory.MemoryBlockStore {:memory #<Ref@2573332e {}>}
 
 ; Initially, the store is empty:
-=> (block/list store)
+=> (block/list-seq store)
 ()
 
 ; Lets put our blocks in the store so they don't get lost:
-=> (block/put! store hello)
+=> @(block/put! store hello)
 #blocks.data.Block
-{:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
- :size 14}
+{:id #multi/hash "hash:sha2-256:d2eef339d508c69fb6e3e99c11c11fc4fc8c035d028973057980d41c7d162684",
+ :size 14,
+ :stored-at #inst "2019-02-18T07:06:43.655Z"}
 
-=> (block/put! store readme)
+=> @(block/put! store readme)
 #blocks.data.Block
-{:id #data/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
- :size 8415}
+{:id #multi/hash "hash:sha2-256:94d0eb8d13137ebced045b1e7ef48540af81b2abaf2cce34e924ce2cde7cfbaa",
+ :size 8597,
+ :stored-at #inst "2019-02-18T07:07:06.458Z"}
 
 ; We can `stat` block ids to get metadata without content:
-=> (block/stat store (:id hello))
-{:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+=> @(block/stat store (:id hello))
+{:id #multi/hash "hash:sha2-256:94d0eb8d13137ebced045b1e7ef48540af81b2abaf2cce34e924ce2cde7cfbaa",
  :size 14,
- :stored-at #inst "2015-11-11T21:06:00.112-00:00"}
+ :stored-at #inst "2019-02-18T07:07:06.458Z"}
 
-; `list` returns the same metadata, and has some basic filtering options:
-=> (block/list store :algorithm :sha2-256)
-({:id #data/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
-  :size 8415,
-  :stored-at #inst "2015-11-11T21:06:37.931-00:00"}
- {:id #data/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+; `list` returns the blocks, and has some basic filtering options:
+=> (block/list-seq store :algorithm :sha2-256)
+(#blocks.data.Block
+ {:id #multi/hash "hash:sha2-256:94d0eb8d13137ebced045b1e7ef48540af81b2abaf2cce34e924ce2cde7cfbaa",
+  :size 8597,
+  :stored-at #inst "2019-02-18T07:07:06.458Z"}
+ #blocks.data.Block
+ {:id #multi/hash "hash:sha2-256:d2eef339d508c69fb6e3e99c11c11fc4fc8c035d028973057980d41c7d162684",
   :size 14,
-  :stored-at #inst "2015-11-11T21:06:00.112-00:00"})
+  :stored-at #inst "2019-02-18T07:06:43.655Z"})
 
 ; Use `get` to fetch blocks from the store:
-=> (block/get store (:id readme))
+=> @(block/get store (:id readme))
 #blocks.data.Block
-{:id #data/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
- :size 8415}
-
-; Returned blocks may have storage stats as metadata:
-=> (block/meta-stats *1)
-{:stored-at #inst "2015-11-11T21:06:37.931-00:00"}
+{:id #multi/hash "hash:sha2-256:94d0eb8d13137ebced045b1e7ef48540af81b2abaf2cce34e924ce2cde7cfbaa",
+ :size 8597,
+ :stored-at #inst "2019-02-18T07:07:06.458Z"}
 
 ; You can also store them directly from a byte source like a file:
-=> (block/store! store (io/file "project.clj"))
+=> @(block/store! store (io/file "project.clj"))
 #blocks.data.Block
-{:id #data/hash "Qmd3NMig5YeLKR13q5vV1fy55Trf3WZv1qFNdtpRw7JwBm",
- :size 1221}
+{:id #multi/hash "hash:sha2-256:95344c6acadde09ecc03a7899231001455690f620f31cf8d5bbe330dcda19594",
+ :size 2013,
+ :stored-at #inst "2019-02-18T07:11:12.879Z"}
 
 => (def project-hash (:id *1))
 #'user/project-hash
 
 ; Use `delete!` to remove blocks from a store:
-=> (block/delete! store project-hash)
+=> @(block/delete! store project-hash)
 true
 
 ; Checking with stat reveals the block is gone:
-=> (block/stat store project-hash)
+=> @(block/stat store project-hash)
 nil
 ```
 

@@ -1,6 +1,6 @@
 (ns blocks.store.tests
-  "Suite of tests to verify that a given block store implementation conforms to
-  the spec."
+  "Suite of generative behavioral tests to verify that a given block store
+  implementation conforms to the spec."
   (:require
     [alphabase.bytes :refer [bytes= random-bytes]]
     [alphabase.hex :as hex]
@@ -12,15 +12,16 @@
     [clojure.test.check.generators :as gen]
     [clojure.test.check.properties :as prop]
     [com.stuartsierra.component :as component]
-    [multihash.core :as multihash]
-    [multihash.digest :as digest]
+    [manifold.deferred :as d]
+    [multiformats.hash :as multihash]
     [puget.color.ansi :as ansi]
     [puget.printer :as puget]
     [test.carly.core :as carly :refer [defop]])
   (:import
     blocks.data.Block
     blocks.data.PersistentBytes
-    multihash.core.Multihash))
+    java.time.Instant
+    multiformats.hash.Multihash))
 
 
 ;; ## Block Utilities
@@ -30,7 +31,7 @@
   [max-size]
   (block/read!
     (random-bytes (inc (rand-int max-size)))
-    (rand-nth (keys digest/functions))))
+    (rand-nth (keys multihash/functions))))
 
 
 (defn generate-blocks!
@@ -47,7 +48,7 @@
   of multihash ids to blocks."
   [store & {:keys [n max-size], :or {n 10, max-size 1024}}]
   (let [blocks (generate-blocks! n max-size)]
-    (block/put-batch! store (vals blocks))
+    @(block/put-batch! store (vals blocks))
     blocks))
 
 
@@ -83,6 +84,46 @@
   (gen/fmap (partial into {}) (gen-sub-seq (seq m))))
 
 
+(defop ListBlocks
+  [query]
+
+  (gen-args
+    [blocks]
+    [(gen/bind
+       (gen/hash-map
+         :algorithm (gen/elements (keys multihash/functions))
+         :after (gen/fmap hex/encode (gen/not-empty gen/bytes)) ; TODO: pick prefixes
+         :limit (gen/large-integer* {:min 1, :max (inc (count blocks))}))
+       gen-sub-map)])
+
+  (apply-op
+    [this store]
+    (doall (block/list-seq store query)))
+
+  (check
+    [this model result]
+    (let [expected-ids (cond->> (keys model)
+                         (:algorithm query)
+                           (filter #(= (:algorithm query) (:algorithm %)))
+                         (:after query)
+                           (filter #(pos? (compare (multihash/hex %) (:after query))))
+                         (:before query)
+                           (filter #(neg? (compare (multihash/hex %) (:before query))))
+                         true
+                           (sort)
+                         (:limit query)
+                           (take (:limit query)))]
+      (is (sequential? result))
+      (is (= (count expected-ids) (count result)))
+      (doseq [[id result] (zipmap expected-ids result)]
+        (if-let [block (get model id)]
+          (do (is (instance? Block result))
+              (is (= (:id block) (:id result)))
+              (is (= (:size block) (:size result)))
+              (is (instance? Instant (:stored-at result))))
+          (is (nil? result)))))))
+
+
 (defop StatBlock
   [id]
 
@@ -92,7 +133,7 @@
 
   (apply-op
     [this store]
-    (block/stat store id))
+    @(block/stat store id))
 
   (check
     [this model result]
@@ -100,46 +141,8 @@
       (do (is (map? result))
           (is (= (:id block) (:id result)))
           (is (= (:size block) (:size result)))
-          (is (some? (:stored-at result))))
+          (is (instance? Instant (:stored-at result))))
       (is (nil? result)))))
-
-
-(defop ListBlocks
-  [query]
-
-  (gen-args
-    [blocks]
-    [(gen/bind
-       (gen/hash-map
-         :algorithm (gen/elements (keys digest/functions))
-         :after (gen/fmap hex/encode (gen/not-empty gen/bytes)) ; TODO: pick prefixes
-         :limit (gen/large-integer* {:min 1, :max (inc (count blocks))}))
-       gen-sub-map)])
-
-  (apply-op
-    [this store]
-    (doall (block/list store query)))
-
-  (check
-    [this model result]
-    (let [expected-ids (cond->> (keys model)
-                         (:after query)
-                           (filter #(pos? (compare (multihash/hex %) (:after query))))
-                         (:algorithm query)
-                           (filter #(= (:algorithm query) (:algorithm %)))
-                         true
-                           (sort)
-                         (:limit query)
-                           (take (:limit query)))]
-      (is (sequential? result))
-      (is (= (count expected-ids) (count result)))
-      (doseq [[id stat] (zipmap expected-ids result)]
-        (if-let [block (get model id)]
-          (do (is (map? stat))
-              (is (= (:id block) (:id stat)))
-              (is (= (:size block) (:size stat)))
-              (is (some? (:stored-at stat))))
-          (is (nil? stat)))))))
 
 
 (defop GetBlock
@@ -151,7 +154,7 @@
 
   (apply-op
     [this store]
-    (block/get store id))
+    @(block/get store id))
 
   (check
     [this model result]
@@ -172,7 +175,7 @@
 
   (apply-op
     [this store]
-    (block/put! store block))
+    @(block/put! store block))
 
   (check
     [this model result]
@@ -192,7 +195,7 @@
 
   (apply-op
     [this store]
-    (block/delete! store id))
+    @(block/delete! store id))
 
   (check
     [this model result]
@@ -205,72 +208,12 @@
     (dissoc model id)))
 
 
-(defop GetBlockBatch
-  [ids]
-
-  (gen-args
-    [blocks]
-    [(gen/fmap (comp set keys) (gen-sub-map blocks))])
-
-  (apply-op
-    [this store]
-    (block/get-batch store ids))
-
-  (check
-    [this model result]
-    (is (coll? result))
-    (is (= (set (keep model ids))
-           (set result)))))
-
-
-(defop PutBlockBatch
-  [blocks]
-
-  (gen-args
-    [blocks]
-    [(gen/fmap (comp set vals) (gen-sub-map blocks))])
-
-  (apply-op
-    [this store]
-    (block/put-batch! store blocks))
-
-  (check
-    [this model result]
-    (is (coll? result))
-    (is (= (set blocks) (set result))))
-
-  (update-model
-    [this model]
-    (into model (map (juxt :id identity) blocks))))
-
-
-(defop DeleteBlockBatch
-  [ids]
-
-  (gen-args
-    [blocks]
-    [(gen/fmap (comp set keys) (gen-sub-map blocks))])
-
-  (apply-op
-    [this store]
-    (block/delete-batch! store ids))
-
-  (check
-    [this model result]
-    (is (set? result))
-    (is (= (set (filter (set ids) (keys model))) result)))
-
-  (update-model
-    [this model]
-    (apply dissoc model ids)))
-
-
 (defop EraseStore
   []
 
   (apply-op
     [this store]
-    (block/erase!! store))
+    @(block/erase! store))
 
   (update-model
     [this model]
@@ -288,8 +231,7 @@
 
   (apply-op
     [this store]
-    ; TODO: bloom filter prints... poorly.
-    (block/scan store p))
+    @(block/scan store :filter p))
 
   (check
     [this model result]
@@ -298,8 +240,7 @@
       (is (= (reduce + (map :size blocks)) (:size result)))
       (is (map? (:sizes result)))
       (is (every? integer? (keys (:sizes result))))
-      (is (= (count blocks) (reduce + (vals (:sizes result)))))
-      (is (every? (partial sum/probably-contains? result) (map :id blocks))))))
+      (is (= (count blocks) (reduce + (vals (:sizes result))))))))
 
 
 (defop OpenBlock
@@ -311,7 +252,7 @@
 
   (apply-op
     [this store]
-    (when-let [block (block/get store id)]
+    (when-let [block @(block/get store id)]
       (let [baos (java.io.ByteArrayOutputStream.)]
         (with-open [content (block/open block)]
           (io/copy content baos))
@@ -344,9 +285,9 @@
 
   (apply-op
     [this store]
-    (when-let [block (block/get store id)]
+    (when-let [block @(block/get store id)]
       (let [baos (java.io.ByteArrayOutputStream.)]
-        (with-open [content (block/open block start end)]
+        (with-open [content (block/open block {:start start, :end end})]
           (io/copy content baos))
         (.toByteArray baos))))
 
@@ -363,20 +304,14 @@
 
 
 (def ^:private basic-op-generators
-  (juxt gen->StatBlock
-        gen->ListBlocks
-        ;gen->ScanStore
+  (juxt gen->ListBlocks
+        gen->ScanStore
+        gen->StatBlock
         gen->GetBlock
         gen->OpenBlock
         gen->OpenBlockRange
         gen->PutBlock
         gen->DeleteBlock))
-
-
-(def ^:private batch-op-generators
-  (juxt gen->GetBlockBatch
-        gen->PutBlockBatch
-        gen->DeleteBlockBatch))
 
 
 (def ^:private erasable-op-generators
@@ -386,7 +321,6 @@
 (defn- join-generators
   [ks]
   (let [op-gens (keep {:basic basic-op-generators
-                       :batch batch-op-generators
                        :erase erasable-op-generators}
                       ks)]
     (fn [ctx]
@@ -399,18 +333,20 @@
 (defn- start-store
   [constructor]
   (let [store (component/start (constructor))]
-    (when-not (empty? (block/list store))
+    (when-let [extant (seq (block/list-seq store))]
       (throw (IllegalStateException.
                (str "Cannot run integration test on " (pr-str store)
-                    " as it already contains blocks!"))))
-    (is (zero? (:count (block/scan store))))
+                    " as it already contains blocks: "
+                    (pr-str extant)))))
+    (is (zero? (:count @(block/scan store))))
     store))
 
 
 (defn- stop-store
   [store]
-  (block/erase!! store)
-  (is (empty? (block/list store)) "ends empty")
+  (block/erase! store)
+  (is (empty? (block/list-seq store))
+      "ends empty")
   (component/stop store))
 
 
@@ -423,8 +359,8 @@
 
 
 (def ^:private print-handlers
-  {Multihash (puget/tagged-handler 'data/hash multihash/base58)
-   Block (puget/tagged-handler 'data/block (partial into {}))
+  {Multihash (puget/tagged-handler 'multi/hash str)
+   Block (puget/tagged-handler 'blocks/block (juxt :id :size :stored-at))
    (class (byte-array 0)) (puget/tagged-handler 'data/bytes alphabase.hex/encode)})
 
 
@@ -444,7 +380,7 @@
   - `max-size`
     Maximum block size to generate, in bytes.
   - `operations`
-    Kinds of operations to test - vector of `:basic`, `:batch`, `:erase`.
+    Kinds of operations to test - vector of `:basic`, `:erase`.
   - `concurrency`
     Maximum number of threads of operations to generate.
   - `iterations`
@@ -486,6 +422,6 @@
   [constructor]
   (check-store*
     constructor
-    {:operations [:basic :batch :erase]
+    {:operations [:basic :erase]
      :concurrency 1
      :repetitions 1}))
