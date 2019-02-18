@@ -48,11 +48,12 @@ block.
 
 => hello
 #blocks.data.Block
-{:id #multi/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
- :size 14}
+{:id #multi/hash "hash:sha2-256:d2eef339d508c69fb6e3e99c11c11fc4fc8c035d028973057980d41c7d162684",
+ :size 14,
+ :stored-at #inst "2019-02-18T07:02:28.751Z"}
 
 => (:id hello)
-#multi/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR"
+#multi/hash "hash:sha2-256:d2eef339d508c69fb6e3e99c11c11fc4fc8c035d028973057980d41c7d162684",
 
 => (:size hello)
 14
@@ -149,41 +150,46 @@ The block storage protocol is comprised of five methods:
 ; Lets put our blocks in the store so they don't get lost:
 => @(block/put! store hello)
 #blocks.data.Block
-{:id #multi/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
- :size 14}
+{:id #multi/hash "hash:sha2-256:d2eef339d508c69fb6e3e99c11c11fc4fc8c035d028973057980d41c7d162684",
+ :size 14,
+ :stored-at #inst "2019-02-18T07:06:43.655Z"}
 
 => @(block/put! store readme)
 #blocks.data.Block
-{:id #multi/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
- :size 8415}
+{:id #multi/hash "hash:sha2-256:94d0eb8d13137ebced045b1e7ef48540af81b2abaf2cce34e924ce2cde7cfbaa",
+ :size 8597,
+ :stored-at #inst "2019-02-18T07:07:06.458Z"}
 
 ; We can `stat` block ids to get metadata without content:
 => @(block/stat store (:id hello))
-{:id #multi/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+{:id #multi/hash "hash:sha2-256:94d0eb8d13137ebced045b1e7ef48540af81b2abaf2cce34e924ce2cde7cfbaa",
  :size 14,
- :stored-at #inst "2015-11-11T21:06:00.112-00:00"}
+ :stored-at #inst "2019-02-18T07:07:06.458Z"}
 
 ; `list` returns the blocks, and has some basic filtering options:
 => (block/list-seq store :algorithm :sha2-256)
-({:id #multi/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
-  :size 8415,
-  :stored-at #inst "2015-11-11T21:06:37.931-00:00"}
- {:id #multi/hash "QmcY3evpwX8DU4W5FsXrV4rwiHgw56HWK5g7i1zJNW6WqR",
+(#blocks.data.Block
+ {:id #multi/hash "hash:sha2-256:94d0eb8d13137ebced045b1e7ef48540af81b2abaf2cce34e924ce2cde7cfbaa",
+  :size 8597,
+  :stored-at #inst "2019-02-18T07:07:06.458Z"}
+ #blocks.data.Block
+ {:id #multi/hash "hash:sha2-256:d2eef339d508c69fb6e3e99c11c11fc4fc8c035d028973057980d41c7d162684",
   :size 14,
-  :stored-at #inst "2015-11-11T21:06:00.112-00:00"})
+  :stored-at #inst "2019-02-18T07:06:43.655Z"})
 
 ; Use `get` to fetch blocks from the store:
 => @(block/get store (:id readme))
 #blocks.data.Block
-{:id #multi/hash "QmVBYJ7poFrvwp1aySGtyfuh6sNz5u975hs5XGTsj7zLow",
- :size 8415
- :stored-at #inst "2015-11-11T21:06:37.931-00:00"}
+{:id #multi/hash "hash:sha2-256:94d0eb8d13137ebced045b1e7ef48540af81b2abaf2cce34e924ce2cde7cfbaa",
+ :size 8597,
+ :stored-at #inst "2019-02-18T07:07:06.458Z"}
 
 ; You can also store them directly from a byte source like a file:
 => @(block/store! store (io/file "project.clj"))
 #blocks.data.Block
-{:id #multi/hash "Qmd3NMig5YeLKR13q5vV1fy55Trf3WZv1qFNdtpRw7JwBm",
- :size 1221}
+{:id #multi/hash "hash:sha2-256:95344c6acadde09ecc03a7899231001455690f620f31cf8d5bbe330dcda19594",
+ :size 2013,
+ :stored-at #inst "2019-02-18T07:11:12.879Z"}
 
 => (def project-hash (:id *1))
 #'user/project-hash

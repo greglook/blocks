@@ -40,7 +40,10 @@
    :output-path "target/doc/api"}
 
   :whidbey
-  {:tag-types {'blocks.data.Block {'blocks.data.Block (juxt :id :size :stored-at)}
+  {:tag-types {'blocks.data.Block {'blocks.data.Block
+                                   #(array-map :id (:id %)
+                                               :size (:size %)
+                                               :stored-at (:stored-at %))}
                'multiformats.hash.Multihash {'multi/hash str}}}
 
   :profiles
