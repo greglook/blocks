@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks-test "2.0.0-SNAPSHOT"
+(defproject mvxcvi/blocks-test "2.0.0"
   :description "Generative tests for block storage implementations."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
