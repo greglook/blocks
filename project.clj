@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "2.0.0-SNAPSHOT"
+(defproject mvxcvi/blocks "2.0.1-SNAPSHOT"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -48,7 +48,7 @@
 
   :profiles
   {:dev
-   {:source-paths ["blocks-test/src"]
+   {:source-paths ["blocks-tests/src"]
     :dependencies
     [[org.clojure/test.check "0.9.0"]
      [commons-logging "1.2"]
