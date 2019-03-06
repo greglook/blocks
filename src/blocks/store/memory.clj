@@ -6,111 +6,83 @@
   This store is most suitable for testing, caches, and other situations which
   call for a non-persistent block store."
   (:require
-    [blocks.core :as block]
     [blocks.data :as data]
-    [blocks.store :as store])
+    [blocks.store :as store]
+    [manifold.deferred :as d]
+    [manifold.stream :as s])
   (:import
-    java.time.Instant))
+    blocks.data.Block))
 
 
-(defn- block-stats
-  "Build a map of stat data for a stored block."
-  [block]
-  (merge (block/meta-stats block)
-         {:id (:id block)
-          :size (:size block)}))
+(defn- load-block
+  "Prepare a new block for storage based on the given block. This ensures the
+  content is loaded into memory and cleans the block metadata."
+  [^Block block]
+  (if (data/byte-content? block)
+    (data/create-block
+      (:id block)
+      (:size block)
+      (.content block))
+    (data/read-block
+      (:algorithm (:id block))
+      (data/read-all (.content block)))))
 
 
-(defn- prep-block
-  "Prepare a new block for storage."
-  [block]
-  (-> (block/load! block)
-      (data/clean-block)
-      (block/with-stats {:stored-at (Instant/now)})))
-
-
-;; Block records in a memory store are held in a map in an atom.
+;; Block records in a memory store are held in a map in a ref.
 (defrecord MemoryBlockStore
   [memory]
 
   store/BlockStore
 
-  (-stat
-    [this id]
-    (when-let [block (get @memory id)]
-      (block-stats block)))
-
-
   (-list
     [this opts]
-    (->> @memory
-         (map (comp block-stats val))
-         (store/select-stats opts)))
+    (s/->source (or (vals @memory) [])))
+
+
+  (-stat
+    [this id]
+    (d/success-deferred
+      (when-let [block (get @memory id)]
+        {:id (:id block)
+         :size (:size block)
+         :stored-at (:stored-at block)})))
 
 
   (-get
     [this id]
-    (get @memory id))
+    (d/success-deferred
+      (get @memory id)))
 
 
   (-put!
     [this block]
-    (when-let [id (:id block)]
-      (dosync
-        (if-let [extant (get @memory id)]
-          extant
-          (let [block (prep-block block)]
-            (alter memory assoc id block)
-            block)))))
+    (let [id (:id block)]
+      (store/future'
+        (dosync
+          (if-let [extant (get @memory id)]
+            extant
+            (let [block (load-block block)]
+              (alter memory assoc id block)
+              block))))))
 
 
   (-delete!
     [this id]
-    (dosync
-      (let [existed? (contains? @memory id)]
-        (alter memory dissoc id)
-        existed?)))
-
-
-  store/BatchingStore
-
-  (-get-batch
-    [this ids]
-    (keep @memory ids))
-
-
-  (-put-batch!
-    [this blocks]
-    (dosync
-      (reduce
-        (fn [acc block]
-          (if-let [extant (get @memory (:id block))]
-            (conj acc extant)
-            (let [block (prep-block block)]
-              (alter memory assoc (:id block) block)
-              (conj acc block))))
-        [] blocks)))
-
-
-  (-delete-batch!
-    [this ids]
-    (dosync
-      (reduce
-        (fn [acc id]
-          (if (contains? @memory id)
-            (do (alter memory dissoc id)
-                (conj acc id))
-            acc))
-        [] ids)))
+    (store/future'
+      (dosync
+        (let [existed? (contains? @memory id)]
+          (alter memory dissoc id)
+          existed?))))
 
 
   store/ErasableStore
 
   (-erase!
     [this]
-    (dosync
-      (alter memory empty))
-    this))
+    (store/future'
+      (dosync
+        (alter memory empty)
+        true))))
 
 
 

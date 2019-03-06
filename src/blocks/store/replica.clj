@@ -2,18 +2,28 @@
   "Logical block storage which writes to multiple backing stores to ensure
   durability. Lookups will try the backing stores in order to find blocks."
   (:require
+    [blocks.core :as block]
     [blocks.store :as store]
-    [com.stuartsierra.component :as component]))
+    [com.stuartsierra.component :as component]
+    [manifold.deferred :as d]))
+
+
+(defn- resolve-stores
+  "Resolve the configured replica stores."
+  ([store]
+   (resolve-stores store (:replicas store)))
+  ([store replicas]
+   (mapv (partial get store) replicas)))
 
 
 (defrecord ReplicaBlockStore
-  [store-keys]
+  [replicas]
 
   component/Lifecycle
 
   (start
     [this]
-    (when-let [missing (seq (remove (partial contains? this) store-keys))]
+    (when-let [missing (seq (remove (partial contains? this) replicas))]
       (throw (IllegalStateException.
                (str "Replica block store is missing configured keys: "
                     (pr-str missing)))))
@@ -27,39 +37,42 @@
 
   store/BlockStore
 
-  (-stat
-    [this id]
-    (some #(store/-stat (get this %) id) store-keys))
-
-
   (-list
     [this opts]
-    (->> store-keys
-         (map #(store/-list (get this %) opts))
-         (apply store/merge-block-lists)))
+    (->> (resolve-stores this)
+         (map #(block/list % opts))
+         (apply store/merge-blocks)))
+
+
+  (-stat
+    [this id]
+    (store/some-store (resolve-stores this) block/stat id))
 
 
   (-get
     [this id]
-    (some #(store/-get (get this %) id) store-keys))
+    ; OPTIMIZE: query in parallel, use `d/alt`?
+    (store/some-store (resolve-stores this) block/get id))
 
 
   (-put!
     [this block]
-    (let [stored-block (store/-put! (get this (first store-keys)) block)
-          copy-block (store/preferred-copy block stored-block)]
-      (run! #(store/-put! (get this %) copy-block) (rest store-keys))
-      stored-block))
+    (d/chain
+      (block/put! (get this (first replicas)) block)
+      (fn keep-preferred
+        [stored]
+        (let [block (store/preferred-block block stored)]
+          (d/chain
+            (store/zip-stores (resolve-stores this (rest replicas)) block/put! block)
+            (partial apply store/preferred-block stored))))))
 
 
   (-delete!
     [this id]
-    (reduce
-      (fn [existed? store-key]
-        (let [result (store/-delete! (get this store-key) id)]
-          (or existed? result)))
-      false
-      store-keys)))
+    (d/chain
+      (store/zip-stores (resolve-stores this) block/delete! id)
+      (partial some true?)
+      boolean)))
 
 
 
@@ -71,7 +84,7 @@
 (defn replica-block-store
   "Creates a new replica block store which will persist blocks to multiple
   backing stores. Block operations will be performed on the stores in the order
-  given in `store-keys`, where each key is looked up in the store record."
-  [store-keys & {:as opts}]
+  given in `replicas`, where each key is looked up in the store record."
+  [replicas & {:as opts}]
   (map->ReplicaBlockStore
-    (assoc opts :store-keys (vec store-keys))))
+    (assoc opts :replicas (vec replicas))))

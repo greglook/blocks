@@ -1,49 +1,47 @@
-(ns blocks.data
+(ns ^:no-doc blocks.data
   "Block type and constructor functions.
 
   Blocks have two primary attributes, `:id` and `:size`. The block identifier
-  is a `Multihash` with the digest identifying the content. The size is the
-  number of bytes in the block content.
+  is a multihash with the digest identifying the content. The size is the
+  number of bytes in the block content. Blocks also have a `:stored-at` value
+  giving the instant they were persisted, but this does not affect equality or
+  the block's hash code.
 
-  Internally, blocks either have in-memory content holding the data, or a
-  reader function which returns new input streams for the block data. A block
-  with in-memory content is a _loaded block_, while a block with a reader
-  function is a _lazy block_.
-
-  A block's id, size, content, and reader cannot be changed after construction,
-  so clients can be relatively certain that the block's id is valid. Blocks
-  _may_ have additional attributes associated with them and support metadata,
-  similar to records."
+  Internally, blocks may reference their content in-memory as a byte array, or
+  a _content reader_ which constructs new input streams for the block data on
+  demand. A block with in-memory content is considered a _loaded block_, while
+  blocks with readers are _lazy blocks_."
   (:require
     [byte-streams :as bytes]
-    [multihash.core :as multihash]
-    [multihash.digest :as digest])
+    [multiformats.hash :as multihash])
   (:import
     blocks.data.PersistentBytes
     (java.io
       InputStream
       IOException)
-    multihash.core.Multihash
+    java.time.Instant
+    multiformats.hash.Multihash
     org.apache.commons.io.input.BoundedInputStream))
 
+
+;; ## Block Type
 
 (deftype Block
   [^Multihash id
    ^long size
-   ^PersistentBytes content
-   reader
-   _attrs
+   ^Instant stored-at
+   content
    _meta]
 
-  ;:load-ns true
+  :load-ns true
 
 
   java.lang.Object
 
   (toString
     [this]
-    (format "Block[%s %s %s]"
-            id size (if content "*" (if reader "~" "!"))))
+    (format "Block[%s %s %s]" id size stored-at))
+
 
   (equals
     [this that]
@@ -51,115 +49,56 @@
       (or (identical? this that)
           (when (identical? (class this) (class that))
             (let [that ^Block that]
-              (and (= id     (.id     that))
-                   (= size   (.size   that))
-                   (= _attrs (._attrs that))))))))
+              (and (= id   (.id   that))
+                   (= size (.size that))))))))
+
 
   (hashCode
     [this]
-    (hash [(class this) id size _attrs]))
+    (-> (hash (class this))
+        (hash-combine (hash id))
+        (hash-combine size)))
 
 
   java.lang.Comparable
 
   (compareTo
     [this that]
-    (compare [id size _attrs]
-             [(:id that) (:size that)
-              (when (identical? (class this) (class that))
-                (._attrs ^Block that))]))
+    (if (= id (:id that))
+      (if (= size (:size that))
+        (if (= stored-at (:stored-at that))
+          0
+          (compare stored-at (:stored-at that)))
+        (compare size (:size that)))
+      (compare id (:id that))))
 
 
   clojure.lang.IObj
 
-  (meta [this] _meta)
+  (meta
+    [this]
+    _meta)
+
 
   (withMeta
     [this meta-map]
-    (Block. id size content reader _attrs meta-map))
+    (Block. id size stored-at content meta-map))
 
 
-  ; TODO: IKeywordLookup?
   clojure.lang.ILookup
 
   (valAt
     [this k]
     (.valAt this k nil))
 
+
   (valAt
     [this k not-found]
     (case k
       :id id
       :size size
-      (get _attrs k not-found)))
-
-
-  clojure.lang.IPersistentMap
-
-  (count
-    [this]
-    (+ 2 (count _attrs)))
-
-  (empty
-    [this]
-    (Block. id size nil nil nil _meta))
-
-  (cons
-    [this element]
-    (cond
-      (instance? java.util.Map$Entry element)
-        (let [^java.util.Map$Entry entry element]
-          (.assoc this (.getKey entry) (.getValue entry)))
-      (vector? element)
-        (.assoc this (first element) (second element))
-      :else
-        (loop [result this
-               entries element]
-          (if (seq entries)
-            (let [^java.util.Map$Entry entry (first entries)]
-              (recur (.assoc result (.getKey entry) (.getValue entry))
-                     (rest entries)))
-            result))))
-
-  (equiv
-    [this that]
-    (.equals this that))
-
-  (containsKey
-    [this k]
-    (not (identical? this (.valAt this k this))))
-
-  (entryAt
-    [this k]
-    (let [v (.valAt this k this)]
-      (when-not (identical? this v)
-        (clojure.lang.MapEntry. k v))))
-
-  (seq
-    [this]
-    (seq (concat [(clojure.lang.MapEntry. :id id)
-                  (clojure.lang.MapEntry. :size size)]
-                 _attrs)))
-
-  (iterator
-    [this]
-    (clojure.lang.RT/iter (seq this)))
-
-  (assoc
-    [this k v]
-    (case k
-      (:id :size :content :reader)
-        (throw (IllegalArgumentException.
-                 (str "Block " k " cannot be changed")))
-      (Block. id size content reader (assoc _attrs k v) _meta)))
-
-  (without
-    [this k]
-    (case k
-      (:id :size :content :reader)
-        (throw (IllegalArgumentException.
-                 (str "Block " k " cannot be changed")))
-      (Block. id size content reader (not-empty (dissoc _attrs k)) _meta))))
+      :stored-at stored-at
+      not-found)))
 
 
 (defmethod print-method Block
@@ -168,86 +107,82 @@
 
 
 
-;; ## Utility Functions
+;; ## Content Readers
 
-(defn- collect-bytes
-  "Collects bytes from a data source into a `PersistentBytes` object. If the
-  source is already persistent, it will be reused directly."
-  ^PersistentBytes
-  [source]
-  (if (instance? PersistentBytes source)
-    source
-    (PersistentBytes/wrap (bytes/to-byte-array source))))
+(defprotocol ContentReader
+  "Content readers provide functions for repeatably reading byte streams from
+  some backing data source."
 
+  (read-all
+    [reader]
+    "Open an input stream that returns all bytes of the content.")
 
-(defn- resolve-hasher
-  "Resolves an algorithm designator to a hash function. Throws an exception on
-  invalid names or error."
-  [algorithm]
-  (cond
-    (nil? algorithm)
-      (throw (IllegalArgumentException.
-               "Cannot find hash function without algorithm name"))
-
-    (keyword? algorithm)
-      (if-let [hf (clojure.core/get digest/functions algorithm)]
-        hf
-        (throw (IllegalArgumentException.
-                 (str "Cannot map algorithm name " algorithm
-                      " to a supported hash function"))))
-
-    (ifn? algorithm)
-      algorithm
-
-    :else
-      (throw (IllegalArgumentException.
-               (str "Hash algorithm must be keyword name or direct function, got: "
-                    (pr-str algorithm))))))
-
-
-(defn checked-hasher
-  "Constructs a function for the given hash algorithm or function which checks
-  that the result is a `Multihash`."
-  [algorithm]
-  (let [hash-fn (resolve-hasher algorithm)]
-    (fn hasher
-      [source]
-      (let [id (hash-fn source)]
-        (when-not (instance? Multihash id)
-          (throw (RuntimeException.
-                   (str "Block identifier must be a Multihash, "
-                        "hashing algorithm returned: " (pr-str id)))))
-        id))))
+  (read-range
+    [reader start end]
+    "Open an input stream that reads just bytes from `start` to `end`,
+    inclusive. A `nil` for either value implies the beginning or end of the
+    stream, respectively."))
 
 
 (defn- bounded-input-stream
-  "Wraps an input stream such that it only returns a stream of bytes in the
-  range start - end."
+  "Wrap an input stream such that it only returns a stream of bytes in the
+  range `start` to `end`."
   ^java.io.InputStream
   [^InputStream input start end]
-  (.skip input start)
-  (BoundedInputStream. input (- end start)))
+  (when (pos-int? start)
+    (.skip input start))
+  (if (pos-int? end)
+    (BoundedInputStream. input (- end (or start 0)))
+    input))
+
+
+(extend-protocol ContentReader
+
+  PersistentBytes
+
+  (read-all
+    [^PersistentBytes this]
+    (.open this))
+
+
+  (read-range
+    [^PersistentBytes this start end]
+    (bounded-input-stream (.open this) start end))
+
+
+  clojure.lang.Fn
+
+  (read-all
+    [this]
+    (this))
+
+
+  (read-range
+    [this start end]
+    ; Ranged open not supported for generic functions, use naive approach.
+    (bounded-input-stream (this) start end)))
 
 
 (defn content-stream
-  "Opens an input stream to read the contents of the block."
+  "Open an input stream to read the contents of the block."
   ^java.io.InputStream
   [^Block block start end]
-  (let [content ^PersistentBytes (.content block)
-        reader (.reader block)]
-    (cond
-      content (cond-> (.open content)
-                (and start end)
-                  (bounded-input-stream start end))
-      reader (if (and start end)
-               (try
-                 (reader start end)
-                 (catch clojure.lang.ArityException e
-                   ; Native ranged open not supported, use naive approach.
-                   (bounded-input-stream (reader) start end)))
-               (reader))
-      :else (throw (IOException.
-                     (str "Cannot open empty block " (:id block)))))))
+  (let [content (.content block)]
+    (if (or start end)
+      (read-range content start end)
+      (read-all content))))
+
+
+(defn persistent-bytes?
+  "True if the argument is a persistent byte array."
+  [x]
+  (instance? PersistentBytes x))
+
+
+(defn byte-content?
+  "True if the block has content loaded into memory as persistent bytes."
+  [^Block block]
+  (persistent-bytes? (.content block)))
 
 
 
@@ -257,59 +192,88 @@
 (alter-meta! #'->Block assoc :private true)
 
 
-(defn lazy-block
-  "Creates a block from a reader function. Each time the function is called, it
-  should return a new `InputStream` to read the block contents. The block is
-  given the id and size directly, without being checked."
-  ^blocks.data.Block
-  [id size reader]
-  (->Block id size nil reader nil nil))
+(defn- now
+  "Return the current instant in time.
+
+  This is mostly useful for rebinding during tests."
+  ^Instant
+  []
+  (Instant/now))
 
 
-(defn load-block
-  "Creates a block by reading a source into memory. The block is given the id
-  directly, without being checked."
-  ^blocks.data.Block
-  [id source]
-  (let [content (collect-bytes source)]
-    (when (pos? (count content))
-      (->Block id (count content) content nil nil nil))))
+(defn hasher
+  "Return the hashing function for an algorithm keyword, or throw an exception
+  if no supported function is available."
+  [algorithm]
+  (or (multihash/functions algorithm)
+      (throw (IllegalArgumentException.
+               (str "No digest function found for algorithm "
+                    algorithm)))))
+
+
+(defn create-block
+  "Create a block from a content reader. The simplest version is a no-arg
+  function which should return a new `InputStream` to read the full block
+  content. The block is given the id and size directly, without being checked."
+  ([id size content]
+   (create-block id size (now) content))
+  ([id size stored-at content]
+   (when-not (instance? Multihash id)
+     (throw (ex-info "Block id must be a multihash"
+                     {:id id, :size size, :stored-at stored-at})))
+   (when-not (pos-int? size)
+     (throw (ex-info "Block size must be a positive integer"
+                     {:id id, :size size, :stored-at stored-at})))
+   (when-not (instance? Instant stored-at)
+     (throw (ex-info "Block must have a stored-at instant"
+                     {:id id, :size size, :stored-at stored-at})))
+   (when-not content
+     (throw (ex-info "Block must have a content reader"
+                     {:id id, :size size, :stored-at stored-at})))
+   (->Block id size stored-at content nil)))
 
 
 (defn read-block
-  "Creates a block by reading the source into memory and hashing it."
-  ^blocks.data.Block
+  "Create a block by reading the source into memory and hashing it."
   [algorithm source]
-  (let [hash-fn (checked-hasher algorithm)
-        content (collect-bytes source)]
-    (when (pos? (count content))
-      (->Block (hash-fn (.open content)) (count content) content nil nil nil))))
-
-
-(defn clean-block
-  "Creates a version of the given block without extra attributes or metadata."
-  [^Block block]
-  (->Block (.id block)
-           (.size block)
-           (.content block)
-           (.reader block)
-           nil
-           nil))
+  (let [hash-fn (hasher algorithm)
+        content (PersistentBytes/wrap (bytes/to-byte-array source))
+        size (count content)]
+    (when (pos? size)
+      (create-block (hash-fn (read-all content)) size (now) content))))
 
 
 (defn merge-blocks
-  "Creates a new block by merging together two blocks representing the same
-  content. Block ids and sizes must match. The new block's content or reader
-  comes from the second block, and any extra attributes and metadata are merged
-  together."
-  [^Block a ^Block b]
-  (when (not= (.id a) (.id b))
-    (throw (IllegalArgumentException.
-             (str "Cannot merge blocks with differing ids " (.id a)
-                  " and " (.id b)))))
-  (->Block (.id b)
-           (.size b)
-           (.content b)
-           (.reader b)
-           (not-empty (merge (._attrs a) (._attrs b)))
-           (not-empty (merge (._meta  a) (._meta  b)))))
+  "Create a new block by merging together two blocks representing the same
+  content. Block ids and sizes must match. The new block's content and
+  timestamp come from the second block, and any metadata is merged together."
+  [^Block left ^Block right]
+  (when (not= (.id left) (.id right))
+    (throw (ex-info
+             (str "Cannot merge blocks with differing ids " (.id left)
+                  " and " (.id right))
+             {:left left, :right right})))
+  (when (not= (.size left) (.size right))
+    (throw (ex-info
+             (str "Cannot merge blocks with differing sizes " (.size left)
+                  " and " (.size right))
+             {:left left, :right right})))
+  (->Block
+    (.id right)
+    (.size right)
+    (.stored-at right)
+    (.content right)
+    (not-empty (merge (._meta left) (._meta right)))))
+
+
+(defn wrap-content
+  "Wrap a block's content by calling `f` on it, returning a new block with the
+  same id and size."
+  ^blocks.data.Block
+  [^Block block f]
+  (->Block
+    (.id block)
+    (.size block)
+    (.stored-at block)
+    (f (.content block))
+    (._meta block)))
