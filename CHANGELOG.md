@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+## [2.0.0] - 2019-03-05
+
 **This is a major release with a rewritten storage interface.** Much of the
 library's API has changed slightly - the core concepts are the same, but now
 storage interactions are represented as asynchronous processes using
@@ -318,7 +322,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/1.1.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/2.0.0...HEAD
+[2.0.0]: https://github.com/greglook/blocks/compare/1.1.0...2.0.0
 [1.1.0]: https://github.com/greglook/blocks/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/greglook/blocks/compare/0.9.1...1.0.0
 [0.9.1]: https://github.com/greglook/blocks/compare/0.9.0...0.9.1
