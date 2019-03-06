@@ -1,9 +1,8 @@
 (ns blocks.store.buffer
-  "Logical block storage which uses two backing stores to implement a buffer.
-
-  New blocks are written to the _buffer_ store, which can be flushed to write
-  all of the blocks to the _primary_ store. Reads return a unified view of the
-  existing and buffered blocks."
+  "Buffer stores provide logical block storage which uses two backing stores to
+  implement a buffer. New blocks are written to the _buffer_ store, which can
+  be flushed to write all of the blocks to the _primary_ store. Reads return a
+  unified view of the existing and buffered blocks."
   (:require
     [blocks.core :as block]
     [blocks.store :as store]

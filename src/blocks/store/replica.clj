@@ -1,6 +1,9 @@
 (ns blocks.store.replica
-  "Logical block storage which writes to multiple backing stores to ensure
-  durability. Lookups will try the backing stores in order to find blocks."
+  "Replica stores provide logical block storage which writes to multiple
+  backing stores. Lookups will try the backing stores in order to find blocks.
+
+  Replicas are useful for ensuring durability across stores and for shared
+  caches, where some external process controls cache eviction."
   (:require
     [blocks.core :as block]
     [blocks.store :as store]

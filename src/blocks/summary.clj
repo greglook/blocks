@@ -1,25 +1,26 @@
 (ns blocks.summary
   "A 'summary' represents a collection of blocks, including certain statistics
   about the aggregate count and sizes. These are useful for returning from
-  certain operations to represent the set of blocks acted upon."
+  certain operations to represent the set of blocks acted upon.
+
+  The following fields are present in a summary:
+
+  - `:count`
+    The total number of blocks added to the summary.
+  - `:size`
+    The total size of blocks added to the summary, in bytes.
+  - `:sizes`
+    A histogram map from bucket exponent to a count of the blocks in that
+    bucket (see `size->bucket` and `bucket->range`)."
   (:refer-clojure :exclude [update merge]))
 
 
 (defn init
-  "Return a new, empty summary. An optional expected population and error
-  frequency may be passed in for more control. The following fields are present
-  in a summary:
-
-  - `:count` is the total number of blocks added to the summary
-  - `:size` is the total size of blocks added to the summary, in bytes
-  - `:sizes` gives a map from bucket exponent to a count of the blocks in that
-    bucket (see `size->bucket` and `bucket->range`)"
-  ([]
-   (init 10000 0.01))
-  ([expected-population false-positive-rate]
-   {:count 0
-    :size 0
-    :sizes {}}))
+  "Construct a new, empty summary."
+  []
+  {:count 0
+   :size 0
+   :sizes {}})
 
 
 (defn size->bucket
@@ -41,7 +42,7 @@
 
 
 (defn update
-  "Update the storage summary with the stats from the given block."
+  "Update the summary with the stats from the given block."
   [summary block]
   (when (instance? Throwable block)
     (throw block))
@@ -52,7 +53,7 @@
 
 
 (defn merge
-  "Merge two storage summaries together."
+  "Merge two summaries together."
   [a b]
   (-> a
       (clojure.core/update :count + (:count b))

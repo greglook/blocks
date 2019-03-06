@@ -1,10 +1,11 @@
 (ns blocks.store.memory
-  "Block storage backed by a map in an atom. Blocks put into this store will be
-  passed to `load!` to ensure the content resides in memory. Memory block stores
-  may be constructed usin the `mem:-` URI form.
+  "Memory stores provide process-local storage backed by a map in a ref. Blocks
+  put into this store will be fully read into memory to ensure the content is
+  present locally. Memory block stores may be constructed usin the `mem:-` URI
+  form.
 
   This store is most suitable for testing, caches, and other situations which
-  call for a non-persistent block store."
+  call for an ephemeral block store."
   (:require
     [blocks.data :as data]
     [blocks.store :as store]
