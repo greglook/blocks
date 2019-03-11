@@ -220,7 +220,11 @@ This library comes with a few block store implementations built in:
 Other storage backends are provided by separate libraries:
 
 - [blocks-s3](//github.com/greglook/blocks-s3) backed by a bucket in Amazon S3.
+
+These storage backends exist but aren't compatible with 2.X yet:
+
 - [blocks-adl](//github.com/amperity/blocks-adl) backed by Azure DataLake store.
+- [blocks-blob](//github.com/amperity/blocks-blob) backed by Azure Blob Storage.
 - [blocks-monger](//github.com/20centaurifux/blocks-monger) backed by MongoDB.
 
 
