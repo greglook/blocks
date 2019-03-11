@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "2.0.0"
+(defproject mvxcvi/blocks "2.0.1"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -19,7 +19,7 @@
    [com.stuartsierra/component "0.4.0"]
    [commons-io "2.6"]
    [manifold "0.1.8"]
-   [mvxcvi/multiformats "0.1.1"]]
+   [mvxcvi/multiformats "0.2.0"]]
 
   :test-selectors
   {:default (complement :integration)
@@ -48,7 +48,7 @@
 
   :profiles
   {:dev
-   {:source-paths ["blocks-test/src"]
+   {:source-paths ["blocks-tests/src"]
     :dependencies
     [[org.clojure/test.check "0.9.0"]
      [commons-logging "1.2"]

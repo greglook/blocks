@@ -1,9 +1,11 @@
 (ns blocks.store.cache
   "Cache stores provide logical block storage backed by two other stores, a
-  _primary store_ and a _cache_. Blocks are added to the cache on reads and
-  writes, and evicted with a least-recently-used strategy to keep the cache
-  under a certain total size. Operations on this store will prefer to look up
-  blocks in the cache, and fall back to the primary store when not available.
+  _primary store_ and a _cache_.
+
+  Blocks are added to the cache on reads and writes, and evicted with a
+  least-recently-used strategy to keep the cache under a certain total size.
+  Operations on this store will prefer to look up blocks in the cache, and fall
+  back to the primary store when not available.
 
   Because the caching logic runs locally, the backing cache storage should not
   be shared among multiple concurrent processes."

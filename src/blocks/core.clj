@@ -97,10 +97,15 @@
 (defn open
   "Open an input stream to read the contents of the block.
 
-  If `:start` and `:end` are given, the input stream will only return content
-  from the starting index byte to the byte before the end index. For example,
-  opening a block with size _n_ with `(open block {:start 0, :end n})` would
-  return the full block contents."
+  If an options map with `:start` or `:end` are given, the input stream will
+  only return content from the starting index byte to the byte before the end
+  index. For example, opening a block with size _n_ with these options would
+  return the full block contents:
+
+      (open block {:start 0, :end n})
+
+  Omitting either boundary will read from the beginning or to the end of the
+  block, respectively."
   (^java.io.InputStream
    [block]
    (open block nil))
@@ -276,7 +281,7 @@
 
   - `:timeout`
     Millisecond duration to wait for new blocks to arrive on the stream.
-    (default: 10000)"
+    (default: `10000`)"
   [store & opts]
   (let [opts (args->map opts)
         timeout (:timeout opts 10000)]

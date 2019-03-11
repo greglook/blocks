@@ -1,9 +1,11 @@
 (ns blocks.store.file
-  "This store provides block storage backed by files in local directories. Each
-  block is stored in a separate file. File block stores may be constructed
-  using the `file://<path-to-root-dir>` URI form. Under the root directory, the
-  store keeps a block files in a subdirectory, alongside some layout metadata
-  and a directory.
+  "File stores provide block storage backed by a local filesystem. Each block
+  is stored in a separate file under the root. File block stores may be
+  constructed using a `file://<path-to-root-dir>` URI. Both relative and
+  absolute paths are supported.
+
+  Under the root directory, the store keeps a block data in a subdirectory
+  alongside some layout metadata and a landing directory:
 
       $ROOT/meta.properties
       $ROOT/blocks/111497df/35011497df3588b5a3...
@@ -12,14 +14,13 @@
   In many filesystems, performance degrades as the number of files in a
   directory grows. In order to reduce this impact and make navigating the
   blocks more efficient, block files are stored in multiple subdirectories
-  consisting of the first four bytes of the multihashes of the blocks stored in
+  consisting of the four byte prefix of the hashes of the blocks stored in
   them. Within each directory, blocks are stored in files whose names consist
-  of the rest of their digests.
+  of the rest of their id digest.
 
   In addition to the blocks, a `meta.properties` file at the root holds
   information about the current storage layout for future-proofing. This
-  currently holds a single property, the layout version, which is always
-  `\"1\"`."
+  currently holds a single layout version property, which is always `\"v1\"`."
   (:require
     [blocks.data :as data]
     [blocks.store :as store]
@@ -30,7 +31,6 @@
     [com.stuartsierra.component :as component]
     [manifold.deferred :as d]
     [manifold.stream :as s]
-    [multiformats.base.b16 :as hex]
     [multiformats.hash :as multihash])
   (:import
     (java.io
@@ -162,7 +162,7 @@
         path (.getPath file)
         hex (str/replace (subs path (inc (count prefix))) "/" "")]
     (if (re-matches #"[0-9a-fA-F]+" hex)
-      (multihash/decode (hex/parse hex))
+      (multihash/parse hex)
       (log/warnf "File %s did not form valid hex entry: %s" file hex))))
 
 
