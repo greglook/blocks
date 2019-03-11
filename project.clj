@@ -19,7 +19,7 @@
    [com.stuartsierra/component "0.4.0"]
    [commons-io "2.6"]
    [manifold "0.1.8"]
-   [mvxcvi/multiformats "0.1.1"]]
+   [mvxcvi/multiformats "0.2.0"]]
 
   :test-selectors
   {:default (complement :integration)

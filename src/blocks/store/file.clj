@@ -31,7 +31,6 @@
     [com.stuartsierra.component :as component]
     [manifold.deferred :as d]
     [manifold.stream :as s]
-    [multiformats.base.b16 :as hex]
     [multiformats.hash :as multihash])
   (:import
     (java.io
@@ -163,7 +162,7 @@
         path (.getPath file)
         hex (str/replace (subs path (inc (count prefix))) "/" "")]
     (if (re-matches #"[0-9a-fA-F]+" hex)
-      (multihash/decode (hex/parse hex))
+      (multihash/parse hex)
       (log/warnf "File %s did not form valid hex entry: %s" file hex))))
 
 
