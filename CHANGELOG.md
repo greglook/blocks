@@ -9,6 +9,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ...
 
+## [2.0.1] - 2019-03-11
+
+### Changed
+- Various docstring updates after reviewing generated docs.
+- Upgrade multiformats to 0.2.0 for the `multiformats.hash/parse` method.
+- Renamed the `blocks-test` project to `blocks-tests` to better reflect the
+  test namespace.
+
 ## [2.0.0] - 2019-03-05
 
 **This is a major release with a rewritten storage interface.** Much of the
@@ -322,7 +330,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/2.0.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/2.0.1...HEAD
+[2.0.1]: https://github.com/greglook/blocks/compare/2.0.0...2.0.1
 [2.0.0]: https://github.com/greglook/blocks/compare/1.1.0...2.0.0
 [1.1.0]: https://github.com/greglook/blocks/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/greglook/blocks/compare/0.9.1...1.0.0
