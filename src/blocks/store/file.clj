@@ -160,7 +160,7 @@
   [^File root ^File file]
   (let [prefix (str (blocks-dir root))
         path (.getPath file)
-        hex (str/replace (subs path (inc (count prefix))) "/" "")]
+        hex (str/replace (subs path (inc (count prefix))) File/separator "")]
     (if (re-matches #"[0-9a-fA-F]+" hex)
       (multihash/parse hex)
       (log/warnf "File %s did not form valid hex entry: %s" file hex))))
