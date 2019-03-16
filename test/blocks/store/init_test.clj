@@ -6,7 +6,18 @@
     [clojure.test :refer :all])
   (:import
     blocks.store.file.FileBlockStore
-    blocks.store.memory.MemoryBlockStore))
+    blocks.store.memory.MemoryBlockStore
+    java.io.File))
+
+
+(defn- relative-path
+  [& parts]
+  (str/join File/separator parts))
+
+
+(defn- absolute-path
+  [& parts]
+  (str File/separator (apply relative-path parts)))
 
 
 (deftest uri-initialization
@@ -20,8 +31,8 @@
     (testing "absolute path"
       (let [store (store/initialize "file:///foo/bar/baz")]
         (is (instance? (Class/forName "blocks.store.file.FileBlockStore") store))
-        (is (= "/foo/bar/baz" (str (:root store))))))
+        (is (= (absolute-path "foo" "bar" "baz") (str (:root store))))))
     (testing "relative path"
       (let [store (store/initialize "file://foo/bar/baz")]
         (is (instance? (Class/forName "blocks.store.file.FileBlockStore") store))
-        (is (= "foo/bar/baz" (str (:root store))))))))
+        (is (= (relative-path "foo" "bar" "baz") (str (:root store))))))))
