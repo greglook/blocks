@@ -3,6 +3,7 @@
     [blocks.store :as store]
     [blocks.store.file]
     [blocks.store.memory]
+    [clojure.string :as str]
     [clojure.test :refer :all])
   (:import
     blocks.store.file.FileBlockStore
@@ -26,13 +27,13 @@
                  (store/initialize "foo://something"))))
   (testing "memory init"
     (let [store (store/initialize "mem:-")]
-      (is (instance? (Class/forName "blocks.store.memory.MemoryBlockStore") store))))
+      (is (instance? MemoryBlockStore store))))
   (testing "file init"
     (testing "absolute path"
       (let [store (store/initialize "file:///foo/bar/baz")]
-        (is (instance? (Class/forName "blocks.store.file.FileBlockStore") store))
+        (is (instance? FileBlockStore store))
         (is (= (absolute-path "foo" "bar" "baz") (str (:root store))))))
     (testing "relative path"
       (let [store (store/initialize "file://foo/bar/baz")]
-        (is (instance? (Class/forName "blocks.store.file.FileBlockStore") store))
+        (is (instance? FileBlockStore store))
         (is (= (relative-path "foo" "bar" "baz") (str (:root store))))))))
