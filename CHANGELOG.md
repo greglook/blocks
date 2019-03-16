@@ -7,7 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-...
+### Fixed
+- File block stores use the platform file separator, so should be compatible
+  with Windows and other non-linux systems.
+  [#21](//github.com/greglook/blocks/pull/21)
 
 ## [2.0.1] - 2019-03-11
 
