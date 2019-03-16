@@ -10,21 +10,14 @@
     java.io.File))
 
 
-(defmulti join-path
-  (fn [& parts]
-    (if (= (first parts) File/separator)
-      :absolute
-      :relative)))
-
-
-(defmethod join-path :relative
+(defn- relative-path
   [& parts]
-  (clojure.string/join File/separator parts))
+  (str/join File/separator parts))
 
 
-(defmethod join-path :absolute
+(defn- absolute-path
   [& parts]
-  (str (first parts) (apply join-path (rest parts))))
+  (str File/separator (apply relative-path parts)))
 
 
 (deftest uri-initialization
@@ -38,8 +31,8 @@
     (testing "absolute path"
       (let [store (store/initialize "file:///foo/bar/baz")]
         (is (instance? (Class/forName "blocks.store.file.FileBlockStore") store))
-        (is (= (join-path File/separator "foo" "bar" "baz") (str (:root store))))))
+        (is (= (absolute-path "foo" "bar" "baz") (str (:root store))))))
     (testing "relative path"
       (let [store (store/initialize "file://foo/bar/baz")]
         (is (instance? (Class/forName "blocks.store.file.FileBlockStore") store))
-        (is (= (join-path "foo" "bar" "baz") (str (:root store))))))))
+        (is (= (relative-path "foo" "bar" "baz") (str (:root store))))))))
