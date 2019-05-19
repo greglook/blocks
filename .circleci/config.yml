@@ -4,13 +4,13 @@ jobs:
   build:
     working_directory: ~/repo
     docker:
-      - image: circleci/clojure:lein-2.7.1
+      - image: circleci/clojure:lein-2.9.1
     steps:
       - checkout
       - restore_cache:
           keys:
-            - blocks-{{ checksum "project.clj" }}
-            - blocks-
+            - v1-{{ checksum "project.clj" }}
+            - v1-
       - run: lein deps
       - run: lein check
       - run: lein test
@@ -18,7 +18,7 @@ jobs:
       - save_cache:
           paths:
             - ~/.m2
-          key: blocks-{{ checksum "project.clj" }}
+          key: v1-{{ checksum "project.clj" }}
       - store_artifacts:
           path: target/coverage
           destination: coverage
