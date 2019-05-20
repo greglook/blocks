@@ -11,9 +11,7 @@
   well, and it is up to the receiver to interpret them."
   (:require
     [blocks.data :as data]
-    [clojure.tools.logging :as log]
-    #_[manifold.deferred :as d]
-    #_[manifold.stream :as s])
+    [clojure.tools.logging :as log])
   (:import
     java.io.InputStream
     java.util.concurrent.atomic.AtomicLong
@@ -78,35 +76,6 @@
   10)
 
 
-#_
-(defn- metering-block-stream
-  "Wrap the given stream in an intermediate stream which will record metric
-  events with the number of blocks which passed through the stream."
-  [store metric-type attrs stream]
-  (let [counter (AtomicLong. 0)
-        period *io-report-period*
-        label (meter-label store)
-        out (s/map #(do (.incrementAndGet counter) %) stream)
-        reports (s/periodically
-                  (* period 1000)
-                  #(.getAndSet counter 0))
-        flush! (fn flush!
-                 [sum]
-                 (when (pos? sum)
-                   (log/tracef "Metered %s of %d blocks through stream %s (%.2f/sec)"
-                               (name metric-type) sum label
-                               (double (/ sum period)))
-                   (record! store metric-type sum nil)))]
-    (s/consume flush! reports)
-    (s/on-closed
-      stream
-      (fn report-final
-        []
-        (flush! (.getAndSet counter 0))
-        (s/close! reports)))
-    out))
-
-
 (defn- metering-input-stream
   "Wrap the given input stream in a proxy which will record metric events with
   the given type and number of bytes read."
@@ -165,18 +134,6 @@
 
 
 ;; ## Method Wrappers
-
-#_
-(defn measure-stream
-  "Measure the flow of blocks through a manifold stream. Returns the wrapped
-  stream, or the original if the store does not have metering enabled."
-  [store method-kw attrs stream]
-  (cond->> stream
-    (enabled? store)
-    (metering-block-stream
-      store ::list-stream
-      (assoc attrs :method method-kw))))
-
 
 (defn measure-method*
   "Internal helper for `measure-method`."
