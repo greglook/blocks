@@ -9,6 +9,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ...
 
+## [1.2.0] - 2019-05-21
+
+### Added
+- Backport the `blocks.meter` namespace and logic from the 2.x series.
+
 ## [1.1.0] - 2017-12-24
 
 This release upgrades the library to Clojure 1.9.0.
@@ -193,7 +198,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/1.1.0...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/1.2.0...HEAD
+[1.2.0]: https://github.com/greglook/blocks/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/greglook/blocks/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/greglook/blocks/compare/0.9.1...1.0.0
 [0.9.1]: https://github.com/greglook/blocks/compare/0.9.0...0.9.1

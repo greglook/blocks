@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "1.1.1-SNAPSHOT"
+(defproject mvxcvi/blocks "1.2.0"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -8,7 +8,7 @@
   {"coverage" ["with-profile" "+coverage" "cloverage"
                "--ns-exclude-regex" "blocks.store.tests"]}
 
-  :deploy-branches ["master"]
+  :deploy-branches ["master" "legacy-1x"]
   :java-source-paths ["src"]
   :pedantic? :abort
 
