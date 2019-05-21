@@ -14,6 +14,7 @@
   (:refer-clojure :exclude [get list sync])
   (:require
     [blocks.data :as data]
+    [blocks.meter :as meter]
     [blocks.store :as store]
     [blocks.summary :as sum]
     [byte-streams :as bytes]
@@ -175,7 +176,10 @@
     (when-not (instance? Multihash id)
       (throw (IllegalArgumentException.
                (str "Id value must be a multihash, got: " (pr-str id)))))
-    (store/-stat store id)))
+    (meter/measure-method
+      store :stat
+      {:block-id id}
+      (store/-stat store id))))
 
 
 (defn list
@@ -226,11 +230,14 @@
   (when-not (instance? Multihash id)
     (throw (IllegalArgumentException.
              (str "Id value must be a multihash, got: " (pr-str id)))))
-  (when-let [block (store/-get store id)]
+  (when-let [block (meter/measure-method
+                     store :get
+                     {:block-id id}
+                     (store/-get store id))]
     (when-not (= id (:id block))
       (throw (RuntimeException.
                (str "Asked for block " id " but got " (:id block)))))
-    block))
+    (meter/metered-block store ::meter/io-read block)))
 
 
 (defn put!
@@ -241,7 +248,16 @@
     (when-not (instance? Block block)
       (throw (IllegalArgumentException.
                (str "Argument must be a block, got: " (pr-str block)))))
-    (data/merge-blocks block (store/-put! store block))))
+    (->>
+      block
+      (meter/metered-block store ::meter/io-write)
+      (store/-put! store)
+      (meter/measure-method
+        store :put!
+        {:block-id (:id block)
+         :block-size (:size block)})
+      (data/merge-blocks block)
+      (meter/metered-block store ::meter/io-read))))
 
 
 (defn store!
@@ -265,7 +281,10 @@
   removed."
   [store id]
   (when id
-    (store/-delete! store id)))
+    (meter/measure-method
+      store :delete!
+      {:block-id id}
+      (store/-delete! store id))))
 
 
 
@@ -332,7 +351,9 @@
   store should be empty. This is not guaranteed to be an atomic operation!"
   [store]
   (if (satisfies? store/ErasableStore store)
-    (store/-erase! store)
+    (meter/measure-method
+      store :erase!! nil
+      (store/-erase! store))
     (run! (comp (partial delete! store) :id)
           (store/-list store nil))))
 
