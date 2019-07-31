@@ -273,15 +273,20 @@
     (gen/bind
       (choose-block blocks)
       (fn [block]
-        (gen/fmap
-          (fn [positions]
-            (let [[start end] (sort positions)]
-              {:id (:id block)
-               :start start
-               :end end}))
-          (gen/vector-distinct
-            (gen/large-integer* {:min 0, :max (:size block)})
-            {:num-elements 2})))))
+        (if (< 3 (:size block))
+          (gen/fmap
+            (fn [positions]
+              (let [[start end] (sort positions)]
+                {:id (:id block)
+                 :start start
+                 :end end}))
+            (gen/vector-distinct
+              (gen/large-integer* {:min 0, :max (:size block)})
+              {:num-elements 2}))
+          (gen/return
+            {:id (:id block)
+             :start 0
+             :end (:size block)})))))
 
   (apply-op
     [this store]

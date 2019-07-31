@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "2.0.1"
+(defproject mvxcvi/blocks "2.0.2"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -12,9 +12,9 @@
   :pedantic? :abort
 
   :dependencies
-  [[org.clojure/clojure "1.10.0"]
+  [[org.clojure/clojure "1.10.1"]
    [org.clojure/data.priority-map "0.0.10"]
-   [org.clojure/tools.logging "0.4.1"]
+   [org.clojure/tools.logging "0.5.0"]
    [byte-streams "0.2.4"]
    [com.stuartsierra/component "0.4.0"]
    [commons-io "2.6"]
@@ -52,7 +52,7 @@
     :dependencies
     [[org.clojure/test.check "0.9.0"]
      [commons-logging "1.2"]
-     [mvxcvi/puget "1.1.0"]
+     [mvxcvi/puget "1.1.2"]
      [mvxcvi/test.carly "0.4.1"]]}
 
    :repl
@@ -62,7 +62,8 @@
    {:jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
 
    :coverage
-   {:plugins [[org.clojure/clojure "1.10.0"]
-              [lein-cloverage "1.0.13"]]
+   {:plugins
+    [[org.clojure/clojure "1.10.1"]
+     [lein-cloverage "1.0.13"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})

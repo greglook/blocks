@@ -9,6 +9,16 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ...
 
+## [2.0.2] - 2019-07-31
+
+### Changed
+- Upgrade to Clojure 1.10.1
+
+### Fixed
+- File block stores use the platform file separator, so should be compatible
+  with Windows and other non-linux systems.
+  [#21](//github.com/greglook/blocks/pull/21)
+
 ## [2.0.1] - 2019-03-11
 
 ### Changed
@@ -330,7 +340,8 @@ interface.
 
 Initial project release.
 
-[Unreleased]: https://github.com/greglook/blocks/compare/2.0.1...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/2.0.2...HEAD
+[2.0.2]: https://github.com/greglook/blocks/compare/2.0.1...2.0.2
 [2.0.1]: https://github.com/greglook/blocks/compare/2.0.0...2.0.1
 [2.0.0]: https://github.com/greglook/blocks/compare/1.1.0...2.0.0
 [1.1.0]: https://github.com/greglook/blocks/compare/1.0.0...1.1.0
