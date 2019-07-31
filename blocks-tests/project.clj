@@ -8,8 +8,8 @@
   :pedantic? :abort
 
   :dependencies
-  [[org.clojure/clojure "1.10.0"]
+  [[org.clojure/clojure "1.10.1"]
    [org.clojure/test.check "0.9.0"]
    [mvxcvi/blocks "2.0.2-SNAPSHOT"]
    [mvxcvi/test.carly "0.4.1"]
-   [mvxcvi/puget "1.1.0"]])
+   [mvxcvi/puget "1.1.2"]])
