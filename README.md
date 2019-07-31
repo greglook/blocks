@@ -137,6 +137,7 @@ The block storage protocol is comprised of five methods:
 
 ```clojure
 ; Create a new memory store:
+=> (require 'blocks.store.memory)
 => (def store (block/->store "mem:-"))
 #'user/store
 
