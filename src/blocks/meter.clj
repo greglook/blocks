@@ -16,8 +16,10 @@
     [manifold.stream :as s])
   (:import
     java.io.InputStream
-    java.util.concurrent.atomic.AtomicLong
-    org.apache.commons.io.input.ProxyInputStream))
+    (java.util.concurrent.atomic
+      AtomicLong)
+    (org.apache.commons.io.input
+      ProxyInputStream)))
 
 
 ;; ## Utilities

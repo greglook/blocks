@@ -18,8 +18,9 @@
     [puget.printer :as puget]
     [test.carly.core :as carly :refer [defop]])
   (:import
-    blocks.data.Block
-    blocks.data.PersistentBytes
+    (blocks.data
+      Block
+      PersistentBytes)
     java.time.Instant
     multiformats.hash.Multihash))
 
@@ -104,15 +105,15 @@
     [this model result]
     (let [expected-ids (cond->> (keys model)
                          (:algorithm query)
-                           (filter #(= (:algorithm query) (:algorithm %)))
+                         (filter #(= (:algorithm query) (:algorithm %)))
                          (:after query)
-                           (filter #(pos? (compare (multihash/hex %) (:after query))))
+                         (filter #(pos? (compare (multihash/hex %) (:after query))))
                          (:before query)
-                           (filter #(neg? (compare (multihash/hex %) (:before query))))
+                         (filter #(neg? (compare (multihash/hex %) (:before query))))
                          true
-                           (sort)
+                         (sort)
                          (:limit query)
-                           (take (:limit query)))]
+                         (take (:limit query)))]
       (is (sequential? result))
       (is (= (count expected-ids) (count result)))
       (doseq [[id result] (zipmap expected-ids result)]
@@ -408,7 +409,8 @@
                          10)}}]
   {:pre [(fn? constructor)]}
   (let [test-blocks (generate-blocks! blocks max-size)]
-    (carly/check-system "integration testing" iterations
+    (carly/check-system
+      "integration testing" iterations
       (fn init-system [ctx] (start-store constructor))
       (join-generators operations)
       :on-stop stop-store
