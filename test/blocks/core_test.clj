@@ -15,8 +15,8 @@
     (java.io
       ByteArrayOutputStream
       File
-      InputStream
-      IOException)))
+      IOException
+      InputStream)))
 
 
 ;; ## IO Tests

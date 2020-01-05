@@ -217,8 +217,8 @@
               ; Otherwise, pass the block along.
               :else
               (s/put! out block)))))
-        out
-        {:description {:op "select-blocks"}})
+      out
+      {:description {:op "select-blocks"}})
     (s/source-only out)))
 
 

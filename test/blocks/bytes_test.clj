@@ -71,11 +71,11 @@
     (is (neg? (compare (->pb 1 2 3)
                        (->pb 1 3 2))))
     (is (neg? (compare (->pb 0 2 3 4)
-                       (->pb 1 3 2 1))))
+                       (->pb 1 3 2 1)))))
   (testing "order-after"
     (is (pos? (compare (->pb 1 2 4)
                        (->pb 1 2 3))))
     (is (pos? (compare (->pb 1 3 2)
                        (->pb 1 2 3))))
     (is (pos? (compare (->pb 1 3 2 1)
-                       (->pb 0 2 3 4)))))))
+                       (->pb 0 2 3 4))))))

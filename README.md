@@ -2,7 +2,7 @@ Block Storage
 =============
 
 [![CircleCI](https://circleci.com/gh/greglook/blocks.svg?style=shield&circle-token=d652bef14116ac200c225d12b6c7af33933f4c26)](https://circleci.com/gh/greglook/blocks)
-[![codecov](https://codecov.io/gh/greglook/blocks/branch/develop/graph/badge.svg)](https://codecov.io/gh/greglook/blocks)
+[![codecov](https://codecov.io/gh/greglook/blocks/branch/master/graph/badge.svg)](https://codecov.io/gh/greglook/blocks)
 [![API codox](https://img.shields.io/badge/doc-API-blue.svg)](https://greglook.github.io/blocks/api/)
 [![marginalia docs](https://img.shields.io/badge/doc-marginalia-blue.svg)](https://greglook.github.io/blocks/marginalia/uberdoc.html)
 
@@ -137,6 +137,7 @@ The block storage protocol is comprised of five methods:
 
 ```clojure
 ; Create a new memory store:
+=> (require 'blocks.store.memory)
 => (def store (block/->store "mem:-"))
 #'user/store
 

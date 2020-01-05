@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks-tests "2.0.2"
+(defproject mvxcvi/blocks-tests "2.0.3-SNAPSHOT"
   :description "Generative tests for block storage implementations."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"
@@ -9,7 +9,7 @@
 
   :dependencies
   [[org.clojure/clojure "1.10.1"]
-   [org.clojure/test.check "0.9.0"]
-   [mvxcvi/blocks "2.0.2"]
+   [org.clojure/test.check "0.10.0"]
+   [mvxcvi/blocks "2.0.3-SNAPSHOT"]
    [mvxcvi/test.carly "0.4.1"]
-   [mvxcvi/puget "1.1.2"]])
+   [mvxcvi/puget "1.2.0"]])

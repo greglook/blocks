@@ -26,7 +26,8 @@
       FileInputStream)
     java.time.Instant
     multiformats.hash.Multihash
-    org.apache.commons.io.input.CountingInputStream))
+    (org.apache.commons.io.input
+      CountingInputStream)))
 
 
 ;; ## Utilities
@@ -261,7 +262,7 @@
                    {:limit limit}
                    (throw (IllegalArgumentException.
                             (str "Option :limit is not a positive integer: "
-                                  (pr-str limit))))))
+                                 (pr-str limit))))))
                ; Ensure no other options.
                (when-let [bad-opts (not-empty (dissoc opts :algorithm :after :before :limit))]
                  (throw (IllegalArgumentException.
@@ -288,7 +289,7 @@
     (when-not (pos-int? timeout)
       (throw (IllegalArgumentException.
                (str "Option :timeout is not a positive integer: "
-                     (pr-str timeout)))))
+                    (pr-str timeout)))))
     (letfn [(stream->seq
               [s]
               (lazy-seq

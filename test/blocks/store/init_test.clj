@@ -6,8 +6,10 @@
     [clojure.string :as str]
     [clojure.test :refer :all])
   (:import
-    blocks.store.file.FileBlockStore
-    blocks.store.memory.MemoryBlockStore
+    (blocks.store.file
+      FileBlockStore)
+    (blocks.store.memory
+      MemoryBlockStore)
     java.io.File))
 
 
@@ -24,7 +26,7 @@
 (deftest uri-initialization
   (testing "unknown"
     (is (thrown? IllegalArgumentException
-                 (store/initialize "foo://something"))))
+          (store/initialize "foo://something"))))
   (testing "memory init"
     (let [store (store/initialize "mem:-")]
       (is (instance? MemoryBlockStore store))))

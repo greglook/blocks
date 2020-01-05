@@ -17,11 +17,12 @@
   (:import
     blocks.data.PersistentBytes
     (java.io
-      InputStream
-      IOException)
+      IOException
+      InputStream)
     java.time.Instant
     multiformats.hash.Multihash
-    org.apache.commons.io.input.BoundedInputStream))
+    (org.apache.commons.io.input
+      BoundedInputStream)))
 
 
 ;; ## Block Type

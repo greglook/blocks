@@ -14,10 +14,10 @@
   stores."
   [size-limit & args]
   (apply caching-block-store
-    size-limit
-    :primary (memory-block-store)
-    :cache (memory-block-store)
-    args))
+         size-limit
+         :primary (memory-block-store)
+         :cache (memory-block-store)
+         args))
 
 
 (deftest lifecycle
@@ -92,7 +92,8 @@
 
 (deftest ^:integration check-behavior
   (tests/check-store
-    #(caching-block-store 2048
+    #(caching-block-store
+       2048
        :predicate (fn [block] (< (:size block) 512))
        :primary (memory-block-store)
        :cache (memory-block-store))))
