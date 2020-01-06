@@ -59,6 +59,6 @@
    :coverage
    {:plugins
     [[org.clojure/clojure "1.10.1"]
-     [lein-cloverage "1.0.13"]]
+     [lein-cloverage "1.1.2"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
