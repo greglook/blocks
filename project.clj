@@ -34,11 +34,6 @@
    :show-external false
    :ignore-ns #{blocks.store.tests}}
 
-  :codox
-  {:metadata {:doc/format :markdown}
-   :source-uri "https://github.com/greglook/blocks/blob/master/{filepath}#L{line}"
-   :output-path "target/doc/api"}
-
   :whidbey
   {:tag-types {'blocks.data.Block {'blocks.data.Block
                                    #(array-map :id (:id %)

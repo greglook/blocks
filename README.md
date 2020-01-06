@@ -3,8 +3,8 @@ Block Storage
 
 [![CircleCI](https://circleci.com/gh/greglook/blocks.svg?style=shield&circle-token=d652bef14116ac200c225d12b6c7af33933f4c26)](https://circleci.com/gh/greglook/blocks)
 [![codecov](https://codecov.io/gh/greglook/blocks/branch/master/graph/badge.svg)](https://codecov.io/gh/greglook/blocks)
-[![API codox](https://img.shields.io/badge/doc-API-blue.svg)](https://greglook.github.io/blocks/api/)
-[![marginalia docs](https://img.shields.io/badge/doc-marginalia-blue.svg)](https://greglook.github.io/blocks/marginalia/uberdoc.html)
+[![cljdoc lib](https://img.shields.io/badge/cljdoc-lib-blue.svg)](https://cljdoc.org/d/mvxcvi/blocks/)
+[![cljdoc test](https://img.shields.io/badge/cljdoc-tests-blue.svg)](https://cljdoc.org/d/mvxcvi/blocks-tests/)
 
 This library implements [content-addressable storage](https://en.wikipedia.org/wiki/Content-addressable_storage)
 types and protocols for Clojure. Content-addressable storage has several useful properties:
