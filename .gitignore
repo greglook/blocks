@@ -3,6 +3,7 @@
 /checkouts
 /.lein-*
 /.nrepl-port
+/.clj-kondo/.cache
 profiles.clj
 build.xml
 pom.xml

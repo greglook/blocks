@@ -1,0 +1,12 @@
+{:linters {;:unresolved-symbol
+           ;{:exclude [(clojure.test/is [thrown-with-data? valid? invalid?])]}
+
+           ;:unused-binding
+           ;{:exclude-destructured-keys-in-fn-args true}
+
+           :consistent-alias
+           {:level :warning
+            :aliases {clojure.java.io io
+                      clojure.set set
+                      clojure.spec.alpha s
+                      clojure.string str}}}}

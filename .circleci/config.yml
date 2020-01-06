@@ -28,6 +28,21 @@ jobs:
           path: style-stats.tsv
           destination: style
 
+  lint:
+    executor: clojure
+    steps:
+      - checkout
+      - run:
+          name: Install clj-kondo
+          environment:
+            CLJ_KONDO_VERSION: 2019.12.14
+          command: |
+            wget https://github.com/borkdude/clj-kondo/releases/download/v${CLJ_KONDO_VERSION}/clj-kondo-${CLJ_KONDO_VERSION}-linux-amd64.zip
+            unzip clj-kondo-${CLJ_KONDO_VERSION}-linux-amd64.zip
+      - run:
+          name: Lint source code
+          command: "./clj-kondo --lint $(lein classpath)"
+
   test:
     executor: clojure
     steps:
@@ -74,6 +89,7 @@ workflows:
   test:
     jobs:
       - style
+      - lint
       - test
       - coverage:
           requires:
