@@ -24,12 +24,10 @@
   (:require
     [blocks.data :as data]
     [blocks.store :as store]
-    [byte-streams :as bytes]
     [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
     [com.stuartsierra.component :as component]
-    [manifold.deferred :as d]
     [manifold.stream :as s]
     [multiformats.hash :as multihash])
   (:import

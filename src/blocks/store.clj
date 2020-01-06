@@ -6,7 +6,9 @@
     [blocks.data :as data]
     [clojure.string :as str]
     [manifold.deferred :as d]
+    [manifold.executor :as mx]
     [manifold.stream :as s]
+    [manifold.utils :as mu]
     [multiformats.hash :as multihash]))
 
 
@@ -125,8 +127,8 @@
   "A helper for the `future` macro which wraps some submission logic in a
   common function."
   [d body-fn]
-  (manifold.utils/future-with
-    (manifold.executor/execute-pool)
+  (mu/future-with
+    (mx/execute-pool)
     (when-not (d/realized? d)
       (try
         (d/success! d (body-fn))

@@ -3,10 +3,10 @@
     [blocks.core :as block]
     [blocks.data :as data]
     [blocks.store :as store]
-    [blocks.test-utils :refer [quiet-exception quiet-error-deferred]]
-    [byte-streams :as bytes :refer [bytes=]]
+    [blocks.test-utils :refer [quiet-exception]]
+    [byte-streams :refer [bytes=]]
     [clojure.java.io :as io]
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest testing is]]
     [manifold.deferred :as d]
     [manifold.stream :as s]
     [multiformats.hash :as multihash])
@@ -14,9 +14,7 @@
     blocks.data.Block
     (java.io
       ByteArrayOutputStream
-      File
-      IOException
-      InputStream)))
+      File)))
 
 
 ;; ## IO Tests

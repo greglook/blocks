@@ -66,7 +66,7 @@
 (defn- remove-block
   "Update the cache state to remove a block from it by id."
   [state id]
-  (if-let [[tick size] (get-in state [:priorities id])]
+  (if-let [[_ size] (get-in state [:priorities id])]
     (-> state
         (update :total-size - size)
         (update :priorities dissoc id))
@@ -82,9 +82,9 @@
     (d/loop [deleted (sum/init)]
       (let [{:keys [priorities total-size]} @state]
         (if (and (< (- size-limit total-size) target-free)
-                 (not (empty? priorities)))
+                 (seq priorities))
           ; Need to delete the next block.
-          (let [[id [tick size]] (peek priorities)]
+          (let [[id [_ size]] (peek priorities)]
             (swap! state remove-block id)
             (d/chain
               (block/delete! cache id)

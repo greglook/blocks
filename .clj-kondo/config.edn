@@ -1,12 +1,19 @@
-{:linters {;:unresolved-symbol
-           ;{:exclude [(clojure.test/is [thrown-with-data? valid? invalid?])]}
+{:linters
+ {:consistent-alias
+  {:level :warning
+   :aliases {clojure.java.io io
+             clojure.set set
+             clojure.string str
+             manifold.deferred d
+             manifold.stream s
+             multiformats.hash multihash}}
 
-           ;:unused-binding
-           ;{:exclude-destructured-keys-in-fn-args true}
+  :unresolved-symbol
+  {:exclude [(test.carly.core/defop)]}
 
-           :consistent-alias
-           {:level :warning
-            :aliases {clojure.java.io io
-                      clojure.set set
-                      clojure.spec.alpha s
-                      clojure.string str}}}}
+  ;; https://github.com/borkdude/clj-kondo/issues/678
+  :private-call
+  {:level :info}}
+
+ :lint-as
+ {manifold.deferred/loop clojure.core/loop}}

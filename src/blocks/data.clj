@@ -16,9 +16,7 @@
     [multiformats.hash :as multihash])
   (:import
     blocks.data.PersistentBytes
-    (java.io
-      IOException
-      InputStream)
+    java.io.InputStream
     java.time.Instant
     multiformats.hash.Multihash
     (org.apache.commons.io.input

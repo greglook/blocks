@@ -3,7 +3,7 @@
     [blocks.data :as data]
     [blocks.store :as store]
     [blocks.test-utils :refer [quiet-exception quiet-error-deferred]]
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest testing is]]
     [manifold.deferred :as d]
     [manifold.stream :as s]
     [multiformats.hash :as multihash]))

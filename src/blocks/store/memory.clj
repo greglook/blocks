@@ -100,5 +100,5 @@
 
 
 (defmethod store/initialize "mem"
-  [location]
+  [_]
   (memory-block-store))

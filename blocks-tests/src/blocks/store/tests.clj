@@ -5,16 +5,11 @@
     [alphabase.bytes :refer [bytes= random-bytes]]
     [alphabase.hex :as hex]
     [blocks.core :as block]
-    [blocks.summary :as sum]
     [clojure.java.io :as io]
-    [clojure.test :refer :all]
-    [clojure.test.check :as check]
+    [clojure.test :refer [is]]
     [clojure.test.check.generators :as gen]
-    [clojure.test.check.properties :as prop]
     [com.stuartsierra.component :as component]
-    [manifold.deferred :as d]
     [multiformats.hash :as multihash]
-    [puget.color.ansi :as ansi]
     [puget.printer :as puget]
     [test.carly.core :as carly :refer [defop]])
   (:import
@@ -55,6 +50,18 @@
 
 
 ;; ## Operation Generators
+
+;; Appease clj-kondo
+(declare gen->ListBlocks
+         gen->ScanStore
+         gen->StatBlock
+         gen->GetBlock
+         gen->OpenBlock
+         gen->OpenBlockRange
+         gen->PutBlock
+         gen->DeleteBlock
+         gen->EraseStore)
+
 
 (defn- choose-id
   "Returns a generator which will select a block id from the model pool."
@@ -411,7 +418,7 @@
   (let [test-blocks (generate-blocks! blocks max-size)]
     (carly/check-system
       "integration testing" iterations
-      (fn init-system [ctx] (start-store constructor))
+      (fn init-system [_] (start-store constructor))
       (join-generators operations)
       :on-stop stop-store
       :context-gen (gen-blocks-context test-blocks)

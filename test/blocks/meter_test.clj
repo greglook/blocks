@@ -3,7 +3,7 @@
     [blocks.data :as data]
     [blocks.meter :as meter]
     [blocks.test-utils :refer [quiet-exception]]
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest testing is]]
     [manifold.deferred :as d]
     [manifold.stream :as s]))
 
@@ -122,6 +122,5 @@
   (testing "bad recorder"
     (let [store (map->TestStore
                   {::meter/recorder
-                   (fn [_ event]
-                     (throw (quiet-exception)))})]
+                   (fn [_ _] (throw (quiet-exception)))})]
       (is (nil? (#'meter/record! store :boom! 1 nil))))))

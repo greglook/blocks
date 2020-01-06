@@ -1,7 +1,7 @@
 (ns blocks.bytes-test
   (:require
     [byte-streams :refer [bytes=]]
-    [clojure.test :refer :all])
+    [clojure.test :refer [deftest testing is]])
   (:import
     blocks.data.PersistentBytes))
 

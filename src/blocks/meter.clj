@@ -97,7 +97,7 @@
                    (log/tracef "Metered %s of %d blocks through stream %s (%.2f/sec)"
                                (name metric-type) sum label
                                (double (/ sum period)))
-                   (record! store metric-type sum nil)))]
+                   (record! store metric-type sum attrs)))]
     (s/consume flush! reports)
     (s/on-closed
       stream
@@ -130,7 +130,7 @@
         (afterRead
           [n]
           (when (pos? n)
-            (let [[last-time sum] (vswap! meter update 1 + n)
+            (let [[last-time _] (vswap! meter update 1 + n)
                   elapsed (/ (- (System/nanoTime) last-time) 1e9)]
               (when (<= *io-report-period* elapsed)
                 (flush!)))))

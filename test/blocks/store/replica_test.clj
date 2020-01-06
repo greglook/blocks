@@ -4,7 +4,7 @@
     [blocks.store.memory :refer [memory-block-store]]
     [blocks.store.replica :refer [replica-block-store]]
     [blocks.store.tests :as tests]
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest is]]
     [com.stuartsierra.component :as component]))
 
 

@@ -2,7 +2,7 @@
   (:require
     [blocks.data :as data]
     [blocks.summary :as sum]
-    [clojure.test :refer :all]))
+    [clojure.test :refer [deftest is]]))
 
 
 (deftest bucket-histogram
@@ -26,6 +26,6 @@
     (is (= (:size block-a) (:size summary-a)))
     (is (= 2 (:count summary-ab)))
     (is (= (+ (:size block-a) (:size block-b)) (:size summary-ab)))
-    (is (not (empty? (:sizes summary-ab))))
+    (is (seq (:sizes summary-ab)))
     (is (= (sum/merge summary-ab summary-c)
            (sum/update summary-ab block-c)))))

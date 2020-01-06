@@ -4,7 +4,7 @@
     [blocks.store.file]
     [blocks.store.memory]
     [clojure.string :as str]
-    [clojure.test :refer :all])
+    [clojure.test :refer [deftest testing is]])
   (:import
     (blocks.store.file
       FileBlockStore)

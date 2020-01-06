@@ -12,15 +12,12 @@
     [blocks.summary :as sum]
     [byte-streams :as bytes]
     [clojure.java.io :as io]
-    [clojure.set :as set]
     [clojure.string :as str]
     [manifold.deferred :as d]
     [manifold.stream :as s]
     [multiformats.hash :as multihash])
   (:import
-    (blocks.data
-      Block
-      PersistentBytes)
+    blocks.data.Block
     (java.io
       File
       FileInputStream)

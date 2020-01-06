@@ -1,9 +1,10 @@
 (ns blocks.data-test
   (:require
     [blocks.data :as data]
-    [byte-streams :as bytes :refer [bytes=]]
-    [clojure.test :refer :all]
-    [multiformats.hash :as multihash]))
+    [clojure.test :refer [deftest testing is]]
+    [multiformats.hash :as multihash])
+  (:import
+    java.io.ByteArrayInputStream))
 
 
 (deftest block-type
@@ -43,7 +44,7 @@
         loaded (data/read-block :sha1 content)
         lazy (data/create-block
                (:id loaded) (:size loaded)
-               #(bytes/to-input-stream (.getBytes content)))
+               #(ByteArrayInputStream. (.getBytes content)))
         wrapped (data/wrap-content loaded (constantly ::wrapped))]
     (is (data/byte-content? loaded))
     (is (not (data/byte-content? lazy)))
@@ -65,7 +66,7 @@
                   (count content)
                   (fn reader
                     []
-                    (java.io.ByteArrayInputStream. (.getBytes content))))]
+                    (ByteArrayInputStream. (.getBytes content))))]
       (is (= "foo bar baz" (slurp (data/content-stream block nil nil))))
       (is (= "bar baz" (slurp (data/content-stream block 4 nil))))
       (is (= "foo" (slurp (data/content-stream block nil 3))))

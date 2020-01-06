@@ -5,8 +5,9 @@
     [blocks.store.tests :as tests]
     [blocks.test-utils :refer [quiet-exception]]
     [clojure.java.io :as io]
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest testing is]]
     [com.stuartsierra.component :as component]
+    [manifold.stream :as s]
     [multiformats.hash :as multihash]))
 
 
@@ -85,7 +86,7 @@
     (testing "exception"
       (let [ex (quiet-exception)]
         (with-redefs [blocks.store.file/file->block (fn [_ _] (throw ex))]
-          (is (= [ex] (manifold.stream/stream->seq (block/list store))))
+          (is (= [ex] (s/stream->seq (block/list store))))
           (is (thrown? Exception
                 (doall (block/list-seq store)))))))))
 

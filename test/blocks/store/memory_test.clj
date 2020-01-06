@@ -4,7 +4,7 @@
     [blocks.data :as data]
     [blocks.store.memory :refer [memory-block-store]]
     [blocks.store.tests :as tests]
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest is]]
     [multiformats.hash :as multihash]))
 
 
