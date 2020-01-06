@@ -74,21 +74,27 @@
       @(s/put! stream :x)
       @(s/put! stream :x)
       (Thread/sleep 30)
-      (is (or (= [{:type ::meter/list-stream
-                   :label "TestStore"
-                   :value 2}]
-                 @events)
-              (= [{:type ::meter/list-stream
+      (let [result @events]
+        (if (= 1 (count result))
+          (is (= {:type ::meter/list-stream
+                  :method :blocks.meter-test/flow
+                  :label "TestStore"
+                  :value 2}
+                 (first result)))
+          (is (= [{:type ::meter/list-stream
+                   :method :blocks.meter-test/flow
                    :label "TestStore"
                    :value 1}
                   {:type ::meter/list-stream
+                   :method :blocks.meter-test/flow
                    :label "TestStore"
                    :value 1}]
-                 @events)))
+                 result))))
       (reset! events [])
       @(s/put! stream :x)
       (s/close! stream)
       (is (= [{:type ::meter/list-stream
+               :method :blocks.meter-test/flow
                :label "TestStore"
                :value 1}]
              @events)))))
