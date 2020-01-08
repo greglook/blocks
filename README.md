@@ -32,16 +32,15 @@ Leiningen, add the following dependency to your project definition:
 ## Block Values
 
 A _block_ is a sequence of bytes identified by the cryptographic digest of its
-content. All blocks have an `:id` and `:size`, and optionally a `:stored-at`.
-The block identifier is a [multihash](//github.com/greglook/clj-multiformats)
-value, and the size is the number of bytes in the block content. Blocks may also
-have a `:stored-at` value, which is the instant the backing store received the
-block.
+content. All blocks have an `:id` and a `:size` - the block identifier is a
+[multihash](//github.com/greglook/clj-multiformats) value, and the size is the
+number of bytes in the block content. Blocks may also have a `:stored-at`
+value, which is the instant the backing store received the block.
 
 ```clojure
 => (require '[blocks.core :as block])
 
-; Read a block into memory:
+;; Read a block into memory:
 => (def hello (block/read! "hello, blocks!"))
 #'user/hello
 
@@ -57,7 +56,7 @@ block.
 => (:size hello)
 14
 
-; Write a block to some output stream:
+;; Write a block to some output stream:
 => (let [baos (java.io.ByteArrayOutputStream.)]
      (block/write! hello baos)
      (String. (.toByteArray baos)))
@@ -73,11 +72,11 @@ _lazy block_.
 => (block/loaded? hello)
 true
 
-; Create a block from a local file:
+;; Create a block from a local file:
 => (def readme (block/from-file "README.md"))
 #'user/readme
 
-; Block is lazily backed by the file on disk:
+;; Block is lazily backed by the file on disk:
 => (block/loaded? readme)
 false
 
@@ -92,7 +91,7 @@ block's content using `open`:
 => (slurp (block/open hello))
 "hello, blocks!"
 
-; You can also provide a start/end index to get a range of bytes:
+;; You can also provide a start/end index to get a range of bytes:
 => (with-open [content (block/open readme {:start 0, :end 32})]
      (slurp content))
 "Block Storage\n=============\n\n[!["
@@ -104,16 +103,16 @@ the underlying storage layer, blocks can be validated by re-reading their
 content:
 
 ```clojure
-; In-memory blocks will never change:
+;; In-memory blocks will never change:
 => (block/validate! hello)
 nil
 
-; But if the README file backing the second block is changed:
+;; But if the README file backing the second block is changed:
 => (block/validate! readme)
 ; IllegalStateException Block hash:sha2-256:515c169aa0d95... has mismatched content
 ;   blocks.core/validate! (core.clj:115)
 
-; Metadata can be set and queried:
+;; Metadata can be set and queried:
 => (meta (with-meta readme {:baz 123}))
 {:baz 123}
 ```
@@ -134,8 +133,12 @@ The block storage protocol is comprised of five methods:
 - `put!` - add a block to the store
 - `delete!` - remove a block from the store
 
+These methods are asynchronous operations which return
+[manifold](https://github.com/ztellman/manifold) deferred values. If you want
+to treat them synchronously, deref the responses immediately.
+
 ```clojure
-; Create a new memory store:
+;; Create a new memory store:
 => (require 'blocks.store.memory)
 => (def store (block/->store "mem:-"))
 #'user/store
@@ -143,11 +146,11 @@ The block storage protocol is comprised of five methods:
 => store
 #blocks.store.memory.MemoryBlockStore {:memory #<Ref@2573332e {}>}
 
-; Initially, the store is empty:
+;; Initially, the store is empty:
 => (block/list-seq store)
 ()
 
-; Lets put our blocks in the store so they don't get lost:
+;; Lets put our blocks in the store so they don't get lost:
 => @(block/put! store hello)
 #blocks.data.Block
 {:id #multi/hash "hash:sha2-256:d2eef339d508c69fb6e3e99c11c11fc4fc8c035d028973057980d41c7d162684",
@@ -160,13 +163,13 @@ The block storage protocol is comprised of five methods:
  :size 8597,
  :stored-at #inst "2019-02-18T07:07:06.458Z"}
 
-; We can `stat` block ids to get metadata without content:
+;; We can `stat` block ids to get metadata without content:
 => @(block/stat store (:id hello))
 {:id #multi/hash "hash:sha2-256:94d0eb8d13137ebced045b1e7ef48540af81b2abaf2cce34e924ce2cde7cfbaa",
  :size 14,
  :stored-at #inst "2019-02-18T07:07:06.458Z"}
 
-; `list` returns the blocks, and has some basic filtering options:
+;; `list` returns the blocks, and has some basic filtering options:
 => (block/list-seq store :algorithm :sha2-256)
 (#blocks.data.Block
  {:id #multi/hash "hash:sha2-256:94d0eb8d13137ebced045b1e7ef48540af81b2abaf2cce34e924ce2cde7cfbaa",
@@ -177,14 +180,14 @@ The block storage protocol is comprised of five methods:
   :size 14,
   :stored-at #inst "2019-02-18T07:06:43.655Z"})
 
-; Use `get` to fetch blocks from the store:
+;; Use `get` to fetch blocks from the store:
 => @(block/get store (:id readme))
 #blocks.data.Block
 {:id #multi/hash "hash:sha2-256:94d0eb8d13137ebced045b1e7ef48540af81b2abaf2cce34e924ce2cde7cfbaa",
  :size 8597,
  :stored-at #inst "2019-02-18T07:07:06.458Z"}
 
-; You can also store them directly from a byte source like a file:
+;; You can also store them directly from a byte source like a file:
 => @(block/store! store (io/file "project.clj"))
 #blocks.data.Block
 {:id #multi/hash "hash:sha2-256:95344c6acadde09ecc03a7899231001455690f620f31cf8d5bbe330dcda19594",
@@ -194,11 +197,11 @@ The block storage protocol is comprised of five methods:
 => (def project-hash (:id *1))
 #'user/project-hash
 
-; Use `delete!` to remove blocks from a store:
+;; Use `delete!` to remove blocks from a store:
 => @(block/delete! store project-hash)
 true
 
-; Checking with stat reveals the block is gone:
+;; Checking with stat reveals the block is gone:
 => @(block/stat store project-hash)
 nil
 ```
