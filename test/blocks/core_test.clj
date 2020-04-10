@@ -118,6 +118,7 @@
         c (multihash/create :sha1 "acbd18db4cc2f856211de9ecedef654fccc4a4d8")
         d (multihash/create :sha2-256 "285c3c23d662b5ef7172373df0963ff4ce003206")
         store (reify store/BlockStore
+
                 (-list
                   [_ opts]
                   (s/->source [{:id a} {:id b} {:id c} {:id d}])))]
@@ -172,6 +173,7 @@
             (doall
               (block/list-seq
                 (reify store/BlockStore
+
                   (-list
                     [_ opts]
                     (s/->source [{:id a} (quiet-exception)]))))))
@@ -180,6 +182,7 @@
             (doall
               (block/list-seq
                 (reify store/BlockStore
+
                   (-list
                     [_ opts]
                     (s/stream)))
@@ -199,6 +202,7 @@
       (is (= {:id id, :size 123, :stored-at now}
              @(block/stat
                 (reify store/BlockStore
+
                   (-stat
                     [_ id]
                     (d/success-deferred
@@ -215,12 +219,14 @@
           (block/get {} "foo"))))
   (testing "no block result"
     (let [store (reify store/BlockStore
+
                   (-get
                     [_ id]
                     (d/success-deferred nil)))]
       (is (nil? @(block/get store (multihash/sha1 "foo bar"))))))
   (testing "invalid block result"
     (let [store (reify store/BlockStore
+
                   (-get
                     [_ id]
                     (d/success-deferred (block/read! "foo"))))
@@ -230,6 +236,7 @@
   (testing "valid block result"
     (let [block (block/read! "foo")
           store (reify store/BlockStore
+
                   (-get
                     [_ id]
                     (d/success-deferred block)))]
@@ -239,6 +246,7 @@
 (deftest put-wrapper
   (let [original (block/read! "a block")
         store (reify store/BlockStore
+
                 (-put!
                   [_ block]
                   (d/success-deferred block)))]
@@ -255,6 +263,7 @@
 
 (deftest store-wrapper
   (let [store (reify store/BlockStore
+
                 (-put!
                   [_ block]
                   (d/success-deferred block)))]
@@ -274,6 +283,7 @@
 (deftest delete-wrapper
   (let [id (multihash/sha1 "foo")
         store (reify store/BlockStore
+
                 (-delete!
                   [_ id']
                   (d/success-deferred (= id id'))))]
@@ -296,12 +306,15 @@
                      (:id b) b
                      (:id c) c}
         store (reify store/BlockStore
+
                 (-get
                   [_ id]
                   (d/success-deferred (get test-blocks id)))
+
                 (-put!
                   [_ block]
                   (d/success-deferred block))
+
                 (-delete!
                   [_ id]
                   (d/success-deferred (contains? test-blocks id))))]
@@ -326,6 +339,7 @@
         c (block/read! "bar")
         d (block/read! "abcdef")
         store (reify store/BlockStore
+
                 (-list
                   [_ opts]
                   (s/->source [a b c d])))]
@@ -347,9 +361,11 @@
         c (block/read! "bar")
         deleted (atom #{})
         store (reify store/BlockStore
+
                 (-list
                   [_ opts]
                   (s/->source [a b c]))
+
                 (-delete!
                   [_ id]
                   (swap! deleted conj id)
@@ -367,14 +383,17 @@
         d (block/read! "ABC")  ; b5d4
         source-store (fn [& blocks]
                        (reify store/BlockStore
+
                          (-list
                            [_ opts]
                            (s/->source blocks))))
         sink-store (fn [target & blocks]
                      (reify store/BlockStore
+
                        (-list
                          [_ opts]
                          (s/->source (vec blocks)))
+
                        (-put!
                          [_ block]
                          (swap! target conj block)
