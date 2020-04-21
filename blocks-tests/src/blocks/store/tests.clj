@@ -372,7 +372,8 @@
 
 
 (def ^:private print-handlers
-  {Multihash (puget/tagged-handler 'multi/hash str)
+  {Instant (puget/tagged-handler 'inst str)
+   Multihash (puget/tagged-handler 'multi/hash str)
    Block (puget/tagged-handler 'blocks/block (juxt :id :size :stored-at))
    (class (byte-array 0)) (puget/tagged-handler 'data/bytes alphabase.hex/encode)})
 

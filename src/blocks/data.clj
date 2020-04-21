@@ -123,7 +123,7 @@
     stream, respectively."))
 
 
-(defn- bounded-input-stream
+(defn bounded-input-stream
   "Wrap an input stream such that it only returns a stream of bytes in the
   range `start` to `end`."
   ^java.io.InputStream
