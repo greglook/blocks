@@ -7,12 +7,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-...
+### Changed
+- Upgraded dependencies.
+- Made `blocks.data/bounded-input-stream` public as a utility for implementing
+  block stores.
+
 
 ## [2.0.3] - 2020-01-05
 
 ### Changed
 - Upgraded dependencies for better compatibility with JDK11.
+
 
 ## [2.0.2] - 2019-07-31
 
@@ -24,6 +29,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   with Windows and other non-linux systems.
   [#21](//github.com/greglook/blocks/pull/21)
 
+
 ## [2.0.1] - 2019-03-11
 
 ### Changed
@@ -31,6 +37,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Upgrade multiformats to 0.2.0 for the `multiformats.hash/parse` method.
 - Renamed the `blocks-test` project to `blocks-tests` to better reflect the
   test namespace.
+
 
 ## [2.0.0] - 2019-03-05
 
@@ -161,9 +168,11 @@ A few other things changed or were added:
 - Storage tests no longer test the batch methods, since they are no longer
   unique to store types.
 
+
 ## [1.1.0] - 2017-12-24
 
 This release upgrades the library to Clojure 1.9.0.
+
 
 ## [1.0.0] - 2017-11-05
 
@@ -183,11 +192,13 @@ Finally seems like time for a 1.0 release. One very minor breaking change.
 - *BREAKING:* Blocks no longer implement `IDeref` as a way to get their internal
   content.
 
+
 ## [0.9.1] - 2017-05-17
 
 ### Added
 - `PersistentBytes` has a `toByteArray` method to return a copy of the byte data
   as a raw array.
+
 
 ## [0.9.0] - 2017-03-31
 
@@ -217,6 +228,7 @@ This release has a couple of breaking changes, detailed below.
 ### Removed
 - Dropped `EnumerableStore` protocol and `enumerate` method. No usages have
   come up requiring it and it's easy to replace in the non-optimized case.
+
 
 ## [0.8.0] - 2016-08-14
 
@@ -258,6 +270,7 @@ This release has a couple of breaking changes, detailed below.
 - File stores correctly return `false` when deleting a block which is not
   contained in the store.
 
+
 ## [0.6.1] - 2016-01-25
 
 ### Added
@@ -266,6 +279,7 @@ This release has a couple of breaking changes, detailed below.
 
 ### Fixed
 - `block/store!` will no longer try to store empty files.
+
 
 ## [0.6.0] - 2016-01-10
 
@@ -292,6 +306,7 @@ This release has a couple of breaking changes, detailed below.
 - `validate!` now checks the size of lazy blocks by using a counting input
   stream wrapper.
 
+
 ## [0.5.0] - 2015-11-14
 
 ### Added
@@ -300,6 +315,7 @@ This release has a couple of breaking changes, detailed below.
 
 ### Changed
 - `random-bytes` and `random-hex` now generate fixed-width data.
+
 
 ## [0.4.2] - 2015-11-13
 
@@ -310,6 +326,7 @@ This release has a couple of breaking changes, detailed below.
 
 ### Fixed
 - File store skips over malformed files instead of throwing an exception.
+
 
 ## [0.4.1] - 2015-11-12
 
@@ -322,6 +339,7 @@ This release has a couple of breaking changes, detailed below.
   returned block.
 - Expanded integration test suite to cover `stat` and `get` on non-existent
   blocks and `put!` merging.
+
 
 ## [0.4.0] - 2015-11-10
 
@@ -341,9 +359,11 @@ interface.
 - Blocks returned by `get` and `put!` add stat information as metadata.
 - File stores now keep blocks in a manner compatible with IPFS.
 
+
 ## 0.3.0 - 2015-11-03
 
 Initial project release.
+
 
 [Unreleased]: https://github.com/greglook/blocks/compare/2.0.3...HEAD
 [2.0.3]: https://github.com/greglook/blocks/compare/2.0.2...2.0.3
