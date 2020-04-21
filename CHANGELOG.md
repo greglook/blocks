@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+
+## [2.0.4] - 2020-04-20
+
 ### Changed
 - Upgraded dependencies.
 - Made `blocks.data/bounded-input-stream` public as a utility for implementing
@@ -365,7 +370,8 @@ interface.
 Initial project release.
 
 
-[Unreleased]: https://github.com/greglook/blocks/compare/2.0.3...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/2.0.4...HEAD
+[2.0.4]: https://github.com/greglook/blocks/compare/2.0.3...2.0.4
 [2.0.3]: https://github.com/greglook/blocks/compare/2.0.2...2.0.3
 [2.0.2]: https://github.com/greglook/blocks/compare/2.0.1...2.0.2
 [2.0.1]: https://github.com/greglook/blocks/compare/2.0.0...2.0.1
