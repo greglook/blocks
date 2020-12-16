@@ -4,7 +4,6 @@
     [blocks.data :as data]
     [blocks.store :as store]
     [blocks.test-utils :refer [quiet-exception]]
-    [byte-streams :refer [bytes=]]
     [clojure.java.io :as io]
     [clojure.test :refer [deftest testing is]]
     [manifold.deferred :as d]
@@ -44,7 +43,7 @@
       (is (thrown? IllegalStateException
             (dosync (block/write! block baos))))
       (block/write! block baos)
-      (is (bytes= "frobblenitz" (.toByteArray baos)))))
+      (is (= "frobblenitz" (String. (.toByteArray baos))))))
   (testing "loading"
     (let [lazy-readme (block/from-file "README.md")
           loaded-readme (block/load! lazy-readme)]
@@ -54,8 +53,8 @@
           "load returns loaded block for lazy block")
       (is (identical? loaded-readme (block/load! loaded-readme))
           "load returns loaded block unchanged")
-      (is (bytes= (block/open loaded-readme)
-                  (block/open lazy-readme))
+      (is (= (slurp (block/open loaded-readme))
+             (slurp (block/open lazy-readme)))
           "loaded block content should match lazy block"))))
 
 

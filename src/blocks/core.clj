@@ -10,7 +10,6 @@
     [blocks.meter :as meter]
     [blocks.store :as store]
     [blocks.summary :as sum]
-    [byte-streams :as bytes]
     [clojure.java.io :as io]
     [clojure.string :as str]
     [manifold.deferred :as d]
@@ -140,7 +139,7 @@
   "Write a block's content to an output stream."
   [block out]
   (with-open [stream (open block)]
-    (bytes/transfer stream out)))
+    (io/copy stream out)))
 
 
 (defn load!

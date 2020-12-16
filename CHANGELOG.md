@@ -7,7 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-...
+### Changed
+- Drop `byte-streams` dependency to avoid reflection issues which interfere
+  with Graal native-image compilation.
 
 
 ## [2.0.4] - 2020-04-20

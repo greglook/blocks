@@ -1,6 +1,5 @@
 (ns blocks.bytes-test
   (:require
-    [byte-streams :refer [bytes=]]
     [clojure.test :refer [deftest testing is]])
   (:import
     blocks.data.PersistentBytes))
@@ -44,7 +43,7 @@
     (is (not= (hash pb1) (hash pb3)))
     (is (= (.hasheq pb1) (.hasheq pb2)))
     (is (not= (.hasheq pb1) (.hasheq pb3)))
-    (is (bytes= (.open pb1) "foo"))))
+    (is (= "foo" (slurp (.open pb1))))))
 
 
 (deftest persistent-bytes-coll

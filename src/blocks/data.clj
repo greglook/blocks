@@ -12,11 +12,13 @@
   demand. A block with in-memory content is considered a _loaded block_, while
   blocks with readers are _lazy blocks_."
   (:require
-    [byte-streams :as bytes]
+    [clojure.java.io :as io]
     [multiformats.hash :as multihash])
   (:import
     blocks.data.PersistentBytes
-    java.io.InputStream
+    (java.io
+      ByteArrayOutputStream
+      InputStream)
     java.time.Instant
     multiformats.hash.Multihash
     (org.apache.commons.io.input
@@ -200,6 +202,17 @@
   (Instant/now))
 
 
+(defn- to-byte-array
+  "Coerce the given source into a byte array."
+  ^bytes
+  [source]
+  (if (bytes? source)
+    source
+    (let [baos (ByteArrayOutputStream.)]
+      (io/copy source baos)
+      (.toByteArray baos))))
+
+
 (defn hasher
   "Return the hashing function for an algorithm keyword, or throw an exception
   if no supported function is available."
@@ -236,7 +249,7 @@
   "Create a block by reading the source into memory and hashing it."
   [algorithm source]
   (let [hash-fn (hasher algorithm)
-        content (PersistentBytes/wrap (bytes/to-byte-array source))
+        content (PersistentBytes/wrap (to-byte-array source))
         size (count content)]
     (when (pos? size)
       (create-block (hash-fn (read-all content)) size (now) content))))

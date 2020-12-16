@@ -10,7 +10,6 @@
     [blocks.store.memory :refer [memory-block-store]]
     [blocks.store.replica :refer [replica-block-store]]
     [blocks.store.tests :as tests]
-    [byte-streams :as bytes :refer [bytes=]]
     [clojure.java.io :as io]
     [clojure.repl :refer :all]
     [clojure.stacktrace :refer [print-cause-trace]]
