@@ -1,4 +1,4 @@
-(defproject mvxcvi/blocks "2.1.0-SNAPSHOT"
+(defproject mvxcvi/blocks "2.1.0"
   :description "Content-addressed data storage interface."
   :url "https://github.com/greglook/blocks"
   :license {:name "Public Domain"

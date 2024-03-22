@@ -7,9 +7,16 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+
+## [2.1.0] - 2024-03-22
+
 ### Changed
 - Drop `byte-streams` dependency to avoid reflection issues which interfere
   with Graal native-image compilation.
+- Update most dependencies to latest versions.
+- Update style/lint/CI tooling.
 
 
 ## [2.0.4] - 2020-04-20
@@ -372,7 +379,8 @@ interface.
 Initial project release.
 
 
-[Unreleased]: https://github.com/greglook/blocks/compare/2.0.4...HEAD
+[Unreleased]: https://github.com/greglook/blocks/compare/2.1.0...HEAD
+[2.1.0]: https://github.com/greglook/blocks/compare/2.0.4...2.1.0
 [2.0.4]: https://github.com/greglook/blocks/compare/2.0.3...2.0.4
 [2.0.3]: https://github.com/greglook/blocks/compare/2.0.2...2.0.3
 [2.0.2]: https://github.com/greglook/blocks/compare/2.0.1...2.0.2
