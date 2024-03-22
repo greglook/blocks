@@ -86,7 +86,6 @@
         true))))
 
 
-
 ;; ## Constructors
 
 (store/privatize-constructors! MemoryBlockStore)

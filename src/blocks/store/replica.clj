@@ -54,7 +54,7 @@
 
   (-get
     [this id]
-    ; OPTIMIZE: query in parallel, use `d/alt`?
+    ;; OPTIMIZE: query in parallel, use `d/alt`?
     (store/some-store (resolve-stores this) block/get id))
 
 
@@ -76,7 +76,6 @@
       (store/zip-stores (resolve-stores this) block/delete! id)
       (partial some true?)
       boolean)))
-
 
 
 ;; ## Constructors

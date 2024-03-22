@@ -87,7 +87,7 @@
       (is (nil? @(block/stat (:cache store) (:id block))) "cache should not store block"))))
 
 
-; TODO: cache behavior on get/put directly
+;; TODO: cache behavior on get/put directly
 
 
 (deftest ^:integration check-behavior

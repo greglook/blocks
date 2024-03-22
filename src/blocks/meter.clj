@@ -72,7 +72,6 @@
         (log/warn ex "Failure while recording metric")))))
 
 
-
 ;; ## Stream Metering
 
 (def ^:dynamic *io-report-period*
@@ -141,7 +140,6 @@
           (.close input-stream))))))
 
 
-
 ;; ## Metered Content
 
 (deftype MeteredContentReader
@@ -180,7 +178,6 @@
                  metric-type
                  (:id block)))
       block)))
-
 
 
 ;; ## Method Wrappers

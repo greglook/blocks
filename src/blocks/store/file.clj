@@ -171,7 +171,7 @@
     (with-meta
       (data/create-block
         id (:size stats) (:stored-at stats)
-        ; OPTIMIZE: use java.io.RandomAccessFile to read subranges
+        ;; OPTIMIZE: use java.io.RandomAccessFile to read subranges
         (fn reader [] (FileInputStream. file)))
       (meta stats))))
 
@@ -205,29 +205,29 @@
   [store]
   (let [^File root (:root store)]
     (if (empty? (.listFiles root))
-      ; Root doesn't exist or is empty, so initialize the storage layout.
+      ;; Root doesn't exist or is empty, so initialize the storage layout.
       (write-meta-properties root)
-      ; Try loading store metadata.
+      ;; Try loading store metadata.
       (let [properties (read-meta-properties root)]
         (if (nil? properties)
-          ; No meta-properties file; check for v0 layout.
+          ;; No meta-properties file; check for v0 layout.
           (do
-            ; Check for unknown file content in root.
+            ;; Check for unknown file content in root.
             (when-not (every? v0-subdir? (.listFiles root))
               (throw (ex-info
                        (str "Detected unknown files in block store at " root)
                        {:files (vec (.listFiles root))})))
-            ; Possible v0 store. Abort unless configured to migrate.
+            ;; Possible v0 store. Abort unless configured to migrate.
             (when-not (:auto-migrate? store)
               (throw (ex-info
                        (str "Detected v0 file block store layout at " root)
                        {:root root})))
-            ; Migrate to v1 layout.
+            ;; Migrate to v1 layout.
             (log/warn "Automatically migrating file block store layout at"
                       (.getPath root) "from v0 ->" layout-version)
             (migrate-v0! root)
             (write-meta-properties root))
-          ; Check for known layout version.
+          ;; Check for known layout version.
           (let [version (:version properties)]
             (when (not= layout-version version)
               (throw (ex-info
@@ -236,7 +236,7 @@
                             (pr-str layout-version))
                        {:supported layout-version
                         :properties properties})))
-            ; Layout matches the expected version.
+            ;; Layout matches the expected version.
             properties))))))
 
 
@@ -246,7 +246,6 @@
   (when (.isDirectory path)
     (run! rm-r (.listFiles path)))
   (.delete path))
-
 
 
 ;; ## File Store
@@ -262,7 +261,7 @@
     [this]
     (let [properties (initialize-layout! this)
           version (:version properties)]
-      ;(log/debug "Using storage layout version" version)
+      ;; (log/debug "Using storage layout version" version)
       (assoc this :version version)))
 
 
@@ -281,13 +280,13 @@
           (loop [files (block-files root (:after opts))]
             (when-let [file (first files)]
               (if-let [id (file->id root file)]
-                ; Check that the id is still before the marker, if set.
+                ;; Check that the id is still before the marker, if set.
                 (when (or (nil? (:before opts))
                           (pos? (compare (:before opts) (multihash/hex id))))
-                  ; Process next block.
+                  ;; Process next block.
                   (when @(s/put! out (file->block id file))
                     (recur (next files))))
-                ; Not a valid block file, skip.
+                ;; Not a valid block file, skip.
                 (recur (next files)))))
           (catch Exception ex
             (log/error ex "Failure listing file blocks")
@@ -345,7 +344,6 @@
       (rm-r (landing-dir root))
       (rm-r (blocks-dir root))
       true)))
-
 
 
 ;; ## Constructors

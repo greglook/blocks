@@ -34,7 +34,7 @@
    content
    _meta]
 
-  ;:load-ns true
+  ;; :load-ns true
 
 
   java.lang.Object
@@ -107,7 +107,6 @@
   (.write w (str v)))
 
 
-
 ;; ## Content Readers
 
 (defprotocol ContentReader
@@ -160,7 +159,7 @@
 
   (read-range
     [this start end]
-    ; Ranged open not supported for generic functions, use naive approach.
+    ;; Ranged open not supported for generic functions, use naive approach.
     (bounded-input-stream (this) start end)))
 
 
@@ -184,7 +183,6 @@
   "True if the block has content loaded into memory as persistent bytes."
   [^Block block]
   (persistent-bytes? (.content block)))
-
 
 
 ;; ## Constructors

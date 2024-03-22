@@ -65,7 +65,6 @@
     value which yields when the store is erased."))
 
 
-
 ;; ## Store Construction
 
 (defn parse-uri
@@ -120,7 +119,6 @@
        (privatize! ~(symbol (str "map->" record-name)))))
 
 
-
 ;; ## Async Utilities
 
 (defn ^:no-doc schedule-future!
@@ -167,7 +165,6 @@
             result))))))
 
 
-
 ;; ## Stream Utilities
 
 (defn preferred-block
@@ -193,30 +190,30 @@
       (fn test-block
         [block]
         (if (instance? Throwable block)
-          ; Propagate error on the stream.
+          ;; Propagate error on the stream.
           (do (s/put! out block)
               (s/close! out)
               (d/success-deferred false))
-          ; Determine if block matches query criteria.
+          ;; Determine if block matches query criteria.
           (let [id (:id block)
                 hex (multihash/hex id)]
             (cond
-              ; Ignore any blocks which don't match the algorithm.
+              ;; Ignore any blocks which don't match the algorithm.
               (and algorithm (not= algorithm (:algorithm id)))
               (d/success-deferred true)
 
-              ; Drop blocks until an id later than `after`.
+              ;; Drop blocks until an id later than `after`.
               (and after (not (neg? (compare after hex))))
               (d/success-deferred true)
 
-              ; Terminate the stream if block is later than `before` or `limit`
-              ; blocks have already been returned.
+              ;; Terminate the stream if block is later than `before` or `limit`
+              ;; blocks have already been returned.
               (or (and before (not (pos? (compare before hex))))
                   (and (pos-int? limit) (< limit (swap! counter inc))))
               (do (s/close! out)
                   (d/success-deferred false))
 
-              ; Otherwise, pass the block along.
+              ;; Otherwise, pass the block along.
               :else
               (s/put! out block)))))
       out
@@ -243,7 +240,7 @@
           out (s/stream)]
       (d/loop [inputs (map vector intermediates (repeat nil))]
         (d/chain
-          ; Take the head value from each stream we don't already have.
+          ;; Take the head value from each stream we don't already have.
           (->>
             inputs
             (map (fn take-next
@@ -254,39 +251,39 @@
                        (partial vector input))
                      pair)))
             (apply d/zip))
-          ; Remove drained streams from consideration.
+          ;; Remove drained streams from consideration.
           (fn remove-drained
             [inputs]
             (remove #(identical? ::drained (second %)) inputs))
-          ; Find the next earliest block to return.
+          ;; Find the next earliest block to return.
           (fn find-next
             [inputs]
             (if (empty? inputs)
-              ; Every input is drained.
+              ;; Every input is drained.
               (s/close! out)
-              ; Check inputs for errors.
+              ;; Check inputs for errors.
               (if-let [error (->> (map second inputs)
                                   (filter #(instance? Throwable %))
                                   (first))]
-                ; Propagate error.
+                ;; Propagate error.
                 (d/finally
                   (s/put! out error)
                   #(s/close! out))
-                ; Determine the next block to output.
+                ;; Determine the next block to output.
                 (let [earliest (first (sort-by :id (map second inputs)))]
                   (d/chain
                     (s/put! out earliest)
                     (fn check-put
                       [result]
                       (if result
-                        ; Remove any blocks matching the one emitted.
+                        ;; Remove any blocks matching the one emitted.
                         (d/recur (mapv (fn remove-earliest
                                          [[input head :as pair]]
                                          (if (= (:id earliest) (:id head))
                                            [input nil]
                                            pair))
                                        inputs))
-                        ; Out was closed on us.
+                        ;; Out was closed on us.
                         false)))))))))
       (s/source-only out))))
 
@@ -322,34 +319,34 @@
         (fn compare-next
           [[s d]]
           (cond
-            ; Source stream exhausted; terminate sequence.
+            ;; Source stream exhausted; terminate sequence.
             (identical? ::drained s)
             (close-all!)
 
-            ; Destination stream exhausted; return remaining blocks in source.
+            ;; Destination stream exhausted; return remaining blocks in source.
             (identical? ::drained d)
             (-> (s/put! out s)
                 (d/chain
                   (fn [_] (s/drain-into src out)))
                 (d/finally close-all!))
 
-            ; Source threw an error; propagate it.
+            ;; Source threw an error; propagate it.
             (instance? Throwable s)
             (d/finally
               (s/put! out s)
               close-all!)
 
-            ; Dest threw an error; propagate it.
+            ;; Dest threw an error; propagate it.
             (instance? Throwable d)
             (d/finally
               (s/put! out d)
               close-all!)
 
-            ; Block is present in both streams; drop and continue.
+            ;; Block is present in both streams; drop and continue.
             (= (:id s) (:id d))
             (d/recur nil nil)
 
-            ; Source has a block not in dest.
+            ;; Source has a block not in dest.
             (neg? (compare (:id s) (:id d)))
             (d/chain
               (s/put! out s)
@@ -358,7 +355,7 @@
                 (when result
                   (d/recur nil d))))
 
-            ; Next source block comes after some dest blocks; skip forward.
+            ;; Next source block comes after some dest blocks; skip forward.
             :else
             (d/recur s nil)))))
     (s/source-only out)))

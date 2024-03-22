@@ -112,7 +112,6 @@
     (s/reduce sum/update (sum/init))))
 
 
-
 ;; ## Constructors
 
 (store/privatize-constructors! BufferBlockStore)

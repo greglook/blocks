@@ -83,7 +83,7 @@
       (let [{:keys [priorities total-size]} @state]
         (if (and (< (- size-limit total-size) target-free)
                  (seq priorities))
-          ; Need to delete the next block.
+          ;; Need to delete the next block.
           (let [[id [_ size]] (peek priorities)]
             (swap! state remove-block id)
             (d/chain
@@ -93,7 +93,7 @@
                 (d/recur (if deleted?
                            (sum/update deleted {:id id, :size size})
                            deleted)))))
-          ; Enough free space, or no more blocks to delete.
+          ;; Enough free space, or no more blocks to delete.
           deleted)))))
 
 
@@ -165,20 +165,20 @@
       (fn recache
         [block]
         (cond
-          ; Block not present in cache or primary.
+          ;; Block not present in cache or primary.
           (nil? block)
           nil
 
-          ; Block is already cached.
+          ;; Block is already cached.
           (::cached? (meta block))
           (do (swap! state touch-block block)
               block)
 
-          ; Determine whether to cache the primary block.
+          ;; Determine whether to cache the primary block.
           (cacheable? this block)
           (cache-block! this block)
 
-          ; Non cacheable block from the primary store.
+          ;; Non cacheable block from the primary store.
           :else block))))
 
 
@@ -217,7 +217,6 @@
         (block/erase! primary)
         (block/erase! cache))
       (constantly true))))
-
 
 
 ;; ## Constructors

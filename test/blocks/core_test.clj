@@ -103,7 +103,6 @@
       (is (true? (block/validate! base))))))
 
 
-
 ;; ## Storage API
 
 (deftest store-construction
@@ -327,7 +326,6 @@
       (is (= #{} @(block/delete-batch! store [])))
       (is (= #{(:id a) (:id b)}
              @(block/delete-batch! store [(:id a) (multihash/sha1 "qux") (:id b)]))))))
-
 
 
 ;; ## Storage Utilities

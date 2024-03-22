@@ -48,7 +48,6 @@
     blocks))
 
 
-
 ;; ## Operation Generators
 
 ;; Appease clj-kondo
@@ -338,7 +337,6 @@
                       ks)]
     (fn [ctx]
       (into [] (mapcat #(% ctx)) op-gens))))
-
 
 
 ;; ## Operation Testing

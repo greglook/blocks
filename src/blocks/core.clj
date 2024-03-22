@@ -57,7 +57,6 @@
   (instance? Multihash x))
 
 
-
 ;; ## Block IO
 
 (defn loaded?
@@ -191,7 +190,6 @@
     true))
 
 
-
 ;; ## Storage API
 
 (defn ->store
@@ -219,14 +217,14 @@
   [store & opts]
   (let [opts (args->map opts)
         opts (merge
-               ; Validate algorithm option.
+               ;; Validate algorithm option.
                (when-let [algorithm (:algorithm opts)]
                  (if (keyword? algorithm)
                    {:algorithm algorithm}
                    (throw (IllegalArgumentException.
                             (str "Option :algorithm is not a keyword: "
                                  (pr-str algorithm))))))
-               ; Validate 'after' boundary.
+               ;; Validate 'after' boundary.
                (when-let [after (:after opts)]
                  (cond
                    (hex-string? after)
@@ -239,7 +237,7 @@
                    (throw (IllegalArgumentException.
                             (str "Option :after is not a hex string or multihash: "
                                  (pr-str after))))))
-               ; Validate 'before' boundary.
+               ;; Validate 'before' boundary.
                (when-let [before (:before opts)]
                  (cond
                    (hex-string? before)
@@ -252,14 +250,14 @@
                    (throw (IllegalArgumentException.
                             (str "Option :before is not a hex string or multihash: "
                                  (pr-str before))))))
-               ; Validate query limit.
+               ;; Validate query limit.
                (when-let [limit (:limit opts)]
                  (if (pos-int? limit)
                    {:limit limit}
                    (throw (IllegalArgumentException.
                             (str "Option :limit is not a positive integer: "
                                  (pr-str limit))))))
-               ; Ensure no other options.
+               ;; Ensure no other options.
                (when-let [bad-opts (not-empty (dissoc opts :algorithm :after :before :limit))]
                  (throw (IllegalArgumentException.
                           (str "Unknown options passed to list: " (pr-str bad-opts))))))]
@@ -396,7 +394,6 @@
     (io! (store/-delete! store id))))
 
 
-
 ;; ## Batch API
 
 (defn get-batch
@@ -448,7 +445,6 @@
     (d/success-deferred #{})))
 
 
-
 ;; ## Storage Utilities
 
 (defn scan
@@ -483,7 +479,7 @@
       (meter/measure-method
         store :erase! nil
         (store/-erase! store))
-      ; TODO: should be able to parallelize this - how to communicate errors?
+      ;; TODO: should be able to parallelize this - how to communicate errors?
       (s/consume-async
         (fn erase-block
           [block]
