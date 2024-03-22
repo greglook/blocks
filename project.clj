@@ -7,7 +7,7 @@
   :aliases
   {"coverage" ["with-profile" "+coverage" "cloverage"]}
 
-  :deploy-branches ["master"]
+  :deploy-branches ["main"]
   :java-source-paths ["src"]
   :pedantic? :abort
 
