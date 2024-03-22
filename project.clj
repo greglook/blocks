@@ -12,13 +12,13 @@
   :pedantic? :abort
 
   :dependencies
-  [[org.clojure/clojure "1.10.1"]
-   [org.clojure/data.priority-map "1.0.0"]
-   [org.clojure/tools.logging "1.1.0"]
-   [com.stuartsierra/component "1.0.0"]
-   [commons-io "2.8.0"]
-   [manifold "0.1.8"]
-   [mvxcvi/multiformats "0.2.1"]]
+  [[org.clojure/clojure "1.11.2"]
+   [org.clojure/data.priority-map "1.2.0"]
+   [org.clojure/tools.logging "1.3.0"]
+   [com.stuartsierra/component "1.1.0"]
+   [commons-io "2.15.1"]
+   [manifold "0.4.2"]
+   [mvxcvi/multiformats "0.3.107"]]
 
   :test-selectors
   {:default (complement :integration)
@@ -44,9 +44,9 @@
   {:dev
    {:source-paths ["blocks-tests/src"]
     :dependencies
-    [[org.clojure/test.check "1.1.0"]
-     [commons-logging "1.2"]
-     [mvxcvi/puget "1.3.1"]
+    [[org.clojure/test.check "1.1.1"]
+     [commons-logging "1.3.0"]
+     [mvxcvi/puget "1.3.4"]
      [mvxcvi/test.carly "0.4.1"]]}
 
    :repl
@@ -57,7 +57,7 @@
 
    :coverage
    {:plugins
-    [[org.clojure/clojure "1.10.1"]
-     [lein-cloverage "1.1.2"]]
+    [[org.clojure/clojure "1.11.2"]
+     [lein-cloverage "1.2.4"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog"
                "-Dorg.apache.commons.logging.simplelog.defaultlog=trace"]}})
