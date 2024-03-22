@@ -38,24 +38,24 @@
   store/BlockStore
 
   (-list
-    [this opts]
+    [_ opts]
     (store/merge-blocks
       (block/list buffer opts)
       (block/list primary opts)))
 
 
   (-stat
-    [this id]
+    [_ id]
     (store/some-store [buffer primary] block/stat id))
 
 
   (-get
-    [this id]
+    [_ id]
     (store/some-store [buffer primary] block/get id))
 
 
   (-put!
-    [this block]
+    [_ block]
     (d/chain
       (block/get primary (:id block))
       (fn store-block
@@ -67,7 +67,7 @@
 
 
   (-delete!
-    [this id]
+    [_ id]
     (d/chain
       (d/zip
         (block/delete! buffer id)

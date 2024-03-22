@@ -119,7 +119,7 @@
         store (reify store/BlockStore
 
                 (-list
-                  [_ opts]
+                  [_ _]
                   (s/->source [{:id a} {:id b} {:id c} {:id d}])))]
     (testing "io check"
       (is (thrown? IllegalStateException
@@ -174,7 +174,7 @@
                 (reify store/BlockStore
 
                   (-list
-                    [_ opts]
+                    [_ _]
                     (s/->source [{:id a} (quiet-exception)]))))))
           "rethrows stream exceptions")
       (is (thrown-with-msg? Exception #"stream consumption timed out"
@@ -183,7 +183,7 @@
                 (reify store/BlockStore
 
                   (-list
-                    [_ opts]
+                    [_ _]
                     (s/stream)))
                 :timeout 10)))))))
 
@@ -220,14 +220,14 @@
     (let [store (reify store/BlockStore
 
                   (-get
-                    [_ id]
+                    [_ _id]
                     (d/success-deferred nil)))]
       (is (nil? @(block/get store (multihash/sha1 "foo bar"))))))
   (testing "invalid block result"
     (let [store (reify store/BlockStore
 
                   (-get
-                    [_ id]
+                    [_ _id]
                     (d/success-deferred (block/read! "foo"))))
           other-id (multihash/sha1 "baz")]
       (is (thrown? RuntimeException
@@ -237,7 +237,7 @@
           store (reify store/BlockStore
 
                   (-get
-                    [_ id]
+                    [_ _id]
                     (d/success-deferred block)))]
       (is (= block @(block/get store (:id block)))))))
 
@@ -340,7 +340,7 @@
         store (reify store/BlockStore
 
                 (-list
-                  [_ opts]
+                  [_ _]
                   (s/->source [a b c d])))]
     (is (thrown? IllegalStateException
           (dosync (block/scan store))))
@@ -362,7 +362,7 @@
         store (reify store/BlockStore
 
                 (-list
-                  [_ opts]
+                  [_ _]
                   (s/->source [a b c]))
 
                 (-delete!
@@ -384,13 +384,13 @@
                        (reify store/BlockStore
 
                          (-list
-                           [_ opts]
+                           [_ _]
                            (s/->source blocks))))
         sink-store (fn [target & blocks]
                      (reify store/BlockStore
 
                        (-list
-                         [_ opts]
+                         [_ _]
                          (s/->source (vec blocks)))
 
                        (-put!

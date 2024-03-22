@@ -142,14 +142,14 @@
   store/BlockStore
 
   (-list
-    [this opts]
+    [_ opts]
     (store/merge-blocks
       (block/list cache opts)
       (block/list primary opts)))
 
 
   (-stat
-    [this id]
+    [_ id]
     (store/some-store [cache primary] block/stat id))
 
 
@@ -198,7 +198,7 @@
 
 
   (-delete!
-    [this id]
+    [_ id]
     (d/chain
       (d/zip
         (block/delete! primary id)
@@ -211,7 +211,7 @@
   store/ErasableStore
 
   (-erase!
-    [this]
+    [_]
     (d/chain
       (d/zip
         (block/erase! primary)

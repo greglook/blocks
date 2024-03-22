@@ -40,7 +40,7 @@
   java.lang.Object
 
   (toString
-    [this]
+    [_]
     (format "Block[%s %s %s]" id size stored-at))
 
 
@@ -64,7 +64,7 @@
   java.lang.Comparable
 
   (compareTo
-    [this that]
+    [_ that]
     (if (= id (:id that))
       (if (= size (:size that))
         (if (= stored-at (:stored-at that))
@@ -77,12 +77,12 @@
   clojure.lang.IObj
 
   (meta
-    [this]
+    [_]
     _meta)
 
 
   (withMeta
-    [this meta-map]
+    [_ meta-map]
     (Block. id size stored-at content meta-map))
 
 
@@ -94,7 +94,7 @@
 
 
   (valAt
-    [this k not-found]
+    [_ k not-found]
     (case k
       :id id
       :size size

@@ -274,7 +274,7 @@
   store/BlockStore
 
   (-list
-    [this opts]
+    [_ opts]
     (let [out (s/stream 1000)]
       (store/future'
         (try
@@ -298,7 +298,7 @@
 
 
   (-stat
-    [this id]
+    [_ id]
     (store/future'
       (let [file (id->file root id)]
         (when (.exists file)
@@ -306,7 +306,7 @@
 
 
   (-get
-    [this id]
+    [_ id]
     (store/future'
       (let [file (id->file root id)]
         (when (.exists file)
@@ -314,7 +314,7 @@
 
 
   (-put!
-    [this block]
+    [_ block]
     (store/future'
       (let [id (:id block)
             file (id->file root id)]
@@ -329,7 +329,7 @@
 
 
   (-delete!
-    [this id]
+    [_ id]
     (store/future'
       (let [file (id->file root id)]
         (if (.exists file)
@@ -340,7 +340,7 @@
   store/ErasableStore
 
   (-erase!
-    [this]
+    [_]
     (store/future'
       (rm-r (landing-dir root))
       (rm-r (blocks-dir root))

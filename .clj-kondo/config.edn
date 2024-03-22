@@ -16,4 +16,4 @@
   {:level :info}}
 
  :lint-as
- {manifold.deferred/loop clojure.core/loop}}
+ {manifold.deferred/loop clojure.core/let}}

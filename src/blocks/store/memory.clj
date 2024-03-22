@@ -36,12 +36,12 @@
   store/BlockStore
 
   (-list
-    [this opts]
+    [_ _opts]
     (s/->source (or (vals @memory) [])))
 
 
   (-stat
-    [this id]
+    [_ id]
     (d/success-deferred
       (when-let [block (get @memory id)]
         {:id (:id block)
@@ -50,13 +50,13 @@
 
 
   (-get
-    [this id]
+    [_ id]
     (d/success-deferred
       (get @memory id)))
 
 
   (-put!
-    [this block]
+    [_ block]
     (let [id (:id block)]
       (store/future'
         (dosync
@@ -68,7 +68,7 @@
 
 
   (-delete!
-    [this id]
+    [_ id]
     (store/future'
       (dosync
         (let [existed? (contains? @memory id)]
@@ -79,7 +79,7 @@
   store/ErasableStore
 
   (-erase!
-    [this]
+    [_]
     (store/future'
       (dosync
         (alter memory empty)

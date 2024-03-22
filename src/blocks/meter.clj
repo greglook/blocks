@@ -150,14 +150,14 @@
   data/ContentReader
 
   (read-all
-    [this]
+    [_]
     (metering-input-stream
       store metric-type block-id
       (data/read-all content)))
 
 
   (read-range
-    [this start end]
+    [_ start end]
     (metering-input-stream
       store metric-type block-id
       (data/read-range content start end))))
